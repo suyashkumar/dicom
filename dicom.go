@@ -91,7 +91,7 @@ func (file *DicomFile) appendDataElement(elem *DicomElement) {
 }
 
 // Lookup a tag by name
-func (file *DicomFile) lookupElement(name string) (*DicomElement, error) {
+func (file *DicomFile) LookupElement(name string) (*DicomElement, error) {
 
 	for _, elem := range file.Elements {
 		if elem.Name == name {

@@ -7,6 +7,14 @@ import (
 	"strings"
 )
 
+const (
+	dict_col_tag = 0
+	dict_col_vr = 1
+	dict_col_name = 2
+	dict_col_vm = 3
+	dict_col_version = 4
+)
+
 // Read a tab-separated DICOM dictionary file and find the specified field
 //
 // Tag   VR  Name      VM  Version
@@ -14,19 +22,19 @@ func lookupTag(tag string, field string) (string, error) {
 
 	tag = strings.ToUpper(tag)
 
-	column := 0
+	var column int
 
 	switch field {
 	case "Tag":
-		column = 0
+		column = dict_col_tag
 	case "VR":
-		column = 1
+		column = dict_col_vr
 	case "Name":
-		column = 2
+		column = dict_col_name
 	case "VM":
-		column = 3
+		column = dict_col_vm
 	case "Version":
-		column = 4
+		column = dict_col_version
 	}
 
 	file, err := os.Open("dicom.dic")

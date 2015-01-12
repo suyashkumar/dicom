@@ -3,7 +3,6 @@ package dicom
 import (
 	"bytes"
 	"errors"
-	"fmt"
 )
 
 type DicomFile struct {
@@ -16,7 +15,12 @@ type DicomFile struct {
 var (
 	ErrIllegalTag = errors.New("Illegal tag found in PixelData")
 	ErrTagNotFound = errors.New("Could not find tag in dicom dictionary")
-	ErrWrongNumberSize = errors.New("Not a valid byte size for readNumber.")
+	ErrWrongNumberSize = errors.New("Not a valid byte size for readNumber")
+	ErrBrokenFile = errors.New("Invalid DICOM file")
+)
+
+const (
+	magic_word = "DICM"
 )
 
 // Parse a byte array, returns a DICOM file struct
@@ -26,8 +30,8 @@ func Parse(buff []byte) (*DicomFile, error) {
 	buffer.Next(128) // skip preamble
 
 	// check for magic word
-	if magicWord := string(buffer.Next(4)); magicWord != "DICM" {
-		return nil, fmt.Errorf("Invalid DICOM file")
+	if magicWord := string(buffer.Next(4)); magicWord != magic_word {
+		return nil, ErrBrokenFile
 	}
 
 	file := &DicomFile{}

@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+// Constants
+const (
+	pixeldata_group = "FFFE"
+	unknown_group_name = "Dicom::Unknown"
+)
+
 // A DICOM element
 type DicomElement struct {
 	Name    string
@@ -32,7 +38,7 @@ func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 	var vl uint32 = 0 // Value Length
 
 	// always read (PixelData) implicit
-	if (elem.Group == "FFFE") {
+	if (elem.Group == pixeldata_group) {
 		implicit = true
 	}
 
@@ -156,7 +162,7 @@ func readTag(buffer *bytes.Buffer) *DicomElement {
 
 	if err != nil {
 		if err == ErrTagNotFound {
-			name = "unknown"
+			name = unknown_group_name
 		} else {
 			panic(err)
 		}

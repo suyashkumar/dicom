@@ -29,7 +29,7 @@ func (e *DicomElement) getTag() string {
 }
 
 // Read a DICOM data element
-func ReadDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
+func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 
 	elem := readTag(buffer)
 

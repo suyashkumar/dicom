@@ -31,14 +31,14 @@ func Parse(buff []byte) (*DicomFile, error) {
 	file := &DicomFile{}
 
 	// (0002,0000) MetaElementGroupLength
-	metaElem := ReadDataElement(buffer, false)
+	metaElem := readDataElement(buffer, false)
 	metaLength := int(metaElem.Value.(uint32))
 	file.appendDataElement(metaElem)
 
 	// Read meta tags
 	start := buffer.Len()
 	for start-buffer.Len() < metaLength {
-		elem := ReadDataElement(buffer, false)
+		elem := readDataElement(buffer, false)
 		file.appendDataElement(elem)
 	}
 
@@ -47,7 +47,7 @@ func Parse(buff []byte) (*DicomFile, error) {
 	// Start with image meta data
 	for buffer.Len() != 0 {
 
-		elem := ReadDataElement(buffer, false)
+		elem := readDataElement(buffer, false)
 		name := elem.Name
 		file.appendDataElement(elem)
 

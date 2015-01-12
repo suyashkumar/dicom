@@ -4,24 +4,32 @@ import (
 	"fmt"
 	"github.com/gillesdemey/go-dicom"
 	"io/ioutil"
+	"path/filepath"
 )
 
 func main() {
 
-	file, err := ioutil.ReadFile("examples/IM-0001-0001.dcm")
+	// parse all DICOM files
+	files, _ := filepath.Glob("examples/*.dcm")
 
-	if err != nil {
-		panic(err)
-	}
+	for _, path := range files {
 
-	data, err := dicom.Parse(file)
+		file, err := ioutil.ReadFile(path)
 
-	if err != nil {
-		fmt.Println(err)
-	}
+		if err != nil {
+			panic(err)
+		}
 
-	for _, elem := range data.Elements {
-		fmt.Printf("%+v\n", &elem)
+		data, err := dicom.Parse(file)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		for _, elem := range data.Elements {
+			fmt.Printf("%+v\n", &elem)
+		}
+
 	}
 
 }

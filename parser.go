@@ -31,16 +31,15 @@ func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 	var vr string     // Value Representation
 	var vl uint32 = 0 // Value Length
 
-	// Item group case (PixelData)
-	if elem.Group == "FFFE" {
-		vr = "NA"
-		vl = readUInt32(buffer)
+	// always read (PixelData) implicit
+	if (elem.Group == "FFFE") {
+		implicit = true
+	}
+
+	if implicit {
+		vr, vl = readImplicit(buffer, elem)
 	} else {
-		if implicit {
-			vr, vl = readImplicit(buffer, elem)
-		} else {
-			vr, vl = readExplicit(buffer, elem)
-		}
+		vr, vl = readExplicit(buffer, elem)
 	}
 
 	// Double check the value of VL

@@ -17,9 +17,9 @@ var (
 type DicomElement struct {
 	Name    string
 	Group   string
+	Element string
 	Vr      string
 	Vl      uint32
-	Element string
 	Value   interface{}
 }
 
@@ -33,12 +33,12 @@ func ReadDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 
 	elem := readTag(buffer)
 
-	vr := "N/A"       // Value Representation
+	var vr string     // Value Representation
 	var vl uint32 = 0 // Value Length
 
-	// (private) Item group case
+	// Item group case (PixelData)
 	if elem.Group == "FFFE" {
-		vr = "N/A"
+		vr = "NA"
 		vl = readUInt32(buffer)
 	}
 
@@ -65,18 +65,18 @@ func ReadDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 
 	switch vr {
 	case "US", "UL":
-
 		if vl == 8 {
 			data = readFloat(buffer)
 		} else {
 			data, _ = readNumber(buffer, vl)
 		}
-
 	case "OW":
 		data = readUInt16Array(buffer, vl)
-	case "OB", "N/A":
+	case "OB", "na", "NA":
 		data = readUInt8Array(buffer, vl)
-	case "OX":
+	case "OX", "ox":
+		// TODO: work with the BitsAllocated tag
+		data = readUInt16Array(buffer, vl)
 	default:
 		str := readString(buffer, vl)
 		data = strings.Split(str, "\\")

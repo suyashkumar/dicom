@@ -40,16 +40,12 @@ func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 	if elem.Group == "FFFE" {
 		vr = "NA"
 		vl = readUInt32(buffer)
-	}
-
-	if elem.Group != "FFFE" {
-
+	} else {
 		if implicit {
 			vr, vl = readImplicit(buffer, elem)
 		} else {
 			vr, vl = readExplicit(buffer, elem)
 		}
-
 	}
 
 	// Double check the value of VL

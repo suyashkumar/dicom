@@ -182,8 +182,7 @@ func readTag(buffer *bytes.Buffer) *DicomElement {
 // Read 2 bytes as a hexadecimal value
 func readHex(buffer *bytes.Buffer) string {
 	val := readUInt16(buffer)
-
-	return fmt.Sprintf("%04x", val) // convert to hexadecimal value with leading zeros
+	return strings.ToUpper(fmt.Sprintf("%04x", val)) // convert to hexadecimal value with leading zeros
 }
 
 // Read 4 bytes as an UInt32

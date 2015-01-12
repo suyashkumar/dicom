@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strings"
 )
 
 // Errors
@@ -16,6 +17,8 @@ var (
 //
 // Tag   VR  Name      VM  Version
 func lookupTag(tag string, field string) (string, error) {
+
+	tag = strings.ToUpper(tag)
 
 	column := 0
 

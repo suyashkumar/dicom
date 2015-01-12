@@ -38,3 +38,14 @@ Will print something like:
 &{Name:ImplementationVersionName Group:0002 Vr:SH Vl:10 Element:0013 Value:[OSIRIX001]}
 &{Name:SourceApplicationEntityTitle Group:0002 Vr:AE Vl:6 Element:0016 Value:[OsiriX]}
 ```
+
+### Acknowledgements
+
+I'd like to thank my friend [Seppe Stas](https://github.com/Bitbored/) for helping me get through the horrific DICOM image specification and some of the harder parts of the parser.
+
+Some more inspiration and helpful resource that brought this library to life (in no particular order):
+
+DWV by ivmartel https://github.com/ivmartel/dwv/ <br>
+dicomParser by Chris Hafey https://github.com/chafey/dicomParser <br>
+http://www.dicomlibrary.com <br>
+http://dicom.nema.org/medical/dicom/current/output/pdf/part05.pdf <br>

@@ -3,14 +3,9 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 	"strings"
-)
-
-var (
-	ErrWrongNumberSize = errors.New("Not a valid byte size for readNumber.")
 )
 
 // A DICOM element

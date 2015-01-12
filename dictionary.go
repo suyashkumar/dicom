@@ -2,15 +2,9 @@ package dicom
 
 import (
 	"encoding/csv"
-	"errors"
 	"io"
 	"os"
 	"strings"
-)
-
-// Errors
-var (
-	ErrTagNotFound = errors.New("Could not find tag in dicom dictionary")
 )
 
 // Read a tab-separated DICOM dictionary file and find the specified field

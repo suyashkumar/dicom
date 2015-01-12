@@ -37,6 +37,10 @@ Will print something like:
 &{Name:ImplementationClassUID Group:0002 Vr:UI Vl:22 Element:0012 Value:[1.3.6.1.4.1.19291.2.1]}
 &{Name:ImplementationVersionName Group:0002 Vr:SH Vl:10 Element:0013 Value:[OSIRIX001]}
 &{Name:SourceApplicationEntityTitle Group:0002 Vr:AE Vl:6 Element:0016 Value:[OsiriX]}
+...
+&{Name:RequestedProcedureID Group:0040 Element:1001 Vr:SH Vl:8 Value:[2386679]}
+&{Name:PixelData Group:7FE0 Element:0010 Vr:OW Vl:0 Value:[]}
+&{Name:Item Group:FFFE Element:E000 Vr:na Vl:4 Value:[0 0 0 0]}
 ```
 
 ### Acknowledgements

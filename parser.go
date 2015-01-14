@@ -14,6 +14,10 @@ const (
 	unknown_group_name = "Dicom::Unknown"
 )
 
+var (
+	byteorder = binary.LittleEndian
+)
+
 // A DICOM element
 type DicomElement struct {
 	Name    string
@@ -128,9 +132,9 @@ func readNumber(buffer *bytes.Buffer, size uint32) (uint32, error) {
 	case 1:
 		return uint32(chunk[0]), nil
 	case 2:
-		return uint32(binary.LittleEndian.Uint16(chunk)), nil
+		return uint32(byteorder.Uint16(chunk)), nil
 	case 4:
-		return uint32(binary.LittleEndian.Uint32(chunk)), nil
+		return uint32(byteorder.Uint32(chunk)), nil
 	}
 
 	return 0, ErrWrongNumberSize
@@ -145,7 +149,7 @@ func readString(buffer *bytes.Buffer, size uint32) string {
 // Read 8 consecutive bytes as a float32
 func readFloat(buffer *bytes.Buffer) float32 {
 	chunk := buffer.Next(8)
-	b := binary.LittleEndian.Uint32(chunk)
+	b := byteorder.Uint32(chunk)
 
 	return math.Float32frombits(b)
 }
@@ -184,13 +188,13 @@ func readHex(buffer *bytes.Buffer) string {
 // Read 4 bytes as an UInt32
 func readUInt32(buffer *bytes.Buffer) uint32 {
 	chunk := buffer.Next(4)
-	return binary.LittleEndian.Uint32(chunk)
+	return byteorder.Uint32(chunk)
 }
 
 // Read 2 bytes as an UInt16
 func readUInt16(buffer *bytes.Buffer) uint16 {
 	chunk := buffer.Next(2)                  // 2-bytes chunk
-	return binary.LittleEndian.Uint16(chunk) // read as uint16
+	return byteorder.Uint16(chunk) // read as uint16
 }
 
 // Read x number of bytes as an array of UInt16 values

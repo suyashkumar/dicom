@@ -10,7 +10,7 @@ import (
 
 // Constants
 const (
-	pixeldata_group = "FFFE"
+	pixeldata_group    = "FFFE"
 	unknown_group_name = "Dicom::Unknown"
 )
 
@@ -42,7 +42,7 @@ func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 	var vl uint32 = 0 // Value Length
 
 	// always read (PixelData) implicit
-	if (elem.Group == pixeldata_group) {
+	if elem.Group == pixeldata_group {
 		implicit = true
 	}
 
@@ -193,7 +193,7 @@ func readUInt32(buffer *bytes.Buffer) uint32 {
 
 // Read 2 bytes as an UInt16
 func readUInt16(buffer *bytes.Buffer) uint16 {
-	chunk := buffer.Next(2)                  // 2-bytes chunk
+	chunk := buffer.Next(2)        // 2-bytes chunk
 	return byteorder.Uint16(chunk) // read as uint16
 }
 

@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	dict_col_tag = 0
-	dict_col_vr = 1
-	dict_col_name = 2
-	dict_col_vm = 3
+	dict_col_tag     = 0
+	dict_col_vr      = 1
+	dict_col_name    = 2
+	dict_col_vm      = 3
 	dict_col_version = 4
 )
 

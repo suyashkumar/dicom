@@ -13,10 +13,10 @@ type DicomFile struct {
 
 // Errors
 var (
-	ErrIllegalTag = errors.New("Illegal tag found in PixelData")
-	ErrTagNotFound = errors.New("Could not find tag in dicom dictionary")
+	ErrIllegalTag      = errors.New("Illegal tag found in PixelData")
+	ErrTagNotFound     = errors.New("Could not find tag in dicom dictionary")
 	ErrWrongNumberSize = errors.New("Not a valid byte size for readNumber")
-	ErrBrokenFile = errors.New("Invalid DICOM file")
+	ErrBrokenFile      = errors.New("Invalid DICOM file")
 )
 
 const (

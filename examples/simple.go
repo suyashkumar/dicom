@@ -14,6 +14,8 @@ func main() {
 
 	for _, path := range files {
 
+		fmt.Printf("Parsing file %s\n", path)
+
 		file, err := ioutil.ReadFile(path)
 
 		if err != nil {
@@ -26,10 +28,9 @@ func main() {
 			fmt.Println(err)
 		}
 
-		for _, elem := range data.Elements {
-			fmt.Printf("%+v\n", &elem)
-		}
-
+		patient, _ := data.LookupElement("PatientName")
+		name := patient.Value
+		fmt.Printf("Patient name: %s\n", name)
 	}
 
 }

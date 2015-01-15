@@ -90,9 +90,9 @@ func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 // Read the VR from the DICOM ditionary
 // The VL is a 32-bit unsigned integer
 func readImplicit(buffer *bytes.Buffer, elem *DicomElement) (string, uint32) {
-	tag := elem.getTag()
 
-	vr, err := lookupTag(tag, "VR")
+	tag, err := lookupTag(elem.getTag())
+	vr := tag.vr
 
 	if err != nil {
 		if err == ErrTagNotFound {
@@ -161,8 +161,8 @@ func readTag(buffer *bytes.Buffer) *DicomElement {
 	group := readHex(buffer)   // group
 	element := readHex(buffer) // element
 
-	tag := fmt.Sprintf("(%s,%s)", group, element)
-	name, err := lookupTag(tag, "Name")
+	tag, err := lookupTag(fmt.Sprintf("(%s,%s)", group, element))
+	name := tag.name
 
 	if err != nil {
 		if err == ErrTagNotFound {

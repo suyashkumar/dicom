@@ -15,33 +15,23 @@ const (
 	dict_col_version = 4
 )
 
-// Read a tab-separated DICOM dictionary file and find the specified field
-//
-// Tag   VR  Name      VM  Version
-func lookupTag(tag string, field string) (string, error) {
+type dicomRow struct {
+	tag     string
+	vr      string
+	name    string
+	vm      string
+	version string
+}
 
-	tag = strings.ToUpper(tag)
+var dictionary = make(map[string]*dicomRow)
 
-	var column int
-
-	switch field {
-	case "Tag":
-		column = dict_col_tag
-	case "VR":
-		column = dict_col_vr
-	case "Name":
-		column = dict_col_name
-	case "VM":
-		column = dict_col_vm
-	case "Version":
-		column = dict_col_version
-	}
+func marshalFile() error {
 
 	file, err := os.Open("dicom.dic")
 	defer file.Close()
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	reader := csv.NewReader(file)
@@ -56,18 +46,41 @@ func lookupTag(tag string, field string) (string, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return "", err
+			return err
 		}
 
-		if row[0] == tag {
-			return row[column], nil
+		r := &dicomRow{
+			tag:     row[0],
+			vr:      row[1],
+			name:    row[2],
+			vm:      row[3],
+			version: row[4],
 		}
 
+		dictionary[r.tag] = r
 	}
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return "", ErrTagNotFound
+	return nil
+}
+
+// Read a tab-separated DICOM dictionary file and find the specified field
+//
+// Tag   VR  Name      VM  Version
+func lookupTag(tag string) (*dicomRow, error) {
+
+	if len(dictionary) == 0 {
+		marshalFile()
+	}
+
+	tag = strings.ToUpper(tag)
+
+	if dictionary[tag] != nil {
+		return dictionary[tag], nil
+	}
+
+	return nil, ErrTagNotFound
 }

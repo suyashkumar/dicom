@@ -12,7 +12,7 @@ func init() {
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
   for i := 0; i < b.N; i++ {
 
-    _, err := lookupTag("(0002,0000)", "Name")
+    _, err := lookupTag("(0002,0000)")
 
     if err != nil {
       fmt.Println(err)
@@ -24,7 +24,7 @@ func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
 func BenchmarkFindPixelDataTag(b *testing.B) {
   for i := 0; i < b.N; i++ {
 
-    _, err := lookupTag("(7FE0,0010)", "Name")
+    _, err := lookupTag("(7FE0,0010)")
 
     if err != nil {
       fmt.Println(err)

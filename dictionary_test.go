@@ -1,8 +1,8 @@
 package dicom
 
 import (
-  "fmt"
-  "testing"
+	"fmt"
+	"testing"
 )
 
 func init() {
@@ -10,25 +10,25 @@ func init() {
 }
 
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
-  for i := 0; i < b.N; i++ {
+	for i := 0; i < b.N; i++ {
 
-    _, err := lookupTag("(0002,0000)")
+		_, err := lookupTag("(0002,0000)")
 
-    if err != nil {
-      fmt.Println(err)
-    }
+		if err != nil {
+			fmt.Println(err)
+		}
 
-  }
+	}
 }
 
 func BenchmarkFindPixelDataTag(b *testing.B) {
-  for i := 0; i < b.N; i++ {
+	for i := 0; i < b.N; i++ {
 
-    _, err := lookupTag("(7FE0,0010)")
+		_, err := lookupTag("(7FE0,0010)")
 
-    if err != nil {
-      fmt.Println(err)
-    }
+		if err != nil {
+			fmt.Println(err)
+		}
 
-  }
+	}
 }

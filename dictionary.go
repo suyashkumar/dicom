@@ -3,71 +3,61 @@ package dicom
 import (
 	"encoding/csv"
 	"io"
-	"os"
+	"strconv"
 	"strings"
 )
 
-const (
-	dict_col_tag = 0
-	dict_col_vr = 1
-	dict_col_name = 2
-	dict_col_vm = 3
-	dict_col_version = 4
-)
+type dictEntry struct {
+	vr      string
+	name    string
+	vm      string
+	version string
+}
 
-// Read a tab-separated DICOM dictionary file and find the specified field
-//
-// Tag   VR  Name      VM  Version
-func lookupTag(tag string, field string) (string, error) {
-
-	tag = strings.ToUpper(tag)
-
-	var column int
-
-	switch field {
-	case "Tag":
-		column = dict_col_tag
-	case "VR":
-		column = dict_col_vr
-	case "Name":
-		column = dict_col_name
-	case "VM":
-		column = dict_col_vm
-	case "Version":
-		column = dict_col_version
-	}
-
-	file, err := os.Open("dicom.dic")
-	defer file.Close()
-
-	if err != nil {
-		return "", err
-	}
-
-	reader := csv.NewReader(file)
+func (p *Parser) loadDictionary(dictionary io.Reader) error {
+	reader := csv.NewReader(dictionary)
 	reader.Comma = '\t'  // tab separated file
 	reader.Comment = '#' // comments start with #
 
-	// read until we find the row, or EOF
+	p.dict = make([][]*dictEntry, 0xffff+1)
+
 	for {
-
 		row, err := reader.Read()
-
 		if err == io.EOF {
-			break
+			return nil
 		} else if err != nil {
-			return "", err
+			return err
 		}
 
-		if row[0] == tag {
-			return row[column], nil
+		tag := strings.Split(strings.Trim(row[0], "()"), ",")
+
+		group, err := strconv.ParseInt(tag[0], 16, 0)
+		if err != nil {
+			// TODO: Get this to work for ranges
+			// return err
+			continue
+		}
+		element, err := strconv.ParseInt(tag[1], 16, 0)
+		if err != nil {
+			// return err
+			continue
 		}
 
+		if cap(p.dict[group]) == 0 {
+
+			p.dict[group] = make([]*dictEntry, 0xffff+1)
+		}
+
+		p.dict[group][element] = &dictEntry{row[1], row[2], row[3], row[4]}
+	}
+	return nil
+}
+
+func (p *Parser) getDictEntry(group, element int) (*dictEntry, error) {
+	entry := p.dict[group][element]
+	if entry == nil {
+		return nil, ErrTagNotFound
 	}
 
-	if err != nil {
-		return "", err
-	}
-
-	return "", ErrTagNotFound
+	return entry, nil
 }

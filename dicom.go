@@ -13,10 +13,10 @@ type DicomFile struct {
 
 // Errors
 var (
-	ErrIllegalTag = errors.New("Illegal tag found in PixelData")
-	ErrTagNotFound = errors.New("Could not find tag in dicom dictionary")
+	ErrIllegalTag      = errors.New("Illegal tag found in PixelData")
+	ErrTagNotFound     = errors.New("Could not find tag in dicom dictionary")
 	ErrWrongNumberSize = errors.New("Not a valid byte size for readNumber")
-	ErrBrokenFile = errors.New("Invalid DICOM file")
+	ErrBrokenFile      = errors.New("Invalid DICOM file")
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 )
 
 // Parse a byte array, returns a DICOM file struct
-func Parse(buff []byte) (*DicomFile, error) {
+func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
 	buffer := bytes.NewBuffer(buff)
 
 	buffer.Next(128) // skip preamble
@@ -37,14 +37,14 @@ func Parse(buff []byte) (*DicomFile, error) {
 	file := &DicomFile{}
 
 	// (0002,0000) MetaElementGroupLength
-	metaElem := readDataElement(buffer, false)
+	metaElem := p.readDataElement(buffer, false)
 	metaLength := int(metaElem.Value.(uint32))
 	file.appendDataElement(metaElem)
 
 	// Read meta tags
 	start := buffer.Len()
 	for start-buffer.Len() < metaLength {
-		elem := readDataElement(buffer, false)
+		elem := p.readDataElement(buffer, false)
 		file.appendDataElement(elem)
 	}
 
@@ -53,7 +53,7 @@ func Parse(buff []byte) (*DicomFile, error) {
 	// Start with image meta data
 	for buffer.Len() != 0 {
 
-		elem := readDataElement(buffer, false)
+		elem := p.readDataElement(buffer, false)
 		name := elem.Name
 		file.appendDataElement(elem)
 

@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 	"strings"
 )
 
 // Constants
 const (
-	pixeldata_group = "FFFE"
+	pixeldata_group    = 0xFFFE
 	unknown_group_name = "Dicom::Unknown"
 )
 
@@ -20,34 +21,47 @@ var (
 
 // A DICOM element
 type DicomElement struct {
+	Group   int
+	Element int
 	Name    string
-	Group   string
-	Element string
 	Vr      string
 	Vl      uint32
 	Value   interface{}
 }
 
+type Parser struct {
+	dict [][]*dictEntry
+}
+
 // Return the tag as a string to use in the Dicom dictionary
 func (e *DicomElement) getTag() string {
-	return fmt.Sprintf("(%s,%s)", e.Group, e.Element)
+	return fmt.Sprintf("(%4x,%4x)", e.Group, e.Element)
+}
+
+func NewParser(dictionary io.Reader) (*Parser, error) {
+	p := &Parser{}
+	err := p.loadDictionary(dictionary)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 // Read a DICOM data element
-func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
+func (p *Parser) readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 
-	elem := readTag(buffer)
+	elem := p.readTag(buffer)
 
 	var vr string     // Value Representation
 	var vl uint32 = 0 // Value Length
 
 	// always read (PixelData) implicit
-	if (elem.Group == pixeldata_group) {
+	if elem.Group == pixeldata_group {
 		implicit = true
 	}
 
 	if implicit {
-		vr, vl = readImplicit(buffer, elem)
+		vr, vl = p.readImplicit(buffer, elem)
 	} else {
 		vr, vl = readExplicit(buffer, elem)
 	}
@@ -89,18 +103,16 @@ func readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElement {
 
 // Read the VR from the DICOM ditionary
 // The VL is a 32-bit unsigned integer
-func readImplicit(buffer *bytes.Buffer, elem *DicomElement) (string, uint32) {
-	tag := elem.getTag()
-
-	vr, err := lookupTag(tag, "VR")
-
+func (p *Parser) readImplicit(buffer *bytes.Buffer, elem *DicomElement) (string, uint32) {
+	var vr string
+	entry, err := p.getDictEntry(elem.Group, elem.Element)
 	if err != nil {
 		if err == ErrTagNotFound {
 			vr = "UN"
-		} else {
 			panic(err)
 		}
 	}
+	vr = entry.vr
 
 	vl := readUInt32(buffer)
 
@@ -156,21 +168,19 @@ func readFloat(buffer *bytes.Buffer) float32 {
 
 // Read a DICOM data element's tag value
 // ie. (0002,0000)
-func readTag(buffer *bytes.Buffer) *DicomElement {
-
+func (p *Parser) readTag(buffer *bytes.Buffer) *DicomElement {
 	group := readHex(buffer)   // group
 	element := readHex(buffer) // element
 
-	tag := fmt.Sprintf("(%s,%s)", group, element)
-	name, err := lookupTag(tag, "Name")
-
+	var name string
+	entry, err := p.getDictEntry(group, element)
 	if err != nil {
 		if err == ErrTagNotFound {
 			name = unknown_group_name
-		} else {
 			panic(err)
 		}
 	}
+	name = entry.name
 
 	return &DicomElement{
 		Group:   group,
@@ -180,9 +190,9 @@ func readTag(buffer *bytes.Buffer) *DicomElement {
 }
 
 // Read 2 bytes as a hexadecimal value
-func readHex(buffer *bytes.Buffer) string {
+func readHex(buffer *bytes.Buffer) int {
 	val := readUInt16(buffer)
-	return strings.ToUpper(fmt.Sprintf("%04x", val)) // convert to hexadecimal value with leading zeros
+	return int(val)
 }
 
 // Read 4 bytes as an UInt32
@@ -193,7 +203,7 @@ func readUInt32(buffer *bytes.Buffer) uint32 {
 
 // Read 2 bytes as an UInt16
 func readUInt16(buffer *bytes.Buffer) uint16 {
-	chunk := buffer.Next(2)                  // 2-bytes chunk
+	chunk := buffer.Next(2)        // 2-bytes chunk
 	return byteorder.Uint16(chunk) // read as uint16
 }
 

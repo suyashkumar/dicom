@@ -30,7 +30,7 @@ type DicomElement struct {
 }
 
 type Parser struct {
-	Dictionary [][]*dictEntry
+	dictionary [][]*dictEntry
 }
 
 // Return the tag as a string to use in the Dicom dictionary

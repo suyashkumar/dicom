@@ -56,14 +56,14 @@ func Dictionary(r io.Reader) func(*Parser) error {
 			dictionary[group][element] = &dictEntry{row[1], row[2], row[3], row[4]}
 		}
 
-		p.Dictionary = dictionary
+		p.dictionary = dictionary
 		return nil
 	}
 
 }
 
 func (p *Parser) getDictEntry(group, element int) (*dictEntry, error) {
-	entry := p.Dictionary[group][element]
+	entry := p.dictionary[group][element]
 	if entry == nil {
 		return nil, ErrTagNotFound
 	}

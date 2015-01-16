@@ -70,3 +70,21 @@ func (p *Parser) getDictEntry(group, element int) (*dictEntry, error) {
 
 	return entry, nil
 }
+
+// Split a tag into a group and element, represented as a hex value
+// TODO: support group ranges (6000-60FF,0803)
+func splitTag(tag string) (int64, int64, error) {
+
+	parts := strings.Split(strings.Trim(tag, "()"), ",")
+
+	group, err := strconv.ParseInt(parts[0], 16, 0)
+	if err != nil {
+		return 0, 0, err
+	}
+	elem, err := strconv.ParseInt(parts[1], 16, 0)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return group, elem, nil
+}

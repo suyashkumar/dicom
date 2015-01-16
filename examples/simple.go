@@ -4,19 +4,12 @@ import (
 	"fmt"
 	"github.com/gillesdemey/go-dicom"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 )
 
 func main() {
 
-	dict, err := os.Open("dicom.dic")
-	defer dict.Close()
-	if err != nil {
-		panic(err)
-	}
-
-	parser, err := dicom.NewParser(dict)
+	parser, err := dicom.NewParser()
 
 	if err != nil {
 		panic(err)
@@ -39,9 +32,9 @@ func main() {
 			fmt.Println(err)
 		}
 
-		for _, elem := range data.Elements {
-			fmt.Printf("%+v\n", &elem)
-		}
+		elem, _ := data.LookupElement("PatientName")
+		name := elem.Value
+		fmt.Printf("Patient name: %s\n", name)
 
 	}
 

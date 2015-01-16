@@ -2,22 +2,13 @@ package dicom
 
 import (
 	"fmt"
-	"os"
 	"testing"
 )
 
 var parser *Parser
 
 func init() {
-	dict, err := os.Open("dicom.dic")
-	defer dict.Close()
-	if err != nil {
-		panic(err)
-	}
-	parser, err = NewParser(dict)
-	if err != nil {
-		panic(err)
-	}
+	parser, _ = NewParser()
 }
 
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"math"
+	"os"
 	"strings"
 )
 
@@ -30,7 +30,7 @@ type DicomElement struct {
 }
 
 type Parser struct {
-	dict [][]*dictEntry
+	Dictionary [][]*dictEntry
 }
 
 // Return the tag as a string to use in the Dicom dictionary
@@ -38,13 +38,35 @@ func (e *DicomElement) getTag() string {
 	return fmt.Sprintf("(%4x,%4x)", e.Group, e.Element)
 }
 
-func NewParser(dictionary io.Reader) (*Parser, error) {
-	p := &Parser{}
-	err := p.loadDictionary(dictionary)
+// Create a new parser, with functional options for configuration
+// http://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
+func NewParser(options ...func(*Parser) error) (*Parser, error) {
+
+	p := Parser{}
+
+	// apply defaults
+	fh, err := os.Open("dicom.dic")
+	defer fh.Close()
+
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return p, nil
+
+	err = Dictionary(fh)(&p)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// override defaults
+	for _, option := range options {
+		err := option(&p)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return &p, nil
 }
 
 // Read a DICOM data element

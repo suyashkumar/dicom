@@ -15,6 +15,7 @@ type dictEntry struct {
 }
 
 func (p *Parser) loadDictionary(dictionary io.Reader) error {
+
 	reader := csv.NewReader(dictionary)
 	reader.Comma = '\t'  // tab separated file
 	reader.Comment = '#' // comments start with #
@@ -22,7 +23,9 @@ func (p *Parser) loadDictionary(dictionary io.Reader) error {
 	p.dict = make([][]*dictEntry, 0xffff+1)
 
 	for {
+
 		row, err := reader.Read()
+
 		if err == io.EOF {
 			return nil
 		} else if err != nil {
@@ -36,12 +39,12 @@ func (p *Parser) loadDictionary(dictionary io.Reader) error {
 		}
 
 		if cap(p.dict[group]) == 0 {
-
 			p.dict[group] = make([]*dictEntry, 0xffff+1)
 		}
 
 		p.dict[group][element] = &dictEntry{row[1], row[2], row[3], row[4]}
 	}
+
 	return nil
 }
 

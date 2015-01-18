@@ -14,42 +14,56 @@ type dictEntry struct {
 	version string
 }
 
-func (p *Parser) loadDictionary(dictionary io.Reader) error {
+// Sets the dictionary for the Parser
+func Dictionary(r io.Reader) func(*Parser) error {
 
-	reader := csv.NewReader(dictionary)
-	reader.Comma = '\t'  // tab separated file
-	reader.Comment = '#' // comments start with #
+	return func(p *Parser) error {
 
-	p.dict = make([][]*dictEntry, 0xffff+1)
+		reader := csv.NewReader(r)
+		reader.Comma = '\t'  // tab separated file
+		reader.Comment = '#' // comments start with #
 
-	for {
+		dictionary := make([][]*dictEntry, 0xffff+1)
 
-		row, err := reader.Read()
+		for {
 
-		if err == io.EOF {
-			return nil
-		} else if err != nil {
-			return err
+			row, err := reader.Read()
+
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return err
+			}
+
+			tag := strings.Split(strings.Trim(row[0], "()"), ",")
+
+			group, err := strconv.ParseInt(tag[0], 16, 0)
+			if err != nil {
+				// TODO: Get this to work for ranges
+				// return err
+				continue
+			}
+			element, err := strconv.ParseInt(tag[1], 16, 0)
+			if err != nil {
+				// return err
+				continue
+			}
+
+			if cap(dictionary[group]) == 0 {
+				dictionary[group] = make([]*dictEntry, 0xffff+1)
+			}
+
+			dictionary[group][element] = &dictEntry{row[1], row[2], row[3], row[4]}
 		}
 
-		group, element, err := splitTag(row[0])
-		if err != nil {
-			// TODO: fix group ranges (6000-60FF,0803) causing error
-			continue
-		}
-
-		if cap(p.dict[group]) == 0 {
-			p.dict[group] = make([]*dictEntry, 0xffff+1)
-		}
-
-		p.dict[group][element] = &dictEntry{row[1], row[2], row[3], row[4]}
+		p.dictionary = dictionary
+		return nil
 	}
 
-	return nil
 }
 
 func (p *Parser) getDictEntry(group, element int) (*dictEntry, error) {
-	entry := p.dict[group][element]
+	entry := p.dictionary[group][element]
 	if entry == nil {
 		return nil, ErrTagNotFound
 	}

@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"github.com/gillesdemey/go-dicom"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
 func main() {
 
-	parser, err := dicom.NewParser()
+	fh, err := os.Open("dicom.dic")
+	defer fh.Close()
+
+	dict := dicom.Dictionary(fh)
+
+	parser, err := dicom.NewParser(dict)
 
 	if err != nil {
 		panic(err)

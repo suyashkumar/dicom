@@ -46,7 +46,12 @@ func Dictionary(r io.Reader) func(*Parser) error {
 				dictionary[group] = make([]*dictEntry, 0xffff+1)
 			}
 
-			dictionary[group][element] = &dictEntry{row[1], row[2], row[3], row[4]}
+			dictionary[group][element] = &dictEntry{
+				strings.ToUpper(row[1]),
+				row[2],
+				row[3],
+				row[4],
+			}
 		}
 
 		p.dictionary = dictionary

@@ -108,9 +108,9 @@ func (p *Parser) readDataElement(buffer *bytes.Buffer, implicit bool) *DicomElem
 		}
 	case "OW":
 		data = readUInt16Array(buffer, vl)
-	case "OB", "na", "NA":
+	case "OB", "NA":
 		data = readUInt8Array(buffer, vl)
-	case "OX", "ox":
+	case "OX":
 		// TODO: work with the BitsAllocated tag
 		data = readUInt16Array(buffer, vl)
 	default:

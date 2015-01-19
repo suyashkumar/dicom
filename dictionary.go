@@ -35,15 +35,8 @@ func Dictionary(r io.Reader) func(*Parser) error {
 				return err
 			}
 
-			tag := strings.Split(strings.Trim(row[0], "()"), ",")
+			group, element, err := splitTag(row[0])
 
-			group, err := strconv.ParseInt(tag[0], 16, 0)
-			if err != nil {
-				// TODO: Get this to work for ranges
-				// return err
-				continue
-			}
-			element, err := strconv.ParseInt(tag[1], 16, 0)
 			if err != nil {
 				// return err
 				continue

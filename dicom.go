@@ -24,7 +24,7 @@ const (
 
 // Parse a byte array, returns a DICOM file struct
 func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
-	buffer := NewDicomBuffer(buff)
+	buffer := NewdicomBuffer(buff)
 
 	buffer.Next(128) // skip preamble
 

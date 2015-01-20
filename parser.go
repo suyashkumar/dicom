@@ -68,7 +68,7 @@ func NewParser(options ...func(*Parser) error) (*Parser, error) {
 }
 
 // Read a DICOM data element
-func (p *Parser) readDataElement(buffer *DicomBuffer, implicit bool) *DicomElement {
+func (p *Parser) readDataElement(buffer *dicomBuffer, implicit bool) *DicomElement {
 
 	elem := p.readTag(buffer)
 

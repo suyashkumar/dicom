@@ -33,7 +33,7 @@ type Parser struct {
 
 // Return the tag as a string to use in the Dicom dictionary
 func (e *DicomElement) getTag() string {
-	return fmt.Sprintf("(%4x,%4x)", e.Group, e.Element)
+	return fmt.Sprintf("(%04X,%04X)", e.Group, e.Element)
 }
 
 // Create a new parser, with functional options for configuration
@@ -83,7 +83,7 @@ func (p *Parser) readDataElement(buffer *dicomBuffer, implicit bool) *DicomEleme
 	if implicit {
 		vr, vl = p.readImplicit(buffer, elem)
 	} else {
-		vr, vl = readExplicit(buffer, elem)
+		vr, vl = p.readExplicit(buffer, elem)
 	}
 
 	// Double check the value of VL
@@ -100,19 +100,19 @@ func (p *Parser) readDataElement(buffer *dicomBuffer, implicit bool) *DicomEleme
 	switch vr {
 	case "US", "UL":
 		if vl == 8 {
-			data = readFloat(buffer)
+			data = buffer.readFloat()
 		} else {
-			data, _ = readNumber(buffer, vl)
+			data, _ = buffer.readNumber(vl)
 		}
 	case "OW":
-		data = readUInt16Array(buffer, vl)
+		data = buffer.readUInt16Array(vl)
 	case "OB", "NA":
-		data = readUInt8Array(buffer, vl)
+		data = buffer.readUInt8Array(vl)
 	case "OX":
 		// TODO: work with the BitsAllocated tag
-		data = readUInt16Array(buffer, vl)
+		data = buffer.readUInt16Array(vl)
 	default:
-		str := readString(buffer, vl)
+		str := buffer.readString(vl)
 		data = strings.Split(str, "\\")
 	}
 

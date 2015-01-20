@@ -26,14 +26,14 @@ func (p *Parser) readImplicit(buffer *dicomBuffer, elem *DicomElement) (string, 
 	}
 	vr = entry.vr
 
-	vl := readUInt32(buffer)
+	vl := buffer.readUInt32()
 
 	return vr, uint32(vl)
 }
 
 // The VR is represented by the next two consecutive bytes
 // The VL depends on the VR value
-func readExplicit(buffer *dicomBuffer, elem *DicomElement) (string, uint32) {
+func (p *Parser) readExplicit(buffer *dicomBuffer, elem *DicomElement) (string, uint32) {
 
 	var vl uint32
 	vr := string(buffer.Next(2))
@@ -41,18 +41,18 @@ func readExplicit(buffer *dicomBuffer, elem *DicomElement) (string, uint32) {
 	// long value representations
 	if vr == "OB" || vr == "OF" || vr == "SQ" || vr == "OW" || vr == "UN" || vr == "UR" || vr == "UT" {
 		buffer.Next(2) // ignore two bytes for "future use"
-		vl = readUInt32(buffer)
+		vl = buffer.readUInt32()
 	} else {
-		vl = uint32(readUInt16(buffer))
+		vl = uint32(buffer.readUInt16())
 	}
 
 	return vr, vl
 }
 
-func readNumber(buffer *dicomBuffer, size uint32) (uint32, error) {
-	chunk := buffer.Next(int(size))
+func (buffer *dicomBuffer) readNumber(vl uint32) (uint32, error) {
+	chunk := buffer.Next(int(vl))
 
-	switch size {
+	switch vl {
 	case 1:
 		return uint32(chunk[0]), nil
 	case 2:
@@ -65,13 +65,13 @@ func readNumber(buffer *dicomBuffer, size uint32) (uint32, error) {
 }
 
 // Read x consecutive bytes as a string
-func readString(buffer *dicomBuffer, size uint32) string {
-	chunk := buffer.Next(int(size))
+func (buffer *dicomBuffer) readString(vl uint32) string {
+	chunk := buffer.Next(int(vl))
 	return string(chunk)
 }
 
 // Read 8 consecutive bytes as a float32
-func readFloat(buffer *dicomBuffer) float32 {
+func (buffer *dicomBuffer) readFloat() float32 {
 	chunk := buffer.Next(8)
 	b := byteorder.Uint32(chunk)
 
@@ -103,35 +103,35 @@ func (p *Parser) readTag(buffer *dicomBuffer) *DicomElement {
 
 // Read 2 bytes as a hexadecimal value
 func (buffer *dicomBuffer) readHex() int {
-	val := readUInt16(buffer)
+	val := buffer.readUInt16()
 	return int(val)
 }
 
 // Read 4 bytes as an UInt32
-func readUInt32(buffer *dicomBuffer) uint32 {
+func (buffer *dicomBuffer) readUInt32() uint32 {
 	chunk := buffer.Next(4)
 	return byteorder.Uint32(chunk)
 }
 
 // Read 2 bytes as an UInt16
-func readUInt16(buffer *dicomBuffer) uint16 {
+func (buffer *dicomBuffer) readUInt16() uint16 {
 	chunk := buffer.Next(2)        // 2-bytes chunk
 	return byteorder.Uint16(chunk) // read as uint16
 }
 
 // Read x number of bytes as an array of UInt16 values
-func readUInt16Array(buffer *dicomBuffer, vl uint32) []uint16 {
+func (buffer *dicomBuffer) readUInt16Array(vl uint32) []uint16 {
 	slice := make([]uint16, int(vl)/2)
 
 	for i := 0; i < len(slice)-1; i++ {
-		slice[i] = readUInt16(buffer)
+		slice[i] = buffer.readUInt16()
 	}
 
 	return slice
 }
 
 // Read x number of bytes as an array of UInt8 values
-func readUInt8Array(buffer *dicomBuffer, vl uint32) []byte {
+func (buffer *dicomBuffer) readUInt8Array(vl uint32) []byte {
 	chunk := buffer.Next(int(vl))
 	return chunk
 }

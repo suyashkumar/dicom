@@ -12,8 +12,7 @@ func init() {
 }
 
 func TestDefaultDictionary(t *testing.T) {
-	_, err := NewParser()
-	if err != nil {
+	if _, err := NewParser(); err != nil {
 		t.Error(err)
 	}
 }
@@ -55,8 +54,7 @@ func TestSplitTag(t *testing.T) {
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 
-		_, err := parser.getDictEntry(2, 0)
-		if err != nil {
+		if _, err := parser.getDictEntry(2, 0); err != nil {
 			fmt.Println(err)
 		}
 
@@ -66,8 +64,7 @@ func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
 func BenchmarkFindPixelDataTag(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 
-		_, err := parser.getDictEntry(32736, 16)
-		if err != nil {
+		if _, err := parser.getDictEntry(32736, 16); err != nil {
 			fmt.Println(err)
 		}
 

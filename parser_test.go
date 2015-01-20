@@ -35,6 +35,15 @@ func TestDictionaryOption(t *testing.T) {
 	}
 }
 
+func TestGetTag(t *testing.T) {
+	elem := &DicomElement{0x7FE0, 0x0010, "PixelData", "ox", 1, nil}
+
+	if tag := elem.getTag(); tag != "(7FE0,0010)" {
+		t.Errorf("Error creating tag. Incorrect value %s", tag)
+	}
+
+}
+
 func TestReadTag(t *testing.T) {
 
 }

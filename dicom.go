@@ -1,7 +1,6 @@
 package dicom
 
 import (
-	"bytes"
 	"errors"
 )
 
@@ -25,7 +24,7 @@ const (
 
 // Parse a byte array, returns a DICOM file struct
 func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
-	buffer := bytes.NewBuffer(buff)
+	buffer := NewDicomBuffer(buff)
 
 	buffer.Next(128) // skip preamble
 

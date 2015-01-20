@@ -9,7 +9,7 @@ type dicomBuffer struct {
 	*bytes.Buffer
 }
 
-func NewdicomBuffer(b []byte) *dicomBuffer {
+func newDicomBuffer(b []byte) *dicomBuffer {
 	return &dicomBuffer{bytes.NewBuffer(b)}
 }
 

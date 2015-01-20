@@ -27,6 +27,50 @@ func init() {
 	}
 }
 
+func TestParseFile(t *testing.T) {
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Error(err)
+	}
+
+	data, err := parser.Parse(files[0])
+	if err != nil {
+		t.Errorf("failed to parse dicom file: %s", err)
+	}
+
+	elem, err := data.LookupElement("PatientName")
+	if err != nil {
+		t.Error(err)
+	}
+
+	pn := elem.Value.([]string)
+
+	if pn[0] != "TOUTATIX" {
+		t.Errorf("Incorrect patient name: %s", pn)
+	}
+
+	if l := len(pn); l != 1 {
+		t.Errorf("Incorrect patient name length: %i", l)
+	}
+
+	elem, err = data.LookupElement("TransferSyntaxUID")
+	if err != nil {
+		t.Error(err)
+	}
+
+	ts := elem.Value.([]string)
+
+	if ts[0] != "1.2.840.10008.1.2.4.91" {
+		t.Errorf("Incorrect TransferSyntaxUID: %s", ts)
+	}
+
+	if l := len(data.Elements); l != 99 {
+		t.Errorf("Error parsing DICOM file, wrong number of elements: %i", l)
+	}
+
+}
+
 func BenchmarkParseSingle(b *testing.B) {
 
 	parser, _ := NewParser()

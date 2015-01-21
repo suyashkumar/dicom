@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"encoding/binary"
 	"errors"
 )
 
@@ -47,12 +48,20 @@ func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
 		file.appendDataElement(elem)
 	}
 
+	// read endianness and explicit VR
+	endianess, implicit, err := file.getTransferSyntax()
+	if err != nil {
+		return nil, ErrBrokenFile
+	}
+
+	buffer.bo = endianess
+
 	startedPixelData := false
 
 	// Start with image meta data
 	for buffer.Len() != 0 {
 
-		elem := p.readDataElement(buffer, false)
+		elem := p.readDataElement(buffer, implicit)
 		name := elem.Name
 		file.appendDataElement(elem)
 
@@ -87,6 +96,32 @@ func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
 // Append a dataElement to the DicomFile
 func (file *DicomFile) appendDataElement(elem *DicomElement) {
 	file.Elements = append(file.Elements, *elem)
+}
+
+// Finds the SyntaxTrasnferUID and returns the endianess and byteorder for the file
+func (file *DicomFile) getTransferSyntax() (binary.ByteOrder, bool, error) {
+
+	var err error
+
+	elem, err := file.LookupElement("TransferSyntaxUID")
+	if err != nil {
+		return nil, true, err
+	}
+
+	ts := elem.Value.([]string)[0]
+
+	// defaults are explicit VR, little endian
+	switch ts {
+	case "1.2.840.10008.1.2":
+		return binary.LittleEndian, true, nil
+	case "1.2.840.10008.1.2.1":
+		return binary.LittleEndian, false, nil
+	case "1.2.840.10008.1.2.2":
+		return binary.BigEndian, false, nil
+	}
+
+	return binary.LittleEndian, false, nil
+
 }
 
 // Lookup a tag by name

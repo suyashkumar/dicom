@@ -2,15 +2,20 @@ package dicom
 
 import (
 	"bytes"
+	"encoding/binary"
 	"math"
 )
 
 type dicomBuffer struct {
 	*bytes.Buffer
+	bo binary.ByteOrder
 }
 
 func newDicomBuffer(b []byte) *dicomBuffer {
-	return &dicomBuffer{bytes.NewBuffer(b)}
+	return &dicomBuffer{
+		bytes.NewBuffer(b),
+		binary.LittleEndian,
+	}
 }
 
 // Read the VR from the DICOM ditionary
@@ -56,9 +61,9 @@ func (buffer *dicomBuffer) readNumber(vl uint32) (uint32, error) {
 	case 1:
 		return uint32(chunk[0]), nil
 	case 2:
-		return uint32(byteorder.Uint16(chunk)), nil
+		return uint32(buffer.bo.Uint16(chunk)), nil
 	case 4:
-		return uint32(byteorder.Uint32(chunk)), nil
+		return uint32(buffer.bo.Uint32(chunk)), nil
 	}
 
 	return 0, ErrWrongNumberSize
@@ -73,7 +78,7 @@ func (buffer *dicomBuffer) readString(vl uint32) string {
 // Read 8 consecutive bytes as a float32
 func (buffer *dicomBuffer) readFloat() float32 {
 	chunk := buffer.Next(8)
-	b := byteorder.Uint32(chunk)
+	b := buffer.bo.Uint32(chunk)
 
 	return math.Float32frombits(b)
 }
@@ -110,13 +115,13 @@ func (buffer *dicomBuffer) readHex() int {
 // Read 4 bytes as an UInt32
 func (buffer *dicomBuffer) readUInt32() uint32 {
 	chunk := buffer.Next(4)
-	return byteorder.Uint32(chunk)
+	return buffer.bo.Uint32(chunk)
 }
 
 // Read 2 bytes as an UInt16
 func (buffer *dicomBuffer) readUInt16() uint16 {
 	chunk := buffer.Next(2)        // 2-bytes chunk
-	return byteorder.Uint16(chunk) // read as uint16
+	return buffer.bo.Uint16(chunk) // read as uint16
 }
 
 // Read x number of bytes as an array of UInt16 values

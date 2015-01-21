@@ -1,7 +1,6 @@
 package dicom
 
 import (
-	"encoding/binary"
 	"fmt"
 	"os"
 	"strings"
@@ -11,10 +10,6 @@ import (
 const (
 	pixeldata_group    = 0xFFFE
 	unknown_group_name = "Dicom::Unknown"
-)
-
-var (
-	byteorder = binary.LittleEndian
 )
 
 // A DICOM element

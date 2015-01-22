@@ -21,37 +21,44 @@ func newDicomBuffer(b []byte) *dicomBuffer {
 // Read the VR from the DICOM ditionary
 // The VL is a 32-bit unsigned integer
 func (p *Parser) readImplicit(buffer *dicomBuffer, elem *DicomElement) (string, uint32) {
+
 	var vr string
+
 	entry, err := p.getDictEntry(elem.Group, elem.Element)
 	if err != nil {
-		if err == ErrTagNotFound {
-			vr = "UN"
-			panic(err)
-		}
+		vr = "UN"
+	} else {
+		vr = entry.vr
 	}
-	vr = entry.vr
 
-	vl := buffer.readUInt32()
+	vl := getValueLength(buffer, vr)
 
-	return vr, uint32(vl)
+	return vr, vl
 }
 
 // The VR is represented by the next two consecutive bytes
 // The VL depends on the VR value
 func (p *Parser) readExplicit(buffer *dicomBuffer, elem *DicomElement) (string, uint32) {
+	vr := string(buffer.Next(2))
+	vl := getValueLength(buffer, vr)
+
+	return vr, vl
+}
+
+func getValueLength(buffer *dicomBuffer, vr string) uint32 {
 
 	var vl uint32
-	vr := string(buffer.Next(2))
 
 	// long value representations
-	if vr == "OB" || vr == "OF" || vr == "SQ" || vr == "OW" || vr == "UN" || vr == "UR" || vr == "UT" {
+	switch vr {
+	case "OB", "OF", "SQ", "OW", "UN", "UR", "UT":
 		buffer.Next(2) // ignore two bytes for "future use"
 		vl = buffer.readUInt32()
-	} else {
+	default:
 		vl = uint32(buffer.readUInt16())
 	}
 
-	return vr, vl
+	return vl
 }
 
 func (buffer *dicomBuffer) readNumber(vl uint32) (uint32, error) {

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"../"
 	"flag"
 	"fmt"
+	"github.com/gillesdemey/go-dicom"
 	"io/ioutil"
 )
 

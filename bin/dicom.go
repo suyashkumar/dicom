@@ -34,8 +34,8 @@ func main() {
 		fmt.Println(err)
 	}
 
-	elem, _ := data.LookupElement("PatientName")
-	name := elem.Value
-	fmt.Printf("Patient name: %s\n", name)
+	for _, elem := range data.Elements {
+		fmt.Printf("%+v\n", elem)
+	}
 
 }

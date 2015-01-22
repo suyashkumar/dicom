@@ -8,7 +8,7 @@ import (
 type DicomFile struct {
 	NumberOfItems int
 	Elements      []DicomElement
-	PixelBuffer   []uint16
+	PixelBuffer   interface{}
 }
 
 // Errors
@@ -84,7 +84,7 @@ func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
 
 		if name == "PixelData" {
 			startedPixelData = true
-			file.PixelBuffer = elem.Value.([]uint16)
+			file.PixelBuffer = elem.Value
 			elem.Value = "..."
 		}
 

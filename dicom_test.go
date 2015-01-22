@@ -3,38 +3,29 @@ package dicom
 import (
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"testing"
 )
 
-var files [][]byte
-
-func init() {
-	f, err := filepath.Glob("examples/*.dcm")
+func readFile() []byte {
+	file, err := ioutil.ReadFile("examples/IM-0001-0001.dcm")
 	if err != nil {
-		fmt.Println("failed to glob files")
+		fmt.Println("failed to read file")
 		panic(err)
 	}
 
-	for _, path := range f {
-		file, err := ioutil.ReadFile(path)
-		if err != nil {
-			fmt.Println("failed to read file")
-			panic(err)
-		}
-
-		files = append(files, file)
-	}
+	return file
 }
 
 func TestParseFile(t *testing.T) {
+
+	file := readFile()
 
 	parser, err := NewParser()
 	if err != nil {
 		t.Error(err)
 	}
 
-	data, err := parser.Parse(files[0])
+	data, err := parser.Parse(file)
 	if err != nil {
 		t.Errorf("failed to parse dicom file: %s", err)
 	}
@@ -76,25 +67,13 @@ func BenchmarkParseSingle(b *testing.B) {
 	parser, _ := NewParser()
 
 	for i := 0; i < b.N; i++ {
-		_, err := parser.Parse(files[0])
+
+		file := readFile()
+
+		_, err := parser.Parse(file)
 		if err != nil {
 			fmt.Println("failed to parse dicom file")
 			panic(err)
-		}
-	}
-}
-
-func BenchmarkParseMultiple(b *testing.B) {
-
-	parser, _ := NewParser()
-
-	for i := 0; i < b.N; i++ {
-		for _, file := range files {
-			_, err := parser.Parse(file)
-			if err != nil {
-				fmt.Println("failed to parse dicom file")
-				panic(err)
-			}
 		}
 	}
 }

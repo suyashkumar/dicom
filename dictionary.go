@@ -61,6 +61,11 @@ func Dictionary(r io.Reader) func(*Parser) error {
 }
 
 func (p *Parser) getDictEntry(group, element int) (*dictEntry, error) {
+
+	if p.dictionary[group] == nil {
+		return nil, ErrTagNotFound
+	}
+
 	entry := p.dictionary[group][element]
 	if entry == nil {
 		return nil, ErrTagNotFound

@@ -92,12 +92,10 @@ func (p *Parser) readTag(buffer *dicomBuffer) *DicomElement {
 	var name string
 	entry, err := p.getDictEntry(group, element)
 	if err != nil {
-		if err == ErrTagNotFound {
-			name = unknown_group_name
-			panic(err)
-		}
+		name = unknown_group_name
+	} else {
+		name = entry.name
 	}
-	name = entry.name
 
 	return &DicomElement{
 		Group:   group,

@@ -22,7 +22,7 @@ func newDicomBuffer(b []byte) *dicomBuffer {
 
 // Read the VR from the DICOM ditionary
 // The VL is a 32-bit unsigned integer
-func (p *Parser) readImplicit(buffer *dicomBuffer, elem *DicomElement) (string, uint32) {
+func (buffer *dicomBuffer) readImplicit(elem *DicomElement, p *Parser) (string, uint32) {
 
 	var vr string
 
@@ -40,7 +40,7 @@ func (p *Parser) readImplicit(buffer *dicomBuffer, elem *DicomElement) (string, 
 
 // The VR is represented by the next two consecutive bytes
 // The VL depends on the VR value
-func (p *Parser) readExplicit(buffer *dicomBuffer, elem *DicomElement) (string, uint32) {
+func (buffer *dicomBuffer) readExplicit(elem *DicomElement) (string, uint32) {
 	vr := string(buffer.Next(2))
 	vl := getValueLength(buffer, vr)
 
@@ -94,7 +94,7 @@ func (buffer *dicomBuffer) readFloat() float32 {
 
 // Read a DICOM data element's tag value
 // ie. (0002,0000)
-func (p *Parser) readTag(buffer *dicomBuffer) *DicomElement {
+func (buffer *dicomBuffer) readTag(p *Parser) *DicomElement {
 	group := buffer.readHex()   // group
 	element := buffer.readHex() // element
 

@@ -63,10 +63,10 @@ func NewParser(options ...func(*Parser) error) (*Parser, error) {
 }
 
 // Read a DICOM data element
-func (p *Parser) readDataElement(buffer *dicomBuffer) *DicomElement {
+func (buffer *dicomBuffer) readDataElement(p *Parser) *DicomElement {
 
 	implicit := buffer.implicit
-	elem := p.readTag(buffer)
+	elem := buffer.readTag(p)
 
 	var vr string     // Value Representation
 	var vl uint32 = 0 // Value Length
@@ -77,9 +77,9 @@ func (p *Parser) readDataElement(buffer *dicomBuffer) *DicomElement {
 	}
 
 	if implicit {
-		vr, vl = p.readImplicit(buffer, elem)
+		vr, vl = buffer.readImplicit(elem, p)
 	} else {
-		vr, vl = p.readExplicit(buffer, elem)
+		vr, vl = buffer.readExplicit(elem)
 	}
 
 	// Double check the value of VL

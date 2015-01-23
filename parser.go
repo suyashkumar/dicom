@@ -63,8 +63,9 @@ func NewParser(options ...func(*Parser) error) (*Parser, error) {
 }
 
 // Read a DICOM data element
-func (p *Parser) readDataElement(buffer *dicomBuffer, implicit bool) *DicomElement {
+func (p *Parser) readDataElement(buffer *dicomBuffer) *DicomElement {
 
+	implicit := buffer.implicit
 	elem := p.readTag(buffer)
 
 	var vr string     // Value Representation

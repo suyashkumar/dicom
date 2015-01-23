@@ -8,13 +8,15 @@ import (
 
 type dicomBuffer struct {
 	*bytes.Buffer
-	bo binary.ByteOrder
+	bo       binary.ByteOrder
+	implicit bool
 }
 
 func newDicomBuffer(b []byte) *dicomBuffer {
 	return &dicomBuffer{
 		bytes.NewBuffer(b),
 		binary.LittleEndian,
+		false,
 	}
 }
 

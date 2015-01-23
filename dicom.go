@@ -37,14 +37,14 @@ func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
 	file := &DicomFile{}
 
 	// (0002,0000) MetaElementGroupLength
-	metaElem := p.readDataElement(buffer, false)
+	metaElem := p.readDataElement(buffer)
 	metaLength := int(metaElem.Value.(uint32))
 	file.appendDataElement(metaElem)
 
 	// Read meta tags
 	start := buffer.Len()
 	for start-buffer.Len() < metaLength {
-		elem := p.readDataElement(buffer, false)
+		elem := p.readDataElement(buffer)
 		file.appendDataElement(elem)
 	}
 
@@ -54,14 +54,16 @@ func (p *Parser) Parse(buff []byte) (*DicomFile, error) {
 		return nil, ErrBrokenFile
 	}
 
+	// modify buffer according to new TransferSyntaxUID
 	buffer.bo = endianess
+	buffer.implicit = implicit
 
 	startedPixelData := false
 
 	// Start with image meta data
 	for buffer.Len() != 0 {
 
-		elem := p.readDataElement(buffer, implicit)
+		elem := p.readDataElement(buffer)
 		name := elem.Name
 		file.appendDataElement(elem)
 
@@ -98,7 +100,7 @@ func (file *DicomFile) appendDataElement(elem *DicomElement) {
 	file.Elements = append(file.Elements, *elem)
 }
 
-// Finds the SyntaxTrasnferUID and returns the endianess and byteorder for the file
+// Finds the SyntaxTrasnferUID and returns the endianess and implicit VR for the file
 func (file *DicomFile) getTransferSyntax() (binary.ByteOrder, bool, error) {
 
 	var err error

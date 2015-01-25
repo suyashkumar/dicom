@@ -20,7 +20,10 @@ var (
 )
 
 const (
-	magic_word = "DICM"
+	magic_word                = "DICM"
+	implicit_vr_little_endian = "1.2.840.10008.1.2"
+	explicit_vr_little_endian = "1.2.840.10008.1.2.1"
+	explicit_vr_big_endian    = "1.2.840.10008.1.2.2"
 )
 
 // Parse a byte array, returns a DICOM file struct
@@ -114,11 +117,11 @@ func (file *DicomFile) getTransferSyntax() (binary.ByteOrder, bool, error) {
 
 	// defaults are explicit VR, little endian
 	switch ts {
-	case "1.2.840.10008.1.2":
+	case implicit_vr_little_endian:
 		return binary.LittleEndian, true, nil
-	case "1.2.840.10008.1.2.1":
+	case explicit_vr_little_endian:
 		return binary.LittleEndian, false, nil
-	case "1.2.840.10008.1.2.2":
+	case explicit_vr_big_endian:
 		return binary.BigEndian, false, nil
 	}
 

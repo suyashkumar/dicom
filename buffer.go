@@ -12,6 +12,8 @@ type dicomBuffer struct {
 	implicit bool
 }
 
+// The default DicomBuffer reads a buffer with Little Endian byteorder
+// and explicit VR
 func newDicomBuffer(b []byte) *dicomBuffer {
 	return &dicomBuffer{
 		bytes.NewBuffer(b),
@@ -53,7 +55,7 @@ func getValueLength(buffer *dicomBuffer, vr string) uint32 {
 
 	// long value representations
 	switch vr {
-	case "OB", "OF", "SQ", "OW", "UN", "UR", "UT":
+	case "OB", "OF", "SQ", "OW", "UN", "UT":
 		buffer.Next(2) // ignore two bytes for "future use"
 		vl = buffer.readUInt32()
 	default:

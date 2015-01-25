@@ -71,7 +71,8 @@ func (buffer *dicomBuffer) readDataElement(p *Parser) *DicomElement {
 	var vr string     // Value Representation
 	var vl uint32 = 0 // Value Length
 
-	// always read (PixelData) implicit
+	// The elements for group 0xFFFE should be Encoded as Implicit VR.
+	// DICOM Standard 09. PS 3.6 - Section 7.5: "Nesting of Data Sets"
 	if elem.Group == pixeldata_group {
 		implicit = true
 	}

@@ -74,26 +74,6 @@ func decodeValueLength(buffer *dicomBuffer, vr string) uint32 {
 	return vl
 }
 
-// Read x consecutive bytes as a string
-func (buffer *dicomBuffer) readString(vl uint32) string {
-	chunk := buffer.Next(int(vl))
-	return string(chunk)
-}
-
-// Read 4 consecutive bytes as a float32
-func (buffer *dicomBuffer) readFloat() (val float32) {
-	buf := bytes.NewBuffer(buffer.Next(4))
-	binary.Read(buf, buffer.bo, &val)
-	return
-}
-
-// Read 8 consecutive bytes as a float64
-func (buffer *dicomBuffer) readFloat64() (val float64) {
-	buf := bytes.NewBuffer(buffer.Next(8))
-	binary.Read(buf, buffer.bo, &val)
-	return
-}
-
 // Read a DICOM data element's tag value
 // ie. (0002,0000)
 func (buffer *dicomBuffer) readTag(p *Parser) *DicomElement {
@@ -115,15 +95,36 @@ func (buffer *dicomBuffer) readTag(p *Parser) *DicomElement {
 	}
 }
 
+// Read x consecutive bytes as a string
+func (buffer *dicomBuffer) readString(vl uint32) string {
+	chunk := buffer.Next(int(vl))
+	return string(chunk)
+}
+
+// Read 4 consecutive bytes as a float32
+func (buffer *dicomBuffer) readFloat() (val float32) {
+	buf := bytes.NewBuffer(buffer.Next(4))
+	binary.Read(buf, buffer.bo, &val)
+	return
+}
+
+// Read 8 consecutive bytes as a float64
+func (buffer *dicomBuffer) readFloat64() (val float64) {
+	buf := bytes.NewBuffer(buffer.Next(8))
+	binary.Read(buf, buffer.bo, &val)
+	return
+}
+
 // Read 2 bytes as a hexadecimal value
 func (buffer *dicomBuffer) readHex() uint16 {
 	return buffer.readUInt16()
 }
 
 // Read 4 bytes as an UInt32
-func (buffer *dicomBuffer) readUInt32() uint32 {
-	chunk := buffer.Next(4)
-	return buffer.bo.Uint32(chunk)
+func (buffer *dicomBuffer) readUInt32() (val uint32) {
+	buf := bytes.NewBuffer(buffer.Next(4))
+	binary.Read(buf, buffer.bo, &val)
+	return
 }
 
 // Read 4 bytes as an int32
@@ -134,9 +135,10 @@ func (buffer *dicomBuffer) readInt32() (val int32) {
 }
 
 // Read 2 bytes as an UInt16
-func (buffer *dicomBuffer) readUInt16() uint16 {
-	chunk := buffer.Next(2)        // 2-bytes chunk
-	return buffer.bo.Uint16(chunk) // read as uint16
+func (buffer *dicomBuffer) readUInt16() (val uint16) {
+	buf := bytes.NewBuffer(buffer.Next(2))
+	binary.Read(buf, buffer.bo, &val)
+	return
 }
 
 // Read 2 bytes as an int16

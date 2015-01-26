@@ -74,21 +74,6 @@ func decodeValueLength(buffer *dicomBuffer, vr string) uint32 {
 	return vl
 }
 
-func (buffer *dicomBuffer) readNumber(vl uint32) (uint32, error) {
-	chunk := buffer.Next(int(vl))
-
-	switch vl {
-	case 1:
-		return uint32(chunk[0]), nil
-	case 2:
-		return uint32(buffer.bo.Uint16(chunk)), nil
-	case 4:
-		return uint32(buffer.bo.Uint32(chunk)), nil
-	}
-
-	return 0, ErrWrongNumberSize
-}
-
 // Read x consecutive bytes as a string
 func (buffer *dicomBuffer) readString(vl uint32) string {
 	chunk := buffer.Next(int(vl))

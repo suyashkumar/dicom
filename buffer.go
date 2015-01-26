@@ -35,7 +35,7 @@ func (buffer *dicomBuffer) readImplicit(elem *DicomElement, p *Parser) (string, 
 		vr = entry.vr
 	}
 
-	vl := getValueLength(buffer, vr)
+	vl := decodeValueLength(buffer, vr)
 
 	return vr, vl
 }
@@ -44,19 +44,19 @@ func (buffer *dicomBuffer) readImplicit(elem *DicomElement, p *Parser) (string, 
 // The VL depends on the VR value
 func (buffer *dicomBuffer) readExplicit(elem *DicomElement) (string, uint32) {
 	vr := string(buffer.Next(2))
-	vl := getValueLength(buffer, vr)
+	vl := decodeValueLength(buffer, vr)
 
 	return vr, vl
 }
 
-func getValueLength(buffer *dicomBuffer, vr string) uint32 {
+func decodeValueLength(buffer *dicomBuffer, vr string) uint32 {
 
 	var vl uint32
 
 	// long value representations
 	switch vr {
 	case "OB", "OF", "SQ", "OW", "UN", "UT":
-		buffer.Next(2) // ignore two bytes for "future use"
+		buffer.Next(2) // ignore two bytes for "future use" (0000H)
 		vl = buffer.readUInt32()
 	default:
 		vl = uint32(buffer.readUInt16())

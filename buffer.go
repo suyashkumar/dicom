@@ -67,6 +67,11 @@ func decodeValueLength(buffer *dicomBuffer, vr string) uint32 {
 		vl = 0
 	}
 
+	// Error when encountering odd length
+	if vl > 0 && vl%2 != 0 {
+		panic("Encountered odd length Value Length")
+	}
+
 	return vl
 }
 

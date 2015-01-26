@@ -3,7 +3,6 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
-	"math"
 )
 
 type dicomBuffer struct {
@@ -96,12 +95,18 @@ func (buffer *dicomBuffer) readString(vl uint32) string {
 	return string(chunk)
 }
 
-// Read 8 consecutive bytes as a float32
-func (buffer *dicomBuffer) readFloat() float32 {
-	chunk := buffer.Next(8)
-	b := buffer.bo.Uint32(chunk)
+// Read 4 consecutive bytes as a float32
+func (buffer *dicomBuffer) readFloat() (val float32) {
+	buf := bytes.NewBuffer(buffer.Next(4))
+	binary.Read(buf, buffer.bo, &val)
+	return
+}
 
-	return math.Float32frombits(b)
+// Read 8 consecutive bytes as a float64
+func (buffer *dicomBuffer) readFloat64() (val float64) {
+	buf := bytes.NewBuffer(buffer.Next(8))
+	binary.Read(buf, buffer.bo, &val)
+	return
 }
 
 // Read a DICOM data element's tag value
@@ -137,10 +142,24 @@ func (buffer *dicomBuffer) readUInt32() uint32 {
 	return buffer.bo.Uint32(chunk)
 }
 
+// Read 4 bytes as an int32
+func (buffer *dicomBuffer) readInt32() (val int32) {
+	buf := bytes.NewBuffer(buffer.Next(4))
+	binary.Read(buf, buffer.bo, &val)
+	return
+}
+
 // Read 2 bytes as an UInt16
 func (buffer *dicomBuffer) readUInt16() uint16 {
 	chunk := buffer.Next(2)        // 2-bytes chunk
 	return buffer.bo.Uint16(chunk) // read as uint16
+}
+
+// Read 2 bytes as an int16
+func (buffer *dicomBuffer) readInt16() (val int16) {
+	buf := bytes.NewBuffer(buffer.Next(2))
+	binary.Read(buf, buffer.bo, &val)
+	return
 }
 
 // Read x number of bytes as an array of UInt16 values

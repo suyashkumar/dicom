@@ -90,16 +90,24 @@ func (buffer *dicomBuffer) readDataElement(p *Parser) *DicomElement {
 	var data interface{}
 
 	switch vr {
-	case "US", "UL":
-		if vl == 8 {
-			data = buffer.readFloat()
-		} else {
-			data, _ = buffer.readNumber(vl)
-		}
+	case "AT":
+		data = buffer.readUInt16Array(4)
+	case "UL":
+		data = buffer.readUInt32()
+	case "SL":
+		data = buffer.readInt32()
+	case "US":
+		data = buffer.readUInt16()
+	case "SS":
+		data = buffer.readInt16()
+	case "FL":
+		data = buffer.readFloat()
+	case "FD":
+		data = buffer.readFloat64()
 	case "OW":
 		data = buffer.readUInt16Array(vl)
 	case "OB", "NA":
-		data = buffer.readUInt8Array(vl)
+		data = buffer.Next(int(vl))
 	case "OX":
 		// TODO: work with the BitsAllocated tag
 		data = buffer.readUInt16Array(vl)

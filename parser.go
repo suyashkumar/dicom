@@ -83,11 +83,6 @@ func (buffer *dicomBuffer) readDataElement(p *Parser) *DicomElement {
 		vr, vl = buffer.readExplicit(elem)
 	}
 
-	// Double check the value of VL
-	if vl == 0xffffffff {
-		vl = 0
-	}
-
 	elem.Vr = vr
 	elem.Vl = vl
 

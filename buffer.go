@@ -62,6 +62,11 @@ func getValueLength(buffer *dicomBuffer, vr string) uint32 {
 		vl = uint32(buffer.readUInt16())
 	}
 
+	// Rectify Undefined Length VL
+	if vl == 0xffffffff {
+		vl = 0
+	}
+
 	return vl
 }
 

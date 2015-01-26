@@ -3,6 +3,7 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 type dicomBuffer struct {
@@ -34,7 +35,10 @@ func (buffer *dicomBuffer) readImplicit(elem *DicomElement, p *Parser) (string, 
 		vr = entry.vr
 	}
 
-	vl := decodeValueLength(buffer, vr)
+	vl, err := decodeValueLength(buffer, vr)
+	if err == ErrOddLength {
+		fmt.Printf("WARN: attempted to read odd length VL for %+v\n", elem)
+	}
 
 	return vr, vl
 }
@@ -43,12 +47,15 @@ func (buffer *dicomBuffer) readImplicit(elem *DicomElement, p *Parser) (string, 
 // The VL depends on the VR value
 func (buffer *dicomBuffer) readExplicit(elem *DicomElement) (string, uint32) {
 	vr := string(buffer.Next(2))
-	vl := decodeValueLength(buffer, vr)
+	vl, err := decodeValueLength(buffer, vr)
+	if err == ErrOddLength {
+		fmt.Printf("WARN: attempted to read odd length VL for %+v\n", elem)
+	}
 
 	return vr, vl
 }
 
-func decodeValueLength(buffer *dicomBuffer, vr string) uint32 {
+func decodeValueLength(buffer *dicomBuffer, vr string) (uint32, error) {
 
 	var vl uint32
 
@@ -68,10 +75,10 @@ func decodeValueLength(buffer *dicomBuffer, vr string) uint32 {
 
 	// Error when encountering odd length
 	if vl > 0 && vl%2 != 0 {
-		panic("Encountered odd length Value Length")
+		return 0, ErrOddLength
 	}
 
-	return vl
+	return vl, nil
 }
 
 // Read a DICOM data element's tag value

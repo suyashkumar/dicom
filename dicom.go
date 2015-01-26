@@ -16,6 +16,7 @@ var (
 	ErrIllegalTag  = errors.New("Illegal tag found in PixelData")
 	ErrTagNotFound = errors.New("Could not find tag in dicom dictionary")
 	ErrBrokenFile  = errors.New("Invalid DICOM file")
+	ErrOddLength   = errors.New("Encountered odd length Value Length")
 )
 
 const (

@@ -60,7 +60,7 @@ func Dictionary(r io.Reader) func(*Parser) error {
 
 }
 
-func (p *Parser) getDictEntry(group, element int) (*dictEntry, error) {
+func (p *Parser) getDictEntry(group, element uint16) (*dictEntry, error) {
 
 	if p.dictionary[group] == nil {
 		return nil, ErrTagNotFound

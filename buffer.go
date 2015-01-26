@@ -116,9 +116,8 @@ func (buffer *dicomBuffer) readTag(p *Parser) *DicomElement {
 }
 
 // Read 2 bytes as a hexadecimal value
-func (buffer *dicomBuffer) readHex() int {
-	val := buffer.readUInt16()
-	return int(val)
+func (buffer *dicomBuffer) readHex() uint16 {
+	return buffer.readUInt16()
 }
 
 // Read 4 bytes as an UInt32

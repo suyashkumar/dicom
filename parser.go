@@ -14,8 +14,8 @@ const (
 
 // A DICOM element
 type DicomElement struct {
-	Group   int
-	Element int
+	Group   uint16
+	Element uint16
 	Name    string
 	Vr      string
 	Vl      uint32

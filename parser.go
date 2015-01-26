@@ -111,6 +111,10 @@ func (buffer *dicomBuffer) readDataElement(p *Parser) *DicomElement {
 	case "OX":
 		// TODO: work with the BitsAllocated tag
 		data = buffer.readUInt16Array(vl)
+	case "SQ":
+		// TODO: imlement sequence read
+		_ = buffer.Next(int(vl))
+		data = "..."
 	default:
 		str := buffer.readString(vl)
 		data = strings.Split(str, "\\")

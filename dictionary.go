@@ -62,16 +62,23 @@ func Dictionary(r io.Reader) func(*Parser) error {
 
 func (p *Parser) getDictEntry(group, element uint16) (*dictEntry, error) {
 
-	// (0000-u-ffff,0000)	UL	GenericGroupLength	1	GENERIC
-	if group%2 == 0 && element == 0x0000 {
-		return &dictEntry{"UL", "GenericGroupLength", "1", "GENERIC"}, nil
+	var entry *dictEntry
+
+	// does the entry exist?
+	exists := p.dictionary[group] != nil && p.dictionary[group][element] != nil
+
+	if exists {
+		entry = p.dictionary[group][element]
 	}
 
-	if p.dictionary[group] == nil {
-		return nil, ErrTagNotFound
+	if !exists {
+		// (0000-u-ffff,0000)	UL	GenericGroupLength	1	GENERIC
+		if group%2 == 0 && element == 0x0000 {
+			entry = &dictEntry{"UL", "GenericGroupLength", "1", "GENERIC"}
+		}
 	}
 
-	entry := p.dictionary[group][element]
+	// nope, still nothing
 	if entry == nil {
 		return nil, ErrTagNotFound
 	}

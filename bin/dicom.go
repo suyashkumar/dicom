@@ -12,6 +12,7 @@ import (
 var (
 	file   = flag.String("file", "IM-0001-0001.dcm", "the DICOM file you want to parse")
 	silent = flag.Bool("silent", false, "wether or not to print all Data Elements")
+	out    = flag.String("out", "", "where to write the program's output")
 )
 
 func init() {
@@ -38,13 +39,22 @@ func main() {
 	}
 
 	if *silent == false {
-		// func NewWriter(output io.Writer, minwidth, tabwidth, padding int, padchar byte, flags uint) *Writer
-		table := tw.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
 
-		fmt.Fprintf(table, "Group\tElement\tName\tVR\tVL\tValue\n")
+		var writer *os.File
+
+		if *out != "" {
+			writer, _ = os.Create(*out)
+		} else {
+			writer = os.Stdout
+		}
+
+		// func NewWriter(output io.Writer, minwidth, tabwidth, padding int, padchar byte, flags uint) *Writer
+		table := tw.NewWriter(writer, 0, 8, 0, '\t', 0)
+
+		fmt.Fprintf(table, "Tag\tVR\tValue\tVL\tName\n")
 
 		for _, elem := range data.Elements {
-			fmt.Fprintf(table, "%04X\t%04X\t%s\t%s\t%d\t%v\n", elem.Group, elem.Element, elem.Name, elem.Vr, elem.Vl, elem.Value)
+			fmt.Fprintf(table, "(%04X,%04X)\t%s\t%v\t%d\t%s\n", elem.Group, elem.Element, elem.Vr, elem.Value, elem.Vl, elem.Name)
 		}
 
 		table.Flush()

@@ -105,6 +105,7 @@ func (buffer *dicomBuffer) readTag(p *Parser) *DicomElement {
 // Read x consecutive bytes as a string
 func (buffer *dicomBuffer) readString(vl uint32) string {
 	chunk := buffer.Next(int(vl))
+	chunk = bytes.Trim(chunk, "\x00") // trim those pesky null bytes
 	return string(chunk)
 }
 

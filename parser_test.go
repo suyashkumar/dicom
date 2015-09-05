@@ -1,7 +1,6 @@
 package dicom
 
 import (
-	"os"
 	"testing"
 )
 
@@ -18,14 +17,7 @@ func TestConstructor(t *testing.T) {
 }
 
 func TestDictionaryOption(t *testing.T) {
-
-	fh, err := os.Open("dicom.dic")
-	defer fh.Close()
-	if err != nil {
-		t.Error(err)
-	}
-
-	p, err := NewParser(Dictionary(fh))
+	p, err := NewParser(Dictionary([]byte(dicomDictData)))
 	if err != nil {
 		t.Error(err)
 	}

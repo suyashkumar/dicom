@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"bytes"
 	"encoding/csv"
 	"io"
 	"strconv"
@@ -15,10 +16,11 @@ type dictEntry struct {
 }
 
 // Sets the dictionary for the Parser
-func Dictionary(r io.Reader) func(*Parser) error {
+func Dictionary(b []byte) func(*Parser) error {
 
 	return func(p *Parser) error {
 
+		r := bytes.NewReader(b)
 		reader := csv.NewReader(r)
 		reader.Comma = '\t'  // tab separated file
 		reader.Comment = '#' // comments start with #

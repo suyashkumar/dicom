@@ -2,7 +2,6 @@ package dicom
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -38,14 +37,7 @@ func NewParser(options ...func(*Parser) error) (*Parser, error) {
 	p := Parser{}
 
 	// apply defaults
-	fh, err := os.Open("dicom.dic")
-	defer fh.Close()
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = Dictionary(fh)(&p)
+	err := Dictionary([]byte(dicomDictData))(&p)
 
 	if err != nil {
 		panic(err)

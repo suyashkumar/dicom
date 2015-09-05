@@ -1,4 +1,6 @@
-#
+package dicom
+
+const dicomDictData = `#
 #  Copyright (C) 1994-2012, OFFIS e.V.
 #  All rights reserved.  See COPYRIGHT file for details.
 #
@@ -3949,3 +3951,4 @@
 #
 # EOF
 #
+`

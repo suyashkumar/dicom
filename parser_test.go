@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -17,7 +18,8 @@ func TestConstructor(t *testing.T) {
 }
 
 func TestDictionaryOption(t *testing.T) {
-	p, err := NewParser(Dictionary([]byte(dicomDictData)))
+	dict := bytes.NewReader([]byte(dicomDictData))
+	p, err := NewParser(Dictionary(dict))
 	if err != nil {
 		t.Error(err)
 	}

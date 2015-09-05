@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 )
@@ -37,7 +38,8 @@ func NewParser(options ...func(*Parser) error) (*Parser, error) {
 	p := Parser{}
 
 	// apply defaults
-	err := Dictionary([]byte(dicomDictData))(&p)
+	dict := bytes.NewReader([]byte(dicomDictData))
+	err := Dictionary(dict)(&p)
 
 	if err != nil {
 		panic(err)

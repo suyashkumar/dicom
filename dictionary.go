@@ -2,12 +2,14 @@ package dicom
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
 )
 
 type dictEntry struct {
+	tag     string
 	vr      string
 	name    string
 	vm      string
@@ -47,6 +49,7 @@ func Dictionary(r io.Reader) func(*Parser) error {
 			}
 
 			dictionary[group][element] = &dictEntry{
+				row[0],
 				strings.ToUpper(row[1]),
 				row[2],
 				row[3],
@@ -64,6 +67,8 @@ func (p *Parser) getDictEntry(group, element uint16) (*dictEntry, error) {
 
 	var entry *dictEntry
 
+	tag := fmt.Sprintf("(%s,%s)", group, element)
+
 	// does the entry exist?
 	exists := p.dictionary[group] != nil && p.dictionary[group][element] != nil
 
@@ -74,7 +79,7 @@ func (p *Parser) getDictEntry(group, element uint16) (*dictEntry, error) {
 	if !exists {
 		// (0000-u-ffff,0000)	UL	GenericGroupLength	1	GENERIC
 		if group%2 == 0 && element == 0x0000 {
-			entry = &dictEntry{"UL", "GenericGroupLength", "1", "GENERIC"}
+			entry = &dictEntry{tag, "UL", "GenericGroupLength", "1", "GENERIC"}
 		}
 	}
 

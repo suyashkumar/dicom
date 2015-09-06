@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	file   = flag.String("file", "IM-0001-0001.dcm", "the DICOM file you want to parse")
+	file   = flag.String("file", "", "the DICOM file you want to parse")
 	silent = flag.Bool("silent", false, "wether or not to print all Data Elements")
 	out    = flag.String("out", "", "where to write the program's output")
 )

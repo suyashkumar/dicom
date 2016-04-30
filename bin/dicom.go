@@ -2,17 +2,19 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/gillesdemey/go-dicom"
 	"io/ioutil"
 	"os"
-	tw "text/tabwriter"
+	fp "path/filepath"
+	"strings"
+	"sync"
 )
 
 var (
 	file   = flag.String("file", "", "the DICOM file you want to parse")
 	silent = flag.Bool("silent", false, "wether or not to print all Data Elements")
 	out    = flag.String("out", "", "where to write the program's output")
+	folder = flag.String("folder", "", "Folder with DICOM images to extract")
 )
 
 func init() {
@@ -21,43 +23,85 @@ func init() {
 
 func main() {
 
-	parser, err := dicom.NewParser()
+	// file input
+	if *file != "" {
+		processFile(*file, silent, out)
+	}
+
+	// folder input, find .dcm files
+	if *folder != "" {
+		err := fp.Walk(*folder, fileWalker)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func fileWalker(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		panic(err)
 	}
 
-	bytes, err := ioutil.ReadFile(*file)
+	// don't parse nested directories
+	if info.IsDir() {
+		return nil
+	}
 
+	// not a DICOM file
+	if fp.Ext(info.Name()) != ".dcm" {
+		return nil
+	}
+
+	processFile(path, silent, out)
+
+	return err
+}
+
+func processFile(path string, silent *bool, out *string) {
+
+	buff, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
 
-	data, err := parser.Parse(bytes)
+	done := new(sync.WaitGroup)
+	done.Add(1)
 
-	if err != nil {
-		fmt.Println(err)
-	}
+	go func() {
+		gw := new(sync.WaitGroup)
 
-	if *silent == false {
+		dcm := &dicom.DicomFile{}
 
-		var writer *os.File
+		// parser
+		ppln := dcm.Parse(buff)
+
+		if *silent == false {
+			ppln = dcm.Log(ppln, gw)
+		}
 
 		if *out != "" {
-			writer, _ = os.Create(*out)
-		} else {
-			writer = os.Stdout
+			basename := fp.Base(path)
+			filename := strings.TrimSuffix(basename, fp.Ext(basename))
+			outDir := fp.Join(*out, filename)
+
+			// ensure out directory exists
+			err := os.MkdirAll(outDir, 0755)
+			if err != nil {
+				panic(err)
+			}
+
+			elemsFile, err := os.Create(fp.Join(outDir, filename+".txt"))
+			if err != nil {
+				panic(err)
+			}
+
+			ppln = dcm.WriteToFile(ppln, gw, elemsFile)
+			ppln = dcm.WriteImagesToFolder(ppln, gw, outDir)
 		}
 
-		// func NewWriter(output io.Writer, minwidth, tabwidth, padding int, padchar byte, flags uint) *Writer
-		table := tw.NewWriter(writer, 0, 8, 0, '\t', 0)
-
-		fmt.Fprintf(table, "Tag\tVR\tValue\tVL\tName\n")
-
-		for _, elem := range data.Elements {
-			fmt.Fprintf(table, "(%04X,%04X)\t%s\t%v\t%d\t%s\n", elem.Group, elem.Element, elem.Vr, elem.Value, elem.Vl, elem.Name)
-		}
-
-		table.Flush()
-	}
-
+		dcm.Discard(ppln, gw)
+		gw.Wait()
+		done.Done()
+	}()
+	done.Wait()
 }

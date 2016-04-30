@@ -9,21 +9,49 @@ import (
 // Constants
 const (
 	pixeldata_group    = 0xFFFE
-	unknown_group_name = "Dicom::Unknown"
+	unknown_group_name = "Unknown Group"
+	private_group_name = "Private Data"
 )
+
+// Value Multiplicity PS 3.5 6.4
+type dcmVM struct {
+	s   string
+	Min uint8
+	Max uint8
+	N   bool
+}
 
 // A DICOM element
 type DicomElement struct {
-	Group   uint16
-	Element uint16
-	Name    string
-	Vr      string
-	Vl      uint32
-	Value   interface{}
+	Group       uint16
+	Element     uint16
+	Name        string
+	Vr          string
+	Vl          uint32
+	Value       []interface{} // Value Multiplicity PS 3.5 6.4
+	IndentLevel uint8
+	elemLen     uint32
+	undefLen    bool
+	P           uint32
 }
 
 type Parser struct {
 	dictionary [][]*dictEntry
+}
+
+// Stringer
+func (e *DicomElement) String() string {
+	s := strings.Repeat(" ", int(e.IndentLevel)*2)
+	sv := fmt.Sprintf("%v", e.Value)
+	if len(sv) > 50 {
+		sv = sv[1:50] + "(...)"
+	}
+	sVl := fmt.Sprintf("%d", e.Vl)
+	if e.undefLen == true {
+		sVl = "UNDEF"
+	}
+
+	return fmt.Sprintf("%08d %s (%04X, %04X) %s %s %d %s %s", e.P, s, e.Group, e.Element, e.Vr, sVl, e.elemLen, e.Name, sv)
 }
 
 // Return the tag as a string to use in the Dicom dictionary
@@ -60,6 +88,7 @@ func NewParser(options ...func(*Parser) error) (*Parser, error) {
 func (buffer *dicomBuffer) readDataElement(p *Parser) *DicomElement {
 
 	implicit := buffer.implicit
+	inip := buffer.p
 	elem := buffer.readTag(p)
 
 	var vr string     // Value Representation
@@ -81,40 +110,61 @@ func (buffer *dicomBuffer) readDataElement(p *Parser) *DicomElement {
 	elem.Vl = vl
 
 	// data
-	var data interface{}
+	var data []interface{}
+	uvl := vl
+	valLen := uint32(vl)
 
-	switch vr {
-	case "AT":
-		data = buffer.readUInt16Array(4)
-	case "UL":
-		data = buffer.readUInt32()
-	case "SL":
-		data = buffer.readInt32()
-	case "US":
-		data = buffer.readUInt16()
-	case "SS":
-		data = buffer.readInt16()
-	case "FL":
-		data = buffer.readFloat()
-	case "FD":
-		data = buffer.readFloat64()
-	case "OW":
-		data = buffer.readUInt16Array(vl)
-	case "OB", "NA":
-		data = buffer.Next(int(vl))
-	case "OX":
-		// TODO: work with the BitsAllocated tag
-		data = buffer.readUInt16Array(vl)
-	case "SQ":
-		// TODO: imlement sequence read
-		_ = buffer.Next(int(vl))
-		data = "..."
-	default:
-		str := buffer.readString(vl)
-		data = strings.Split(str, "\\")
+	for uvl > 0 {
+		switch vr {
+		case "AT":
+			valLen = 2
+			data = append(data, buffer.readHex())
+		case "UL":
+			valLen = 4
+			data = append(data, buffer.readUInt32())
+		case "SL":
+			valLen = 4
+			data = append(data, buffer.readInt32())
+		case "US":
+			valLen = 2
+			data = append(data, buffer.readUInt16())
+		case "SS":
+			valLen = 2
+			data = append(data, buffer.readInt16())
+		case "FL":
+			valLen = 4
+			data = append(data, buffer.readFloat())
+		case "FD":
+			valLen = 8
+			data = append(data, buffer.readFloat64())
+		case "OW":
+			valLen = vl
+			data = append(data, buffer.readUInt16Array(vl))
+		case "OB":
+			valLen = vl
+			data = append(data, buffer.readUInt8Array(vl))
+		case "NA":
+			valLen = vl
+		//case "XS": ??
+
+		case "SQ":
+			valLen = vl
+			data = append(data, "")
+		default:
+			valLen = vl
+			str := strings.TrimRight(buffer.readString(vl), " ")
+			strs := strings.Split(str, "\\")
+			for _, s := range strs {
+				data = append(data, s)
+			}
+
+		}
+		uvl -= valLen
 	}
 
+	elem.P = inip
 	elem.Value = data
+	elem.elemLen = buffer.p - inip
 
 	return elem
 }

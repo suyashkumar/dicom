@@ -10,6 +10,7 @@ type dicomBuffer struct {
 	*bytes.Buffer
 	bo       binary.ByteOrder
 	implicit bool
+	p        uint32 // element start position
 }
 
 // The default DicomBuffer reads a buffer with Little Endian byteorder
@@ -19,6 +20,7 @@ func newDicomBuffer(b []byte) *dicomBuffer {
 		bytes.NewBuffer(b),
 		binary.LittleEndian,
 		false,
+		0,
 	}
 }
 
@@ -35,9 +37,11 @@ func (buffer *dicomBuffer) readImplicit(elem *DicomElement, p *Parser) (string, 
 		vr = entry.vr
 	}
 
-	vl, err := decodeValueLength(buffer, vr)
+	vl, ulen, err := decodeValueLength(buffer, vr, false)
+	elem.undefLen = ulen
 	if err == ErrOddLength {
-		fmt.Printf("WARN: attempted to read odd length VL for %+v\n", elem)
+		fmt.Printf("WARN (implicit): attempted to read odd length VL for %+v\n", elem)
+		panic(ErrOddLength)
 	}
 
 	return vr, vl
@@ -47,50 +51,89 @@ func (buffer *dicomBuffer) readImplicit(elem *DicomElement, p *Parser) (string, 
 // The VL depends on the VR value
 func (buffer *dicomBuffer) readExplicit(elem *DicomElement) (string, uint32) {
 	vr := string(buffer.Next(2))
-	vl, err := decodeValueLength(buffer, vr)
+	buffer.p += 2
+
+	vl, ulen, err := decodeValueLength(buffer, vr, true)
+	elem.undefLen = ulen
+
 	if err == ErrOddLength {
-		fmt.Printf("WARN: attempted to read odd length VL for %+v\n", elem)
+		fmt.Printf("WARN (explicit): attempted to read odd length VL for %+v\n", elem)
+		panic(ErrOddLength)
 	}
 
 	return vr, vl
 }
 
-func decodeValueLength(buffer *dicomBuffer, vr string) (uint32, error) {
+func decodeValueLength(buffer *dicomBuffer, vr string, explicit bool) (uint32, bool, error) {
 
 	var vl uint32
+	ulen := false
 
-	// long value representations
-	switch vr {
-	case "OB", "OF", "SQ", "OW", "UN", "UT":
-		buffer.Next(2) // ignore two bytes for "future use" (0000H)
+	if explicit {
+
+		if vr == "US" {
+			vl = 2
+		}
+
+		// long value representations
+		switch vr {
+		case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
+			buffer.Next(2) // ignore two bytes for "future use" (0000H)
+			buffer.p += 2
+
+			vl = buffer.readUInt32()
+			// Rectify Undefined Length VL
+			if vl == 0xffffffff {
+				switch vr {
+				case "UC", "UR", "UT":
+					return 0, ulen, ErrUndefLengthNotAllowed
+				default:
+					ulen = true
+					vl = 0
+				}
+			}
+		default:
+			vl = uint32(buffer.readUInt16())
+			// Rectify Undefined Length VL
+			if vl == 0xffff {
+				ulen = true
+				vl = 0
+			}
+		}
+
+	} else {
 		vl = buffer.readUInt32()
-	default:
-		vl = uint32(buffer.readUInt16())
-	}
-
-	// Rectify Undefined Length VL
-	if vl == 0xffffffff {
-		vl = 0
+		// Rectify Undefined Length VL
+		if vl == 0xffffffff {
+			ulen = true
+			vl = 0
+		}
 	}
 
 	// Error when encountering odd length
 	if vl > 0 && vl%2 != 0 {
-		return 0, ErrOddLength
+		return 0, ulen, ErrOddLength
 	}
 
-	return vl, nil
+	return vl, ulen, nil
 }
 
 // Read a DICOM data element's tag value
 // ie. (0002,0000)
+// added  Value Multiplicity PS 3.5 6.4
 func (buffer *dicomBuffer) readTag(p *Parser) *DicomElement {
 	group := buffer.readHex()   // group
 	element := buffer.readHex() // element
 
 	var name string
+	//var name, vm, vr string
 	entry, err := p.getDictEntry(group, element)
 	if err != nil {
-		name = unknown_group_name
+		if group%2 == 0 {
+			name = unknown_group_name
+		} else {
+			name = private_group_name
+		}
 	} else {
 		name = entry.name
 	}
@@ -100,6 +143,7 @@ func (buffer *dicomBuffer) readTag(p *Parser) *DicomElement {
 		Element: element,
 		Name:    name,
 	}
+
 }
 
 // Read x consecutive bytes as a string
@@ -107,6 +151,7 @@ func (buffer *dicomBuffer) readString(vl uint32) string {
 	chunk := buffer.Next(int(vl))
 	chunk = bytes.Trim(chunk, "\x00")   // trim those pesky null bytes
 	chunk = bytes.Trim(chunk, "\u200B") // trim zero-width characters
+	buffer.p += vl
 	return string(chunk)
 }
 
@@ -114,6 +159,7 @@ func (buffer *dicomBuffer) readString(vl uint32) string {
 func (buffer *dicomBuffer) readFloat() (val float32) {
 	buf := bytes.NewBuffer(buffer.Next(4))
 	binary.Read(buf, buffer.bo, &val)
+	buffer.p += 4
 	return
 }
 
@@ -121,6 +167,7 @@ func (buffer *dicomBuffer) readFloat() (val float32) {
 func (buffer *dicomBuffer) readFloat64() (val float64) {
 	buf := bytes.NewBuffer(buffer.Next(8))
 	binary.Read(buf, buffer.bo, &val)
+	buffer.p += 8
 	return
 }
 
@@ -133,6 +180,7 @@ func (buffer *dicomBuffer) readHex() uint16 {
 func (buffer *dicomBuffer) readUInt32() (val uint32) {
 	buf := bytes.NewBuffer(buffer.Next(4))
 	binary.Read(buf, buffer.bo, &val)
+	buffer.p += 4
 	return
 }
 
@@ -140,6 +188,7 @@ func (buffer *dicomBuffer) readUInt32() (val uint32) {
 func (buffer *dicomBuffer) readInt32() (val int32) {
 	buf := bytes.NewBuffer(buffer.Next(4))
 	binary.Read(buf, buffer.bo, &val)
+	buffer.p += 4
 	return
 }
 
@@ -147,6 +196,7 @@ func (buffer *dicomBuffer) readInt32() (val int32) {
 func (buffer *dicomBuffer) readUInt16() (val uint16) {
 	buf := bytes.NewBuffer(buffer.Next(2))
 	binary.Read(buf, buffer.bo, &val)
+	buffer.p += 2
 	return
 }
 
@@ -154,6 +204,7 @@ func (buffer *dicomBuffer) readUInt16() (val uint16) {
 func (buffer *dicomBuffer) readInt16() (val int16) {
 	buf := bytes.NewBuffer(buffer.Next(2))
 	binary.Read(buf, buffer.bo, &val)
+	buffer.p += 2
 	return
 }
 
@@ -161,15 +212,16 @@ func (buffer *dicomBuffer) readInt16() (val int16) {
 func (buffer *dicomBuffer) readUInt16Array(vl uint32) []uint16 {
 	slice := make([]uint16, int(vl)/2)
 
-	for i := 0; i < len(slice)-1; i++ {
+	for i := 0; i < len(slice); i++ {
 		slice[i] = buffer.readUInt16()
 	}
-
+	buffer.p += vl
 	return slice
 }
 
 // Read x number of bytes as an array of UInt8 values
 func (buffer *dicomBuffer) readUInt8Array(vl uint32) []byte {
 	chunk := buffer.Next(int(vl))
+	buffer.p += vl
 	return chunk
 }

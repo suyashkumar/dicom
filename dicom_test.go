@@ -1,100 +1,139 @@
-package dicom
+package dicom_test
 
 import (
-	"encoding/binary"
-	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
+
+	"github.com/grailbio/go-dicom"
+	"github.com/grailbio/go-dicom/dicomuid"
+	"v.io/x/lib/vlog"
 )
 
-func readFile() []byte {
-	file, err := ioutil.ReadFile("examples/IM-0001-0001.dcm")
+func mustReadFile(path string, options dicom.ReadOptions) *dicom.DataSet {
+	data, err := dicom.ReadDataSetFromFile(path, options)
 	if err != nil {
-		fmt.Println("failed to read file")
+		vlog.Fatalf("%s: failed to read: %v", path, err)
+	}
+	return data
+}
+
+func TestAllFiles(t *testing.T) {
+	dir, err := os.Open("examples")
+	if err != nil {
 		panic(err)
 	}
-
-	return file
+	names, err := dir.Readdirnames(0)
+	if err != nil {
+		panic(err)
+	}
+	for _, name := range names {
+		vlog.Infof("Reading %s", name)
+		_ = mustReadFile("examples/"+name, dicom.ReadOptions{})
+	}
 }
 
-func TestParseFile(t *testing.T) {
-
-	file := readFile()
-
-	parser, err := NewParser()
+func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
+	data := mustReadFile(dcmPath, dicom.ReadOptions{})
+	dstPath := "/tmp/test.dcm"
+	out, err := os.Create(dstPath)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
-	data, err := parser.Parse(file)
+	for i := range data.Elements {
+		if data.Elements[i].Tag == dicom.TagTransferSyntaxUID {
+			newElem := dicom.MustNewElement(dicom.TagTransferSyntaxUID, transferSyntaxUID)
+			vlog.Infof("Setting transfer syntax UID from %v to %v",
+				data.Elements[i].MustGetString(), newElem.MustGetString())
+			data.Elements[i] = newElem
+		}
+	}
+	err = dicom.WriteDataSet(out, data)
 	if err != nil {
-		t.Errorf("failed to parse dicom file: %s", err)
+		t.Fatal(err)
 	}
+	data2 := mustReadFile(dstPath, dicom.ReadOptions{})
 
-	elem, err := data.LookupElement("PatientName")
-	if err != nil {
-		t.Error(err)
+	if len(data.Elements) != len(data2.Elements) {
+		t.Errorf("Wrong # of elements: %v %v", len(data.Elements), len(data2.Elements))
+		for _, elem := range data.Elements {
+			if _, err := data2.FindElementByTag(elem.Tag); err != nil {
+				t.Errorf("Tag %v found in org, but not in new", dicom.TagString(elem.Tag))
+			}
+		}
+		for _, elem := range data2.Elements {
+			if _, err := data.FindElementByTag(elem.Tag); err != nil {
+				t.Errorf("Tag %v found in new, but not in org", dicom.TagString(elem.Tag))
+			}
+		}
 	}
-
-	pn := elem.Value.([]string)
-
-	if pn[0] != "TOUTATIX" {
-		t.Errorf("Incorrect patient name: %s", pn)
+	for _, elem := range data.Elements {
+		elem2, err := data2.FindElementByTag(elem.Tag)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		if elem.Tag == dicom.TagFileMetaInformationGroupLength {
+			// This element is expected to change when the file is transcoded.
+			continue
+		}
+		if elem.String() != elem2.String() {
+			t.Fatalf("Elem mismatch: %v %v", elem.String(), elem2.String())
+		}
 	}
-
-	if l := len(pn); l != 1 {
-		t.Errorf("Incorrect patient name length: %i", l)
-	}
-
-	elem, err = data.LookupElement("TransferSyntaxUID")
-	if err != nil {
-		t.Error(err)
-	}
-
-	ts := elem.Value.([]string)
-
-	if ts[0] != "1.2.840.10008.1.2.4.91" {
-		t.Errorf("Incorrect TransferSyntaxUID: %s", ts)
-	}
-
-	if l := len(data.Elements); l != 99 {
-		t.Errorf("Error parsing DICOM file, wrong number of elements: %i", l)
-	}
-
+	// TODO(saito) Fix below.
+	//if !reflect.DeepEqual(data, data2) {
+	//	t.Error("Files aren't equal")
+	//}
 }
 
-func TestGetTransferSyntaxImplicitLittleEndian(t *testing.T) {
+func TestWriteFile(t *testing.T) {
+	// path := "examples/IM-0001-0001.dcm"
+	//testWriteFile(t, "examples/CT-MONO2-16-ort.dcm", dicomuid.ExplicitVRBigEndian)
+	//testWriteFile(t, "examples/CT-MONO2-16-ort.dcm", dicomuid.ImplicitVRLittleEndian)
+	testWriteFile(t, "examples/CT-MONO2-16-ort.dcm", dicomuid.ExplicitVRLittleEndian)
+}
 
-	file := &DicomFile{}
-	file.appendDataElement(&DicomElement{0002, 0010, "TransferSyntaxUID", "UI", 0, []string{"1.2.840.10008.1.2"}})
-
-	bo, implicit, err := file.getTransferSyntax()
+func TestReadDataSet(t *testing.T) {
+	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{})
+	elem, err := data.FindElementByName("PatientName")
 	if err != nil {
-		t.Errorf("Could not get TransferSyntaxUID. %s", err)
+		t.Error(err)
 	}
-
-	if bo != binary.LittleEndian {
-		t.Errorf("Incorrect ByteOrder %v. Should be LittleEndian.", bo)
+	if elem.MustGetString() != "TOUTATIX" {
+		t.Errorf("Incorrect patient name: %s", elem)
 	}
-
-	if implicit != true {
-		t.Errorf("Incorrect implicitness %v. Should be true.", implicit)
+	elem, err = data.FindElementByName("TransferSyntaxUID")
+	if err != nil {
+		t.Error(err)
 	}
+	if elem.MustGetString() != "1.2.840.10008.1.2.4.91" {
+		t.Errorf("Incorrect TransferSyntaxUID: %s", elem)
+	}
+	if l := len(data.Elements); l != 98 {
+		t.Errorf("Error parsing DICOM file, wrong number of elements: %d", l)
+	}
+	elem, err = data.FindElementByTag(dicom.TagPixelData)
+	if err != nil {
+		t.Error(err)
+	}
+}
 
+// Test ReadOptions.DropPixelData.
+func TestDropPixelData(t *testing.T) {
+	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true})
+	_, err := data.FindElementByTag(dicom.TagPatientName)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = data.FindElementByTag(dicom.TagPixelData)
+	if err == nil {
+		t.Errorf("PixelData should not be present")
+	}
 }
 
 func BenchmarkParseSingle(b *testing.B) {
-
-	parser, _ := NewParser()
-
 	for i := 0; i < b.N; i++ {
-
-		file := readFile()
-
-		_, err := parser.Parse(file)
-		if err != nil {
-			fmt.Println("failed to parse dicom file")
-			panic(err)
-		}
+		_ = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{})
 	}
 }

@@ -1,5 +1,6 @@
 # DICOM parser in Go [![GoDoc](https://godoc.org/github.com/gillesdemey/go-dicom?status.svg)](https://godoc.org/github.com/gillesdemey/go-dicom) [![wercker status](https://app.wercker.com/status/c250d72bc82a5d8f267c7ee0b9e839bc/s/master "wercker status")](https://app.wercker.com/project/bykey/c250d72bc82a5d8f267c7ee0b9e839bc)
 
+<<<<<<< HEAD
 ## Usage
 ```Go
 package main
@@ -60,6 +61,29 @@ Group	Element	Name				VR	VL	Value
 0008	1010	StationName			SH	8	[CT54023]
 0008	1030	StudyDescription		LO	48	[Cardiac^1CTA_CORONARY_ARTERIES_TESTBOLUS (Adult)]
 ```
+=======
+This is a fork of github.com/gillesdemey/go-dicom. Changes are:
+
+- Many bug fixes, especially around handling of sequences.
+- Handle non-ASCII characters more properly.
+- Simplify the API. All the functions are synchronous.
+- Better library supports around tags & uids.
+- Rudimentary support for writing DICOM files. This part is not complete yet.
+- Adds fuzz tests and tests that ensure compatibility with pydicom.
+
+TODO:
+- Implement mixed-coding-system files more properly. We currently botch
+  patient-name (PN) elements that mixes coding systems.
+
+- A multi-image file. Functionality is almost there, but I haven't had time to complete it.
+
+- Native pixeldata format. It'll be parsed as just []byte.
+
+
+See doc.go for usage. dicomutil contains a sample program that dumps DICOM
+elements in a file.
+
+>>>>>>> 3bad039... Initial commit
 
 ### Acknowledgements
 

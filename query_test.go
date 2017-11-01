@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/grailbio/go-dicom"
+	"github.com/grailbio/go-dicom/dicomtag"
 )
 
 func TestParse0(t *testing.T) {
@@ -12,7 +13,7 @@ func TestParse0(t *testing.T) {
 		t.Fatal(err)
 	}
 	studyUID := "1.2.840.113857.1907.192833.1115.220048"
-	match, elem, err := dicom.Query(ds, dicom.MustNewElement(dicom.TagStudyInstanceUID, studyUID))
+	match, elem, err := dicom.Query(ds, dicom.MustNewElement(dicomtag.StudyInstanceUID, studyUID))
 	if !match || err != nil {
 		t.Error(err)
 	}

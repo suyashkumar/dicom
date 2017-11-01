@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/grailbio/go-dicom"
+	"github.com/grailbio/go-dicom/dicomtag"
 	"github.com/grailbio/go-dicom/dicomuid"
 )
 
@@ -80,7 +81,7 @@ func printScalar(vr string, i interface{}, indent int) string {
 			}
 		}
 		s = fmt.Sprintf("%s", v)
-	case dicom.Tag:
+	case dicomtag.Tag:
 		return v.String()
 
 	default:
@@ -89,7 +90,7 @@ func printScalar(vr string, i interface{}, indent int) string {
 	return s
 }
 
-func printTag(tag dicom.Tag) string {
+func printTag(tag dicomtag.Tag) string {
 	return fmt.Sprintf("(%04x, %04x)", tag.Group, tag.Element)
 }
 
@@ -102,7 +103,7 @@ func printElement(elem *dicom.Element, indent int) {
 
 	fmt.Printf("%s%s %s:", strings.Repeat(" ", indent*2), printTag(elem.Tag), elem.VR)
 
-	if elem.Tag == dicom.TagPixelData {
+	if elem.Tag == dicomtag.PixelData {
 		// PixelData encoding differs between godicom and pydicom.  Skip
 		// for now.  TODO(saito) fix.
 		fmt.Print(" [omitted]\n")
@@ -132,7 +133,7 @@ func printElement(elem *dicom.Element, indent int) {
 		if len(elem.Value) == 1 {
 			// If SQ contains one Item, unwrap the item.
 			items := elem.Value[0].(*dicom.Element)
-			if items.Tag != dicom.TagItem {
+			if items.Tag != dicomtag.Item {
 				log.Panicf("A SQ item must be of type Item, but found %v", items)
 			}
 			for _, item := range items.Value {
@@ -141,7 +142,7 @@ func printElement(elem *dicom.Element, indent int) {
 		} else {
 			for _, v := range elem.Value {
 				child := v.(*dicom.Element)
-				if child.Tag != dicom.TagItem {
+				if child.Tag != dicomtag.Item {
 					log.Panicf("A SQ item must be of type Item, but found %v", child)
 				}
 				childElems = append(childElems, child)

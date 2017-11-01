@@ -56,14 +56,16 @@ def list_tags() -> List[Tag]:
 def generate(out: IO[str]):
     tags = list_tags()
 
-    print("package dicom", file=out)
+    print("package dicomtag", file=out)
+    print("", file=out)
     print("// Code generated from generate_tag_definitions.py. DO NOT EDIT.", file=out)
     for t in tags:
         if t.name.find("RETIRED") >= 0:
             continue
-        print(f'var Tag{t.name} = Tag{{0x{t.group}, 0x{t.elem}}}', file=out)
+        print(f'var {t.name} = Tag{{0x{t.group}, 0x{t.elem}}}', file=out)
 
     print("var tagDict map[Tag]TagInfo", file=out)
+    print("", file=out)
     print("func init() {", file=out)
     print("	maybeInitTagDict()", file=out)
     print("}", file=out)

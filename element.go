@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/grailbio/go-dicom/dicomtag"
 	"v.io/x/lib/vlog"
 )
 
@@ -24,7 +25,7 @@ const (
 // field is a bit tricky.
 type Element struct {
 	// Tag is a pair of <group, element>. See tags.go for possible values.
-	Tag Tag
+	Tag dicomtag.Tag
 
 	// List of values in the element. Their types depends on value
 	// representation (VR) of the Tag; Cf. tag.go.
@@ -80,8 +81,8 @@ type Element struct {
 // NewElement creates a new Element with the given tag and values. The type of
 // each each value must match the VR (value representation) of the tag (see
 // tag_definition.go).
-func NewElement(tag Tag, values ...interface{}) (*Element, error) {
-	ti, err := FindTag(tag)
+func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
+	ti, err := dicomtag.Find(tag)
 	if err != nil {
 		return nil, err
 	}
@@ -90,39 +91,39 @@ func NewElement(tag Tag, values ...interface{}) (*Element, error) {
 		VR:    ti.VR,
 		Value: make([]interface{}, len(values)),
 	}
-	vrKind := GetVRKind(tag, ti.VR)
+	vrKind := dicomtag.GetVRKind(tag, ti.VR)
 	for i, v := range values {
 		var ok bool
 		switch vrKind {
-		case VRStringList:
+		case dicomtag.VRStringList:
 			_, ok = v.(string)
-		case VRBytes:
+		case dicomtag.VRBytes:
 			_, ok = v.([]byte)
-		case VRUInt16List:
+		case dicomtag.VRUInt16List:
 			_, ok = v.(uint16)
-		case VRUInt32List:
+		case dicomtag.VRUInt32List:
 			_, ok = v.(uint32)
-		case VRInt16List:
+		case dicomtag.VRInt16List:
 			_, ok = v.(int16)
-		case VRInt32List:
+		case dicomtag.VRInt32List:
 			_, ok = v.(int32)
-		case VRFloat32List:
+		case dicomtag.VRFloat32List:
 			_, ok = v.(float32)
-		case VRFloat64List:
+		case dicomtag.VRFloat64List:
 			_, ok = v.(float64)
-		case VRTagList:
-			_, ok = v.(Tag)
-		case VRSequence:
+		case dicomtag.VRTagList:
+			_, ok = v.(dicomtag.Tag)
+		case dicomtag.VRSequence:
 			subelem, ok := v.(*Element)
 			if ok {
-				ok = (subelem.Tag == TagItem)
+				ok = (subelem.Tag == dicomtag.Item)
 			}
-		case VRItem:
+		case dicomtag.VRItem:
 			_, ok = v.(*Element)
 			// TODO(saito) I'm missing a few legit VR types here.
 		}
 		if !ok {
-			return nil, fmt.Errorf("%v: wrong value type for NewElement: %v", TagString(tag), v)
+			return nil, fmt.Errorf("%v: wrong value type for NewElement: %v", dicomtag.DebugString(tag), v)
 		}
 		e.Value[i] = v
 	}
@@ -131,7 +132,7 @@ func NewElement(tag Tag, values ...interface{}) (*Element, error) {
 
 // MustNewElement is similar to NewElement, but it crashes the process on any
 // error.
-func MustNewElement(tag Tag, values ...interface{}) *Element {
+func MustNewElement(tag dicomtag.Tag, values ...interface{}) *Element {
 	elem, err := NewElement(tag, values...)
 	if err != nil {
 		vlog.Fatalf("Failed to create element with tag %v: %v", tag, err)
@@ -284,8 +285,8 @@ func elementString(e *Element, nestLevel int) string {
 	if e.UndefinedLength {
 		sVl = "u"
 	}
-	s = fmt.Sprintf("%s %s %s %s ", s, TagString(e.Tag), e.VR, sVl)
-	if e.VR == "SQ" || e.Tag == TagItem {
+	s = fmt.Sprintf("%s %s %s %s ", s, dicomtag.DebugString(e.Tag), e.VR, sVl)
+	if e.VR == "SQ" || e.Tag == dicomtag.Item {
 		s += fmt.Sprintf(" (#%d)[\n", len(e.Value))
 		for _, v := range e.Value {
 			s += elementString(v.(*Element), nestLevel+1) + "\n"
@@ -320,14 +321,14 @@ func readRawItem(d *dicomio.Decoder) ([]byte, bool) {
 	if d.Error() != nil {
 		return nil, true
 	}
-	if tag == TagSequenceDelimitationItem {
+	if tag == dicomtag.SequenceDelimitationItem {
 		if vl != 0 {
 			d.SetErrorf("SequenceDelimitationItem's VL != 0: %v", vl)
 		}
 		return nil, true
 	}
-	if tag != TagItem {
-		d.SetErrorf("Expect Item in pixeldata but found tag %v", TagString(tag))
+	if tag != dicomtag.Item {
+		d.SetErrorf("Expect Item in pixeldata but found tag %v", dicomtag.DebugString(tag))
 		return nil, false
 	}
 	if vl == undefinedLength {
@@ -399,7 +400,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 	if d.Error() != nil {
 		return nil
 	}
-	if metaElem.Tag != TagFileMetaInformationGroupLength {
+	if metaElem.Tag != dicomtag.FileMetaInformationGroupLength {
 		d.SetErrorf("MetaElementGroupLength not found; insteadfound %s", metaElem.Tag.String())
 	}
 	metaLength, err := metaElem.GetUInt32()
@@ -431,7 +432,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 // d.Error(). The caller must check d.Error() before using the returned value.
 func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 	tag := readTag(d)
-	if tag == TagPixelData && options.DropPixelData {
+	if tag == dicomtag.PixelData && options.DropPixelData {
 		return nil
 	}
 	// The elements for group 0xFFFE should be Encoded as Implicit VR.
@@ -459,7 +460,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 	}
 	var data []interface{}
 
-	if tag == TagPixelData {
+	if tag == dicomtag.PixelData {
 		// P3.5, A.4 describes the format. Currently we only support an encapsulated image format.
 		//
 		// PixelData is usually the last element in a DICOM file. When
@@ -511,11 +512,11 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 				if d.Error() != nil {
 					break
 				}
-				if item.Tag == TagSequenceDelimitationItem {
+				if item.Tag == dicomtag.SequenceDelimitationItem {
 					break
 				}
-				if item.Tag != TagItem {
-					d.SetErrorf("Found non-Item element in seq w/ undefined length: %v", TagString(item.Tag))
+				if item.Tag != dicomtag.Item {
+					d.SetErrorf("Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
 					break
 				}
 				data = append(data, item)
@@ -531,14 +532,14 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 				if d.Error() != nil {
 					break
 				}
-				if item.Tag != TagItem {
-					d.SetErrorf("Found non-Item element in seq w/ undefined length: %v", TagString(item.Tag))
+				if item.Tag != dicomtag.Item {
+					d.SetErrorf("Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
 					break
 				}
 				data = append(data, item)
 			}
 		}
-	} else if tag == TagItem { // Item (component of SQ)
+	} else if tag == dicomtag.Item { // Item (component of SQ)
 		if vl == undefinedLength {
 			// Format: Item Any* ItemDelimitationItem
 			for {
@@ -546,7 +547,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 				if d.Error() != nil {
 					break
 				}
-				if subelem.Tag == TagItemDelimitationItem {
+				if subelem.Tag == dicomtag.ItemDelimitationItem {
 					break
 				}
 				data = append(data, subelem)
@@ -565,7 +566,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 		}
 	} else { // List of scalar
 		if vl == undefinedLength {
-			d.SetErrorf("Undefined length disallowed for VR=%s, tag %s", vr, TagString(tag))
+			d.SetErrorf("Undefined length disallowed for VR=%s, tag %s", vr, dicomtag.DebugString(tag))
 			return nil
 		}
 		d.PushLimit(int64(vl))
@@ -577,12 +578,12 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 		} else if vr == "AT" {
 			// (2byte group, 2byte elem)
 			for d.Len() > 0 && d.Error() == nil {
-				tag := Tag{d.ReadUInt16(), d.ReadUInt16()}
+				tag := dicomtag.Tag{d.ReadUInt16(), d.ReadUInt16()}
 				data = append(data, tag)
 			}
 		} else if vr == "OW" {
 			if vl%2 != 0 {
-				d.SetErrorf("%v: OW requires even length, but found %v", TagString(tag), vl)
+				d.SetErrorf("%v: OW requires even length, but found %v", dicomtag.DebugString(tag), vl)
 			} else {
 				n := int(vl / 2)
 				e := dicomio.NewBytesEncoder(dicomio.NativeByteOrder, dicomio.UnknownVR)
@@ -646,16 +647,16 @@ const undefinedLength uint32 = 0xffffffff
 
 // Read a DICOM data element's tag value ie. (0002,0000) added Value
 // Multiplicity PS 3.5 6.4
-func readTag(buffer *dicomio.Decoder) Tag {
+func readTag(buffer *dicomio.Decoder) dicomtag.Tag {
 	group := buffer.ReadUInt16()   // group
 	element := buffer.ReadUInt16() // element
-	return Tag{group, element}
+	return dicomtag.Tag{group, element}
 }
 
 // Read the VR from the DICOM ditionary The VL is a 32-bit unsigned integer
-func readImplicit(buffer *dicomio.Decoder, tag Tag) (string, uint32) {
+func readImplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 	vr := "UN"
-	if entry, err := FindTag(tag); err == nil {
+	if entry, err := dicomtag.Find(tag); err == nil {
 		vr = entry.VR
 	}
 
@@ -666,14 +667,14 @@ func readImplicit(buffer *dicomio.Decoder, tag Tag) (string, uint32) {
 	}
 	// Error when encountering odd length
 	if vl != undefinedLength && vl%2 != 0 {
-		buffer.SetErrorf("Encountered odd length (vl=%v) when reading implicit VR '%v' for tag %s", vl, vr, TagString(tag))
+		buffer.SetErrorf("Encountered odd length (vl=%v) when reading implicit VR '%v' for tag %s", vl, vr, dicomtag.DebugString(tag))
 	}
 	return vr, vl
 }
 
 // The VR is represented by the next two consecutive bytes
 // The VL depends on the VR value
-func readExplicit(buffer *dicomio.Decoder, tag Tag) (string, uint32) {
+func readExplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 	vr := buffer.ReadString(2)
 	var vl uint32
 	if vr == "US" {
@@ -701,7 +702,7 @@ func readExplicit(buffer *dicomio.Decoder, tag Tag) (string, uint32) {
 		}
 	}
 	if vl != undefinedLength && vl%2 != 0 {
-		buffer.SetErrorf("Encountered odd length (vl=%v) when reading explicit VR %v for tag %s", vl, vr, TagString(tag))
+		buffer.SetErrorf("Encountered odd length (vl=%v) when reading explicit VR %v for tag %s", vl, vr, dicomtag.DebugString(tag))
 	}
 	return vr, vl
 }
@@ -709,7 +710,7 @@ func readExplicit(buffer *dicomio.Decoder, tag Tag) (string, uint32) {
 // FindElementByName finds an element with the given Element.Name in
 // "elems" If not found, returns an error.
 func FindElementByName(elems []*Element, name string) (*Element, error) {
-	t, err := FindTagByName(name)
+	t, err := dicomtag.FindByName(name)
 	if err != nil {
 		return nil, err
 	}
@@ -723,11 +724,11 @@ func FindElementByName(elems []*Element, name string) (*Element, error) {
 
 // FindElementByTag finds an element with the given Element.Tag in
 // "elems" If not found, returns an error.
-func FindElementByTag(elems []*Element, tag Tag) (*Element, error) {
+func FindElementByTag(elems []*Element, tag dicomtag.Tag) (*Element, error) {
 	for _, elem := range elems {
 		if elem.Tag == tag {
 			return elem, nil
 		}
 	}
-	return nil, fmt.Errorf("%s: element not found", TagString(tag))
+	return nil, fmt.Errorf("%s: element not found", dicomtag.DebugString(tag))
 }

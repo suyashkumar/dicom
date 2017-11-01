@@ -1,10 +1,9 @@
-package dicom
-
-//go:generate ./generate_dimse_messages.py
-
-// Standard DICOM tag definitions.
+// Package dicomtag enumerates element tags defined in the DICOM standard.
 //
 // ftp://medical.nema.org/medical/dicom/2011/11_06pu.pdf
+package dicomtag
+
+//go:generate ./generate_tag_definitions.py
 
 import (
 	"fmt"
@@ -19,12 +18,13 @@ import (
 //
 // ftp://medical.nema.org/medical/dicom/2011/11_06pu.pdf
 type Tag struct {
-	// Group and element are results of parsing the hex-pair tag, such as (1000,10008)
+	// Group and element are results of parsing the hex-pair tag, such as
+	// (1000,10008)
 	Group   uint16
 	Element uint16
 }
 
-// Return a string of form "(0008,1234)", where 0x0008 is t.Group,
+// String returns a string of form "(0008,1234)", where 0x0008 is t.Group,
 // 0x1234 is t.Element.
 func (t *Tag) String() string {
 	return fmt.Sprintf("(%04x,%04x)", t.Group, t.Element)
@@ -42,8 +42,8 @@ type TagInfo struct {
 	VM string
 }
 
-// TagMetadataGroup is the value of Tag.Group for metadata tags.
-const TagMetadataGroup = 2
+// MetadataGroup is the value of Tag.Group for metadata tags.
+const MetadataGroup = 2
 
 // VRKind defines the golang encoding of a VR.
 type VRKind int
@@ -82,9 +82,9 @@ const (
 
 // GetVRKind returns the golang value encoding of an element with <tag, vr>.
 func GetVRKind(tag Tag, vr string) VRKind {
-	if tag == TagItem {
+	if tag == Item {
 		return VRItem
-	} else if tag == TagPixelData {
+	} else if tag == PixelData {
 		return VRPixelData
 	}
 	switch vr {
@@ -115,9 +115,9 @@ func GetVRKind(tag Tag, vr string) VRKind {
 	}
 }
 
-// FindTag finds information about the given tag. If the tag is not part of
+// Find finds information about the given tag. If the tag is not part of
 // the DICOM standard, or is retired from the standard, it returns an error.
-func FindTag(tag Tag) (TagInfo, error) {
+func Find(tag Tag) (TagInfo, error) {
 	maybeInitTagDict()
 	entry, ok := tagDict[tag]
 	if !ok {
@@ -131,21 +131,21 @@ func FindTag(tag Tag) (TagInfo, error) {
 	return entry, nil
 }
 
-// MustFindTag is like FindTag, but panics on error.
-func MustFindTag(tag Tag) TagInfo {
-	e, err := FindTag(tag)
+// MustFind is like FindTag, but panics on error.
+func MustFind(tag Tag) TagInfo {
+	e, err := Find(tag)
 	if err != nil {
 		vlog.Fatalf("tag %v not found: %s", tag, err)
 	}
 	return e
 }
 
-// FindTagByName finds information about the tag with the given name. If the tag
-// is not part of the DICOM standard, or is retired from the standard, it
-// returns an error.
+// FindByName finds information about the tag with the given name. If the tag is
+// not part of the DICOM standard, or is retired from the standard, it returns
+// an error.
 //
 //   Example: FindTagByName("TransferSyntaxUID")
-func FindTagByName(name string) (TagInfo, error) {
+func FindByName(name string) (TagInfo, error) {
 	maybeInitTagDict()
 	for _, ent := range tagDict {
 		if ent.Name == name {
@@ -155,9 +155,10 @@ func FindTagByName(name string) (TagInfo, error) {
 	return TagInfo{}, fmt.Errorf("Could not find tag with name %s", name)
 }
 
-// TagString returns a human-readable diagnostic string for the tag
-func TagString(tag Tag) string {
-	e, err := FindTag(tag)
+// DebugString returns a human-readable diagnostic string for the tag, in format
+// "(group, elem)[name]".
+func DebugString(tag Tag) string {
+	e, err := Find(tag)
 	if err != nil {
 		return fmt.Sprintf("(%04x,%04x)[??]", tag.Group, tag.Element)
 	}

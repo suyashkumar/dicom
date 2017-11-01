@@ -1,19 +1,19 @@
-package dicom
+package dicomtag
 
 import (
 	"fmt"
 	"testing"
 )
 
-func TestFindTag(t *testing.T) {
-	elem, err := FindTag(Tag{32736, 16})
+func TestFind(t *testing.T) {
+	elem, err := Find(Tag{32736, 16})
 	if err != nil {
 		t.Error(err)
 	}
 	if elem.Name != "PixelData" || elem.VR != "OW" {
 		t.Errorf("Wrong element name: %s", elem.Name)
 	}
-	elem, err = FindTag(Tag{0, 0x1002})
+	elem, err = Find(Tag{0, 0x1002})
 	if err != nil {
 		t.Error(err)
 	}
@@ -21,7 +21,7 @@ func TestFindTag(t *testing.T) {
 		t.Errorf("Wrong element name: %s", elem.Name)
 	}
 
-	elem, err = FindTagByName("TransferSyntaxUID")
+	elem, err = FindByName("TransferSyntaxUID")
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,7 +47,7 @@ func TestSplitTag(t *testing.T) {
 
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		if _, err := FindTag(Tag{2, 0}); err != nil {
+		if _, err := Find(Tag{2, 0}); err != nil {
 			fmt.Println(err)
 		}
 
@@ -56,7 +56,7 @@ func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
 
 func BenchmarkFindPixelDataTag(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		if _, err := FindTag(Tag{32736, 16}); err != nil {
+		if _, err := Find(Tag{32736, 16}); err != nil {
 			fmt.Println(err)
 		}
 

@@ -4,6 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+
+	"github.com/grailbio/go-dicom/dicomtag"
 )
 
 // DirectoryRecord contains info about one DICOM file mentioned in DICOMDIR.
@@ -24,7 +26,7 @@ func ParseDICOMDIR(in io.Reader) (recs []DirectoryRecord, err error) {
 	if err != nil {
 		return nil, err
 	}
-	seq, err := ds.FindElementByTag(TagDirectoryRecordSequence)
+	seq, err := ds.FindElementByTag(dicomtag.DirectoryRecordSequence)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +34,7 @@ func ParseDICOMDIR(in io.Reader) (recs []DirectoryRecord, err error) {
 		path := ""
 		for _, subvalue := range item.(*Element).Value {
 			subelem := subvalue.(*Element)
-			if subelem.Tag == TagReferencedFileID {
+			if subelem.Tag == dicomtag.ReferencedFileID {
 				names, err := subelem.GetStrings()
 				if err != nil {
 					return nil, err

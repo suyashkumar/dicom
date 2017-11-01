@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/grailbio/go-dicom"
+	"github.com/grailbio/go-dicom/dicomtag"
 )
 
 var (
@@ -32,7 +33,7 @@ func main() {
 	if *extractImages {
 		n := 0
 		for _, elem := range data.Elements {
-			if elem.Tag == dicom.TagPixelData {
+			if elem.Tag == dicomtag.PixelData {
 				data := elem.Value[0].([]byte)
 				path := fmt.Sprintf("image.%d.jpg", n) // TODO: figure out the image format
 				n++

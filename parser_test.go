@@ -7,6 +7,7 @@ import (
 
 	"github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/grailbio/go-dicom/dicomtag"
 	"github.com/grailbio/go-dicom/dicomuid"
 )
 
@@ -16,13 +17,13 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	var values []interface{}
 	values = append(values, string("FooHah"))
 	dicom.WriteElement(e, &dicom.Element{
-		Tag:   dicom.Tag{0x0018, 0x9755},
+		Tag:   dicomtag.Tag{0x0018, 0x9755},
 		Value: values})
 	values = nil
 	values = append(values, uint32(1234))
 	values = append(values, uint32(2345))
 	dicom.WriteElement(e, &dicom.Element{
-		Tag:   dicom.Tag{0x0020, 0x9057},
+		Tag:   dicomtag.Tag{0x0020, 0x9057},
 		Value: values})
 	data := e.Bytes()
 	// Read them back.
@@ -31,7 +32,7 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	if d.Error() != nil {
 		t.Fatal(d.Error())
 	}
-	tag := dicom.Tag{0x18, 0x9755}
+	tag := dicomtag.Tag{0x18, 0x9755}
 	if elem0.Tag != tag {
 		t.Error("Bad tag", elem0)
 	}
@@ -42,7 +43,7 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 		t.Error("Bad value", elem0)
 	}
 
-	tag = dicom.Tag{Group: 0x20, Element: 0x9057}
+	tag = dicomtag.Tag{Group: 0x20, Element: 0x9057}
 	elem1 := dicom.ReadElement(d, dicom.ReadOptions{})
 	if d.Error() != nil {
 		t.Fatal(d.Error())
@@ -81,9 +82,9 @@ func TestReadWriteFileHeader(t *testing.T) {
 	dicom.WriteFileHeader(
 		e,
 		[]*dicom.Element{
-			dicom.MustNewElement(dicom.TagTransferSyntaxUID, dicomuid.ImplicitVRLittleEndian),
-			dicom.MustNewElement(dicom.TagMediaStorageSOPClassUID, "1.2.840.10008.5.1.4.1.1.1.2"),
-			dicom.MustNewElement(dicom.TagMediaStorageSOPInstanceUID, "1.2.3.4.5.6.7"),
+			dicom.MustNewElement(dicomtag.TransferSyntaxUID, dicomuid.ImplicitVRLittleEndian),
+			dicom.MustNewElement(dicomtag.MediaStorageSOPClassUID, "1.2.840.10008.5.1.4.1.1.1.2"),
+			dicom.MustNewElement(dicomtag.MediaStorageSOPInstanceUID, "1.2.3.4.5.6.7"),
 		})
 	bytes := e.Bytes()
 	d := dicomio.NewBytesDecoder(bytes, binary.LittleEndian, dicomio.ImplicitVR)
@@ -91,21 +92,21 @@ func TestReadWriteFileHeader(t *testing.T) {
 	if err := d.Finish(); err != nil {
 		t.Fatal(err)
 	}
-	elem, err := dicom.FindElementByTag(elems, dicom.TagTransferSyntaxUID)
+	elem, err := dicom.FindElementByTag(elems, dicomtag.TransferSyntaxUID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if elem.MustGetString() != dicomuid.ImplicitVRLittleEndian {
 		t.Error(elem)
 	}
-	elem, err = dicom.FindElementByTag(elems, dicom.TagMediaStorageSOPClassUID)
+	elem, err = dicom.FindElementByTag(elems, dicomtag.MediaStorageSOPClassUID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if elem.MustGetString() != "1.2.840.10008.5.1.4.1.1.1.2" {
 		t.Error(elem)
 	}
-	elem, err = dicom.FindElementByTag(elems, dicom.TagMediaStorageSOPInstanceUID)
+	elem, err = dicom.FindElementByTag(elems, dicomtag.MediaStorageSOPInstanceUID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,16 +116,16 @@ func TestReadWriteFileHeader(t *testing.T) {
 }
 
 func TestNewElement(t *testing.T) {
-	elem, err := dicom.NewElement(dicom.TagTriggerSamplePosition, uint32(10), uint32(11))
+	elem, err := dicom.NewElement(dicomtag.TriggerSamplePosition, uint32(10), uint32(11))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if elem.Tag != dicom.TagTriggerSamplePosition || !reflect.DeepEqual(elem.MustGetUint32s(), []uint32{10, 11}) {
+	if elem.Tag != dicomtag.TriggerSamplePosition || !reflect.DeepEqual(elem.MustGetUint32s(), []uint32{10, 11}) {
 		t.Error(elem)
 	}
 
 	// Pass a wrong value type.
-	elem, err = dicom.NewElement(dicom.TagTriggerSamplePosition, "foo")
+	elem, err = dicom.NewElement(dicomtag.TriggerSamplePosition, "foo")
 	if err == nil {
 		t.Fatal("Should fail")
 	} 

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/grailbio/go-dicom/dicomtag"
 	"v.io/x/lib/vlog"
 )
 
@@ -27,17 +28,17 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*Element) {
 	defer e.PopTransferSyntax()
 
 	subEncoder := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ExplicitVR)
-	tagsUsed := make(map[Tag]bool)
-	tagsUsed[TagFileMetaInformationGroupLength] = true
-	writeRequiredMetaElem := func(tag Tag) {
+	tagsUsed := make(map[dicomtag.Tag]bool)
+	tagsUsed[dicomtag.FileMetaInformationGroupLength] = true
+	writeRequiredMetaElem := func(tag dicomtag.Tag) {
 		if elem, err := FindElementByTag(metaElems, tag); err == nil {
 			WriteElement(subEncoder, elem)
 		} else {
-			subEncoder.SetErrorf("%v not found in metaelems: %v", TagString(tag), err)
+			subEncoder.SetErrorf("%v not found in metaelems: %v", dicomtag.DebugString(tag), err)
 		}
 		tagsUsed[tag] = true
 	}
-	writeOptionalMetaElem := func(tag Tag, defaultValue interface{}) {
+	writeOptionalMetaElem := func(tag dicomtag.Tag, defaultValue interface{}) {
 		if elem, err := FindElementByTag(metaElems, tag); err == nil {
 			WriteElement(subEncoder, elem)
 		} else {
@@ -45,14 +46,14 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*Element) {
 		}
 		tagsUsed[tag] = true
 	}
-	writeOptionalMetaElem(TagFileMetaInformationVersion, []byte("0 1"))
-	writeRequiredMetaElem(TagTransferSyntaxUID)
-	writeRequiredMetaElem(TagMediaStorageSOPClassUID)
-	writeRequiredMetaElem(TagMediaStorageSOPInstanceUID)
-	writeOptionalMetaElem(TagImplementationClassUID, GoDICOMImplementationClassUID)
-	writeOptionalMetaElem(TagImplementationVersionName, GoDICOMImplementationVersionName)
+	writeOptionalMetaElem(dicomtag.FileMetaInformationVersion, []byte("0 1"))
+	writeRequiredMetaElem(dicomtag.TransferSyntaxUID)
+	writeRequiredMetaElem(dicomtag.MediaStorageSOPClassUID)
+	writeRequiredMetaElem(dicomtag.MediaStorageSOPInstanceUID)
+	writeOptionalMetaElem(dicomtag.ImplementationClassUID, GoDICOMImplementationClassUID)
+	writeOptionalMetaElem(dicomtag.ImplementationVersionName, GoDICOMImplementationVersionName)
 	for _, elem := range metaElems {
-		if elem.Tag.Group == TagMetadataGroup {
+		if elem.Tag.Group == dicomtag.MetadataGroup {
 			if _, ok := tagsUsed[elem.Tag]; !ok {
 				WriteElement(subEncoder, elem)
 			}
@@ -65,11 +66,11 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*Element) {
 	metaBytes := subEncoder.Bytes()
 	e.WriteZeros(128)
 	e.WriteString("DICM")
-	WriteElement(e, MustNewElement(TagFileMetaInformationGroupLength, uint32(len(metaBytes))))
+	WriteElement(e, MustNewElement(dicomtag.FileMetaInformationGroupLength, uint32(len(metaBytes))))
 	e.WriteBytes(metaBytes)
 }
 
-func encodeElementHeader(e *dicomio.Encoder, tag Tag, vr string, vl uint32) {
+func encodeElementHeader(e *dicomio.Encoder, tag dicomtag.Tag, vr string, vl uint32) {
 	doassert(vl == undefinedLength || vl%2 == 0, vl)
 	e.WriteUInt16(tag.Group)
 	e.WriteUInt16(tag.Element)
@@ -95,7 +96,7 @@ func encodeElementHeader(e *dicomio.Encoder, tag Tag, vr string, vl uint32) {
 }
 
 func writeRawItem(e *dicomio.Encoder, data []byte) {
-	encodeElementHeader(e, TagItem, "NA", uint32(len(data)))
+	encodeElementHeader(e, dicomtag.Item, "NA", uint32(len(data)))
 	e.WriteBytes(data)
 }
 
@@ -115,7 +116,7 @@ func writeBasicOffsetTable(e *dicomio.Encoder, offsets []uint32) {
 // is for UL, then each value must be uint32.
 func WriteElement(e *dicomio.Encoder, elem *Element) {
 	vr := elem.VR
-	entry, err := FindTag(elem.Tag)
+	entry, err := dicomtag.Find(elem.Tag)
 	if vr == "" {
 		if err == nil {
 			vr = entry.VR
@@ -124,18 +125,18 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		}
 	} else {
 		if err == nil && entry.VR != vr {
-			if GetVRKind(elem.Tag, entry.VR) != GetVRKind(elem.Tag, vr) {
+			if dicomtag.GetVRKind(elem.Tag, entry.VR) != dicomtag.GetVRKind(elem.Tag, vr) {
 				// The golang repl. is different. We can't continue.
 				e.SetErrorf("VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v",
-					TagString(elem.Tag), vr, entry.VR)
+					dicomtag.DebugString(elem.Tag), vr, entry.VR)
 				return
 			}
 			vlog.VI(1).Infof("VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
-				TagString(elem.Tag), vr, entry.VR)
+				dicomtag.DebugString(elem.Tag), vr, entry.VR)
 		}
 	}
 	doassert(vr != "", vr)
-	if elem.Tag == TagPixelData {
+	if elem.Tag == dicomtag.PixelData {
 		if len(elem.Value) != 1 {
 			// TODO(saito) Use of PixelDataInfo is a temp hack. Come up with a more proper solution.
 			e.SetError(fmt.Errorf("PixelData element must have one value of type PixelDataInfo"))
@@ -150,7 +151,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			for _, image := range image.Frames {
 				writeRawItem(e, image)
 			}
-			encodeElementHeader(e, TagSequenceDelimitationItem, "" /*not used*/, 0)
+			encodeElementHeader(e, dicomtag.SequenceDelimitationItem, "" /*not used*/, 0)
 		} else {
 			doassert(len(image.Frames) == 1, image.Frames) // TODO
 			encodeElementHeader(e, elem.Tag, vr, uint32(len(image.Frames[0])))
@@ -163,18 +164,18 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			encodeElementHeader(e, elem.Tag, vr, undefinedLength)
 			for _, value := range elem.Value {
 				subelem, ok := value.(*Element)
-				if !ok || subelem.Tag != TagItem {
+				if !ok || subelem.Tag != dicomtag.Item {
 					e.SetError(fmt.Errorf("SQ element must be an Item, but found %v", value))
 					return
 				}
 				WriteElement(e, subelem)
 			}
-			encodeElementHeader(e, TagSequenceDelimitationItem, "" /*not used*/, 0)
+			encodeElementHeader(e, dicomtag.SequenceDelimitationItem, "" /*not used*/, 0)
 		} else {
 			sube := dicomio.NewBytesEncoder(e.TransferSyntax())
 			for _, value := range elem.Value {
 				subelem, ok := value.(*Element)
-				if !ok || subelem.Tag != TagItem {
+				if !ok || subelem.Tag != dicomtag.Item {
 					e.SetErrorf("SQ element must be an Item, but found %v", value)
 					return
 				}
@@ -199,7 +200,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				}
 				WriteElement(e, subelem)
 			}
-			encodeElementHeader(e, TagItemDelimitationItem, "" /*not used*/, 0)
+			encodeElementHeader(e, dicomtag.ItemDelimitationItem, "" /*not used*/, 0)
 		} else {
 			sube := dicomio.NewBytesEncoder(e.TransferSyntax())
 			for _, value := range elem.Value {
@@ -230,7 +231,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				v, ok := value.(uint16)
 				if !ok {
 					e.SetErrorf("%v: expect uint16, but found %v",
-						TagString(elem.Tag), value)
+						dicomtag.DebugString(elem.Tag), value)
 					continue
 				}
 				sube.WriteUInt16(v)
@@ -240,7 +241,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				v, ok := value.(uint32)
 				if !ok {
 					e.SetErrorf("%v: expect uint32, but found %v",
-						TagString(elem.Tag), value)
+						dicomtag.DebugString(elem.Tag), value)
 					continue
 				}
 				sube.WriteUInt32(v)
@@ -250,7 +251,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				v, ok := value.(int32)
 				if !ok {
 					e.SetErrorf("%v: expect int32, but found %v",
-						TagString(elem.Tag), value)
+						dicomtag.DebugString(elem.Tag), value)
 					continue
 				}
 				sube.WriteInt32(v)
@@ -260,7 +261,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				v, ok := value.(int16)
 				if !ok {
 					e.SetErrorf("%v: expect int16, but found %v",
-						TagString(elem.Tag), value)
+						dicomtag.DebugString(elem.Tag), value)
 					continue
 				}
 				sube.WriteInt16(v)
@@ -270,7 +271,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				v, ok := value.(float32)
 				if !ok {
 					e.SetErrorf("%v: expect float32, but found %v",
-						TagString(elem.Tag), value)
+						dicomtag.DebugString(elem.Tag), value)
 					continue
 				}
 				sube.WriteFloat32(v)
@@ -280,7 +281,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 				v, ok := value.(float64)
 				if !ok {
 					e.SetErrorf("%v: expect float64, but found %v",
-						TagString(elem.Tag), value)
+						dicomtag.DebugString(elem.Tag), value)
 					continue
 				}
 				sube.WriteFloat64(v)
@@ -288,19 +289,19 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		case "OW", "OB": // TODO(saito) Check that size is even. Byte swap??
 			if len(elem.Value) != 1 {
 				e.SetErrorf("%v: expect a single value but found %v",
-					TagString(elem.Tag), elem.Value)
+					dicomtag.DebugString(elem.Tag), elem.Value)
 				break
 			}
 			bytes, ok := elem.Value[0].([]byte)
 			if !ok {
 				e.SetErrorf("%v: expect a binary string but found %v",
-					TagString(elem.Tag), elem.Value[0])
+					dicomtag.DebugString(elem.Tag), elem.Value[0])
 				break
 			}
 			if vr == "OW" {
 				if len(bytes)%2 != 0 {
 					e.SetErrorf("%v: expect a binary string of even length, but found length %v",
-						TagString(elem.Tag), len(bytes))
+						dicomtag.DebugString(elem.Tag), len(bytes))
 					break
 				}
 				d := dicomio.NewBytesDecoder(bytes, dicomio.NativeByteOrder, dicomio.UnknownVR)
@@ -323,7 +324,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			for i, value := range elem.Value {
 				substr, ok := value.(string)
 				if !ok {
-					e.SetErrorf("%v: Non-string value found", TagString(elem.Tag))
+					e.SetErrorf("%v: Non-string value found", dicomtag.DebugString(elem.Tag))
 					continue
 				}
 				if i > 0 {
@@ -360,7 +361,7 @@ func WriteDataSet(out io.Writer, ds *DataSet) error {
 	e := dicomio.NewEncoder(out, nil, dicomio.UnknownVR)
 	var metaElems []*Element
 	for _, elem := range ds.Elements {
-		if elem.Tag.Group == TagMetadataGroup {
+		if elem.Tag.Group == dicomtag.MetadataGroup {
 			metaElems = append(metaElems, elem)
 		}
 	}
@@ -374,7 +375,7 @@ func WriteDataSet(out io.Writer, ds *DataSet) error {
 	}
 	e.PushTransferSyntax(endian, implicit)
 	for _, elem := range ds.Elements {
-		if elem.Tag.Group != TagMetadataGroup {
+		if elem.Tag.Group != dicomtag.MetadataGroup {
 			WriteElement(e, elem)
 		}
 	}

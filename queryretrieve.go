@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gobwas/glob"
+	"github.com/grailbio/go-dicom/dicomtag"
 	"v.io/x/lib/vlog"
 )
 
@@ -119,12 +120,12 @@ func isEmptyQuery(f *Element) bool {
 	if len(f.Value) == 0 {
 		return true
 	}
-	switch GetVRKind(f.Tag, f.VR) {
-	case VRBytes:
+	switch dicomtag.GetVRKind(f.Tag, f.VR) {
+	case dicomtag.VRBytes:
 		if len(f.Value[0].([]byte)) == 0 {
 			return true
 		}
-	case VRString, VRDate:
+	case dicomtag.VRString, dicomtag.VRDate:
 		pattern := f.Value[0].(string)
 		if len(pattern) == 0 {
 			return true
@@ -132,7 +133,7 @@ func isEmptyQuery(f *Element) bool {
 		if isUniversalGlob(pattern) {
 			return true
 		}
-	case VRStringList:
+	case dicomtag.VRStringList:
 		pattern := f.Value[0].(string)
 		if isUniversalGlob(pattern) {
 			return true
@@ -151,7 +152,7 @@ func Query(ds *DataSet, f *Element) (match bool, matchedElem *Element, err error
 		// A filter can't contain multiple values. P3.4, C.2.2.2.1
 		return false, nil, fmt.Errorf("Multiple values found in filter '%v'", f)
 	}
-	if f.Tag == TagQueryRetrieveLevel || f.Tag == TagSpecificCharacterSet {
+	if f.Tag == dicomtag.QueryRetrieveLevel || f.Tag == dicomtag.SpecificCharacterSet {
 		return true, nil, nil
 	}
 	elem, err := ds.FindElementByTag(f.Tag)

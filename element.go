@@ -436,6 +436,11 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 	if tag == dicomtag.PixelData && options.DropPixelData {
 		return nil
 	}
+
+	// Return nil if the tag is greater than the StopAtTag if a StopAtTag is given
+	if options.StopAtTag != nil && tag.Group >= options.StopAtTag.Group && tag.Element >= options.StopAtTag.Element {
+		return nil
+	}
 	// The elements for group 0xFFFE should be Encoded as Implicit VR.
 	// DICOM Standard 09. PS 3.6 - Section 7.5: "Nesting of Data Sets"
 
@@ -509,7 +514,8 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			//  ItemSet := Item Any* ItemDelimitationItem (when Item.VL is undefined) or
 			//             Item Any*N                     (when Item.VL has a defined value)
 			for {
-				item := ReadElement(d, options)
+				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
+				item := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
 				if d.Error() != nil {
 					break
 				}
@@ -529,7 +535,8 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			d.PushLimit(int64(vl))
 			defer d.PopLimit()
 			for d.Len() > 0 {
-				item := ReadElement(d, options)
+				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
+				item := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
 				if d.Error() != nil {
 					break
 				}
@@ -544,7 +551,8 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 		if vl == undefinedLength {
 			// Format: Item Any* ItemDelimitationItem
 			for {
-				subelem := ReadElement(d, options)
+				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
+				subelem := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
 				if d.Error() != nil {
 					break
 				}
@@ -557,7 +565,8 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			// Sequence of arbitary elements, for the  total of "vl" bytes.
 			d.PushLimit(int64(vl))
 			for d.Len() > 0 {
-				subelem := ReadElement(d, options)
+				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
+				subelem := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
 				if d.Error() != nil {
 					break
 				}
@@ -706,6 +715,15 @@ func readExplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 		buffer.SetErrorf("Encountered odd length (vl=%v) when reading explicit VR %v for tag %s", vl, vr, dicomtag.DebugString(tag))
 	}
 	return vr, vl
+}
+
+func tagInList(tag dicomtag.Tag, tags []dicomtag.Tag) bool {
+	for _, t := range tags {
+		if tag == t {
+			return true
+		}
+	}
+	return false
 }
 
 // FindElementByName finds an element with the given Element.Name in

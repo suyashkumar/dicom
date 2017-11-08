@@ -120,8 +120,9 @@ func TestReadDataSet(t *testing.T) {
 	}
 }
 
-// Test ReadOptions.DropPixelData.
-func TestDropPixelData(t *testing.T) {
+// Test ReadOptions
+func TestReadOptions(t *testing.T) {
+	// Test Drop Pixel Data
 	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true})
 	_, err := data.FindElementByTag(dicomtag.PatientName)
 	if err != nil {
@@ -130,6 +131,28 @@ func TestDropPixelData(t *testing.T) {
 	_, err = data.FindElementByTag(dicomtag.PixelData)
 	if err == nil {
 		t.Errorf("PixelData should not be present")
+	}
+
+	// Test Return Tags
+	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true, ReturnTags: []dicomtag.Tag{dicomtag.StudyInstanceUID}})
+	_, err = data.FindElementByTag(dicomtag.StudyInstanceUID)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = data.FindElementByTag(dicomtag.PatientName)
+	if err == nil {
+		t.Errorf("PatientName should not be present")
+	}
+
+	// Test Stop at Tag
+	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true, StopAtTag: &dicomtag.StudyInstanceUID}) // Study Instance UID Element tag is Tag{0x0020, 0x000D}
+	_, err = data.FindElementByTag(dicomtag.PatientName)                                                                            // Patient Name Element tag is Tag{0x0010, 0x0010}
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = data.FindElementByTag(dicomtag.SeriesInstanceUID) // Series Instance UID Element tag is Tag{0x0020, 0x000E}
+	if err == nil {
+		t.Errorf("PatientName should not be present")
 	}
 }
 

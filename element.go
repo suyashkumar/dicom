@@ -95,7 +95,7 @@ func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
 	for i, v := range values {
 		var ok bool
 		switch vrKind {
-		case dicomtag.VRStringList:
+		case dicomtag.VRStringList, dicomtag.VRDate:
 			_, ok = v.(string)
 		case dicomtag.VRBytes:
 			_, ok = v.([]byte)
@@ -111,6 +111,8 @@ func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
 			_, ok = v.(float32)
 		case dicomtag.VRFloat64List:
 			_, ok = v.(float64)
+		case dicomtag.VRPixelData:
+			_, ok = v.(PixelDataInfo)
 		case dicomtag.VRTagList:
 			_, ok = v.(dicomtag.Tag)
 		case dicomtag.VRSequence:
@@ -120,7 +122,6 @@ func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
 			}
 		case dicomtag.VRItem:
 			_, ok = v.(*Element)
-			// TODO(saito) I'm missing a few legit VR types here.
 		}
 		if !ok {
 			return nil, fmt.Errorf("%v: wrong value type for NewElement: %v", dicomtag.DebugString(tag), v)

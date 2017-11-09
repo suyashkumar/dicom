@@ -4,20 +4,15 @@ import (
 	"testing"
 
 	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStandardUIDs(t *testing.T) {
-	if dicomuid.PatientRootQRFind != "1.2.840.10008.5.1.4.1.2.1.1" {
-		t.Error(dicomuid.PatientRootQRFind)
-	}
+	assert.Equal(t, dicomuid.PatientRootQRFind, "1.2.840.10008.5.1.4.1.2.1.1")
 }
 
 func TestLookupUID(t *testing.T) {
 	u := dicomuid.MustLookup("1.2.840.10008.15.0.4.8")
-	if u.Name != "dicomTransferCapability" {
-		t.Error(u)
-	}
-	if u.Type != "LDAP OID" {
-		t.Error(u)
-	}
+	assert.Equal(t, u.Name, "dicomTransferCapability")
+	assert.Equal(t, string(u.Type), "LDAP OID")
 }

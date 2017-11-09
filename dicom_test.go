@@ -7,6 +7,8 @@ import (
 	"github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomtag"
 	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"v.io/x/lib/vlog"
 )
 
@@ -20,13 +22,9 @@ func mustReadFile(path string, options dicom.ReadOptions) *dicom.DataSet {
 
 func TestAllFiles(t *testing.T) {
 	dir, err := os.Open("examples")
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 	names, err := dir.Readdirnames(0)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 	for _, name := range names {
 		vlog.Infof("Reading %s", name)
 		_ = mustReadFile("examples/"+name, dicom.ReadOptions{})
@@ -37,9 +35,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 	data := mustReadFile(dcmPath, dicom.ReadOptions{})
 	dstPath := "/tmp/test.dcm"
 	out, err := os.Create(dstPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	for i := range data.Elements {
 		if data.Elements[i].Tag == dicomtag.TransferSyntaxUID {
@@ -50,9 +46,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 		}
 	}
 	err = dicom.WriteDataSet(out, data)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	data2 := mustReadFile(dstPath, dicom.ReadOptions{})
 
 	if len(data.Elements) != len(data2.Elements) {
@@ -78,14 +72,8 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 			// This element is expected to change when the file is transcoded.
 			continue
 		}
-		if elem.String() != elem2.String() {
-			t.Fatalf("Elem mismatch: %v %v", elem.String(), elem2.String())
-		}
+		require.Equal(t, elem.String(), elem2.String())
 	}
-	// TODO(saito) Fix below.
-	//if !reflect.DeepEqual(data, data2) {
-	//	t.Error("Files aren't equal")
-	//}
 }
 
 func TestWriteFile(t *testing.T) {
@@ -98,26 +86,14 @@ func TestWriteFile(t *testing.T) {
 func TestReadDataSet(t *testing.T) {
 	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{})
 	elem, err := data.FindElementByName("PatientName")
-	if err != nil {
-		t.Error(err)
-	}
-	if elem.MustGetString() != "TOUTATIX" {
-		t.Errorf("Incorrect patient name: %s", elem)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, elem.MustGetString(), "TOUTATIX")
 	elem, err = data.FindElementByName("TransferSyntaxUID")
-	if err != nil {
-		t.Error(err)
-	}
-	if elem.MustGetString() != "1.2.840.10008.1.2.4.91" {
-		t.Errorf("Incorrect TransferSyntaxUID: %s", elem)
-	}
-	if l := len(data.Elements); l != 98 {
-		t.Errorf("Error parsing DICOM file, wrong number of elements: %d", l)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, elem.MustGetString(), "1.2.840.10008.1.2.4.91")
+	assert.Equal(t, len(data.Elements), 98)
 	elem, err = data.FindElementByTag(dicomtag.PixelData)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 }
 
 // Test ReadOptions
@@ -125,13 +101,9 @@ func TestReadOptions(t *testing.T) {
 	// Test Drop Pixel Data
 	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true})
 	_, err := data.FindElementByTag(dicomtag.PatientName)
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 	_, err = data.FindElementByTag(dicomtag.PixelData)
-	if err == nil {
-		t.Errorf("PixelData should not be present")
-	}
+	require.Error(t, err)
 
 	// Test Return Tags
 	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true, ReturnTags: []dicomtag.Tag{dicomtag.StudyInstanceUID}})

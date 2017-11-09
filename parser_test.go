@@ -9,6 +9,8 @@ import (
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomtag"
 	"github.com/grailbio/go-dicom/dicomuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.IsImplicitVR) {
@@ -29,40 +31,20 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	// Read them back.
 	d := dicomio.NewBytesDecoder(data, bo, implicit)
 	elem0 := dicom.ReadElement(d, dicom.ReadOptions{})
-	if d.Error() != nil {
-		t.Fatal(d.Error())
-	}
-	tag := dicomtag.Tag{0x18, 0x9755}
-	if elem0.Tag != tag {
-		t.Error("Bad tag", elem0)
-	}
-	if len(elem0.Value) != 1 {
-		t.Error("Bad value", elem0)
-	}
-	if elem0.Value[0].(string) != "FooHah" {
-		t.Error("Bad value", elem0)
-	}
 
+	require.NoError(t, d.Error())
+	tag := dicomtag.Tag{0x18, 0x9755}
+	assert.Equal(t, elem0.Tag, tag)
+	assert.Equal(t, len(elem0.Value), 1)
+	assert.Equal(t, elem0.Value[0].(string), "FooHah")
 	tag = dicomtag.Tag{Group: 0x20, Element: 0x9057}
 	elem1 := dicom.ReadElement(d, dicom.ReadOptions{})
-	if d.Error() != nil {
-		t.Fatal(d.Error())
-	}
-	if elem1.Tag != tag {
-		t.Error("Bad tag")
-	}
-	if len(elem1.Value) != 2 {
-		t.Error("Bad value", elem1)
-	}
-	if elem1.Value[0].(uint32) != 1234 {
-		t.Error("Bad value", elem1)
-	}
-	if elem1.Value[1].(uint32) != 2345 {
-		t.Error("Bad value", elem1)
-	}
-	if err := d.Finish(); err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, d.Error())
+	assert.Equal(t, elem1.Tag, tag)
+	assert.Equal(t, len(elem1.Value), 2)
+	assert.Equal(t, elem1.Value[0].(uint32), uint32(1234))
+	assert.Equal(t, elem1.Value[1].(uint32), uint32(2345))
+	require.NoError(t, d.Finish())
 }
 
 func TestWriteDataElementImplicit(t *testing.T) {
@@ -89,44 +71,26 @@ func TestReadWriteFileHeader(t *testing.T) {
 	bytes := e.Bytes()
 	d := dicomio.NewBytesDecoder(bytes, binary.LittleEndian, dicomio.ImplicitVR)
 	elems := dicom.ParseFileHeader(d)
-	if err := d.Finish(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, d.Finish())
 	elem, err := dicom.FindElementByTag(elems, dicomtag.TransferSyntaxUID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if elem.MustGetString() != dicomuid.ImplicitVRLittleEndian {
-		t.Error(elem)
-	}
+	require.NoError(t, err)
+	assert.Equalf(t, elem.MustGetString(), dicomuid.ImplicitVRLittleEndian,
+		"Wrong element value %+v", elem)
 	elem, err = dicom.FindElementByTag(elems, dicomtag.MediaStorageSOPClassUID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if elem.MustGetString() != "1.2.840.10008.5.1.4.1.1.1.2" {
-		t.Error(elem)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, elem.MustGetString(), "1.2.840.10008.5.1.4.1.1.1.2")
 	elem, err = dicom.FindElementByTag(elems, dicomtag.MediaStorageSOPInstanceUID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if elem.MustGetString() != "1.2.3.4.5.6.7" {
-		t.Error(elem)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, elem.MustGetString(), "1.2.3.4.5.6.7")
 }
 
 func TestNewElement(t *testing.T) {
 	elem, err := dicom.NewElement(dicomtag.TriggerSamplePosition, uint32(10), uint32(11))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if elem.Tag != dicomtag.TriggerSamplePosition || !reflect.DeepEqual(elem.MustGetUint32s(), []uint32{10, 11}) {
-		t.Error(elem)
-	}
-
+	require.NoError(t, err)
+	require.Equal(t, elem.Tag, dicomtag.TriggerSamplePosition)
+	require.Truef(t, reflect.DeepEqual(elem.MustGetUint32s(), []uint32{10, 11}),
+		"Elem: %+v", elem)
 	// Pass a wrong value type.
-	elem, err = dicom.NewElement(dicomtag.TriggerSamplePosition, "foo")
-	if err == nil {
-		t.Fatal("Should fail")
-	} 
+	elem, err = dicom.NewElement(dicomtag.TriggerSamplePosition, "foo") 
+	require.Error(t, err) 
 }

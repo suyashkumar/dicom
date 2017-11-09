@@ -5,6 +5,7 @@ import (
 
 	"github.com/grailbio/go-dicom"
 	"github.com/grailbio/go-dicom/dicomtag"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParse0(t *testing.T) {
@@ -14,12 +15,9 @@ func TestParse0(t *testing.T) {
 	}
 	studyUID := "1.2.840.113857.1907.192833.1115.220048"
 	match, elem, err := dicom.Query(ds, dicom.MustNewElement(dicomtag.StudyInstanceUID, studyUID))
-	if !match || err != nil {
-		t.Error(err)
-	}
-	if elem.MustGetString() != studyUID {
-		t.Error(elem)
-	}
+	assert.True(t, match)
+	assert.NoError(t, err)
+	assert.Equal(t, elem.MustGetString(), studyUID)
 }
 
 func TestParseDate(t *testing.T) {
@@ -34,12 +32,9 @@ func TestParseDate(t *testing.T) {
 	}
 	for _, r := range goodDateRanges {
 		s, e, err := dicom.ParseDate(r.str)
-		if err != nil {
-			t.Error(err)
-		}
-		if s.String() != r.startISO8601 || e.String() != r.endISO8601 {
-			t.Errorf("%+v: %+v %+v", r, s, e)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, s.String(), r.startISO8601)
+		assert.Equal(t, e.String(), r.endISO8601)
 	}
 	goodDates := []struct {
 		str     string
@@ -50,18 +45,13 @@ func TestParseDate(t *testing.T) {
 	}
 	for _, goodDate := range goodDates {
 		s, e, err := dicom.ParseDate(goodDate.str)
-		if err != nil {
-			t.Errorf("%v: err %v", goodDate, err)
-		}
-		if s.String() != goodDate.iso8601 || e.Year != dicom.InvalidYear {
-			t.Errorf("%v: wrong value %v", goodDate, s.String())
-		}
+		assert.NoError(t, err, "Date:", goodDate)
+		assert.Equal(t, s.String(), goodDate.iso8601)
+		assert.Equal(t, e.Year, dicom.InvalidYear)
 	}
 	badDates := []string{"2017.0101", "2017.01", "2017X01.02", "201X0405"}
 	for _, badDate := range badDates {
 		_, _, err := dicom.ParseDate(badDate)
-		if err == nil {
-			t.Errorf("%s: this should have failed", badDate)
-		}
+		assert.Error(t, err, "Date:", badDate)
 	}
 }

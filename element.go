@@ -116,7 +116,8 @@ func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
 		case dicomtag.VRTagList:
 			_, ok = v.(dicomtag.Tag)
 		case dicomtag.VRSequence:
-			subelem, ok := v.(*Element)
+			var subelem *Element
+			subelem, ok = v.(*Element)
 			if ok {
 				ok = (subelem.Tag == dicomtag.Item)
 			}
@@ -124,7 +125,7 @@ func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
 			_, ok = v.(*Element)
 		}
 		if !ok {
-			return nil, fmt.Errorf("%v: wrong value type for NewElement: %v", dicomtag.DebugString(tag), v)
+			return nil, fmt.Errorf("%v: wrong payload type for NewElement: expect %v, but found %v", dicomtag.DebugString(tag), vrKind, v)
 		}
 		e.Value[i] = v
 	}
@@ -459,13 +460,24 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 	if d.Error() != nil {
 		return nil
 	}
+	var data []interface{}
+
 	elem := &Element{
 		Tag:             tag,
 		VR:              vr,
 		UndefinedLength: (vl == undefinedLength),
 	}
-	var data []interface{}
-
+	if vr == "UN" && vl == undefinedLength {
+		// This combination appears in some file, but it's unclear what
+		// to do. The standard, as always, is unclear. The best guess is
+		// in PS3.5, 6.2.2, where it states that the combination of
+		// vr=UN and undefined length is allowed, it refers to a section
+		// of parsing "Data Elemets with Unknown Length". That reference
+		// is specifically about element of type SQ, so I'm just
+		// assuming <UN, undefinedlength> is the same as <SQ, undefined
+		// length>.
+		vr = "SQ"
+	}
 	if tag == dicomtag.PixelData {
 		// P3.5, A.4 describes the format. Currently we only support an encapsulated image format.
 		//

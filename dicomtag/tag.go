@@ -4,6 +4,7 @@
 package dicomtag
 
 //go:generate ./generate_tag_definitions.py
+//go:generate stringer -type VRKind
 
 import (
 	"fmt"
@@ -24,9 +25,13 @@ type Tag struct {
 	Element uint16
 }
 
+func IsPrivate(group uint16) bool {
+	return group%2 == 1
+}
+
 // String returns a string of form "(0008,1234)", where 0x0008 is t.Group,
 // 0x1234 is t.Element.
-func (t *Tag) String() string {
+func (t Tag) String() string {
 	return fmt.Sprintf("(%04x,%04x)", t.Group, t.Element)
 }
 
@@ -160,7 +165,11 @@ func FindByName(name string) (TagInfo, error) {
 func DebugString(tag Tag) string {
 	e, err := Find(tag)
 	if err != nil {
-		return fmt.Sprintf("(%04x,%04x)[??]", tag.Group, tag.Element)
+		if IsPrivate(tag.Group) {
+			return fmt.Sprintf("(%04x,%04x)[private]", tag.Group, tag.Element)
+		} else {
+			return fmt.Sprintf("(%04x,%04x)[??]", tag.Group, tag.Element)
+		}
 	}
 	return fmt.Sprintf("(%04x,%04x)[%s]", tag.Group, tag.Element, e.Name)
 }

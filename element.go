@@ -519,7 +519,10 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			data = append(data, image)
 		}
 		// TODO(saito) handle multi-frame image.
-	} else if vr == "SQ" { // Sequence
+	} else if vr == "SQ" {
+		// Note: when reading subitems inside sequence or item, we ignore
+		// DropPixelData and other shortcircuiting options. If we honored them, we'd
+		// be unable to read the rest of the file.
 		if vl == undefinedLength {
 			// Format:
 			//  Sequence := ItemSet* SequenceDelimitationItem
@@ -527,7 +530,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			//             Item Any*N                     (when Item.VL has a defined value)
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
+				item := ReadElement(d, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -548,7 +551,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			defer d.PopLimit()
 			for d.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
+				item := ReadElement(d, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -564,7 +567,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			// Format: Item Any* ItemDelimitationItem
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
+				subelem := ReadElement(d, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -578,7 +581,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			d.PushLimit(int64(vl))
 			for d.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, ReadOptions{DropPixelData: options.DropPixelData})
+				subelem := ReadElement(d, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}

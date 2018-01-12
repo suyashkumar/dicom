@@ -21,7 +21,7 @@ func main() {
 		log.Panic("dicomutil <dicomfile>")
 	}
 	path := flag.Arg(0)
-	data, err := dicom.ReadDataSetFromFile(path, dicom.ReadOptions{})
+	data, err := dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: true})
 	if err != nil {
 		panic(err)
 	}

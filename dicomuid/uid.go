@@ -1,9 +1,8 @@
-package dicomuid
-
-// List of standard UIDs, as defined in P3.6.
+// Package dicomuid defines standard UIDs, as defined in P3.6.
 //
 // http://dicom.nema.org/medical/dicom/current/output/pdf/part06.pdf
-//
+package dicomuid
+
 // Translated from pynetdict, _uid_dict.py
 
 import (

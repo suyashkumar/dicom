@@ -1,3 +1,5 @@
+// Package dicomio provides utility functions for encoding and
+// decoding low-level DICOM data types, such as integers and strings.
 package dicomio
 
 import (
@@ -24,11 +26,8 @@ type transferSyntaxStackEntry struct {
 type Encoder struct {
 	err error
 
-	// TODO(saito) Change to take the io.Writer instead of bytes.Buffer.
-	//buf *bytes.Buffer
 	out io.Writer
 	bo  binary.ByteOrder
-
 	// "implicit" isn't used by Encoder internally. It's there for the user
 	// of Encoder to see the current transfer syntax.
 	implicit IsImplicitVR

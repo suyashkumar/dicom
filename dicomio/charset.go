@@ -6,7 +6,7 @@ import (
 	"v.io/x/lib/vlog"
 )
 
-// CodingSystem how a []byte is translated into a utf8 string.
+// CodingSystem defines how a []byte is translated into a utf8 string.
 type CodingSystem struct {
 	// VR="PN" is the only place where we potentially use all three
 	// decoders.  For all other VR types, only Ideographic decoder is used.
@@ -28,7 +28,7 @@ type CodingSystemType int
 
 const (
 	// AlphabeticCodingSystem is for writing a name in (English) alphabets.
-	AlphabeticCodingSystem = iota
+	AlphabeticCodingSystem CodingSystemType = iota
 	// IdeographicCodingSystem is for writing the name in the native writing
 	// system (Kanji).
 	IdeographicCodingSystem

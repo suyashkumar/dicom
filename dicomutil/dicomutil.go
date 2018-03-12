@@ -21,10 +21,11 @@ func main() {
 		log.Panic("dicomutil <dicomfile>")
 	}
 	path := flag.Arg(0)
-	data, err := dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: true})
-	if err != nil {
-		panic(err)
+	data, err := dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: !*extractImages})
+	if data == nil {
+		log.Panic("Error reading %s: %v", path, err)
 	}
+	log.Printf("Error reading %s: %v", path, err)
 	if *printMetadata {
 		for _, elem := range data.Elements {
 			fmt.Printf("%v\n", elem.String())
@@ -34,11 +35,13 @@ func main() {
 		n := 0
 		for _, elem := range data.Elements {
 			if elem.Tag == dicomtag.PixelData {
-				data := elem.Value[0].([]byte)
-				path := fmt.Sprintf("image.%d.jpg", n) // TODO: figure out the image format
-				n++
-				ioutil.WriteFile(path, data, 0644)
-				fmt.Printf("%s: %d bytes\n", path, len(data))
+				data := elem.Value[0].(dicom.PixelDataInfo)
+				for _, frame := range data.Frames {
+					path := fmt.Sprintf("image.%d.jpg", n) // TODO: figure out the image format
+					n++
+					ioutil.WriteFile(path, frame, 0644)
+					fmt.Printf("%s: %d bytes\n", path, len(frame))
+				}
 			}
 		}
 	}

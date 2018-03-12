@@ -243,6 +243,7 @@ func (file *DicomFile) LookupElement(name string) (*DicomElement, error) {
 
 	"github.com/grailbio/go-dicom/dicomio"
 	"github.com/grailbio/go-dicom/dicomtag"
+	"v.io/x/lib/vlog"
 )
 
 // GoDICOMImplementationClassUIDPrefix defines the UID prefix for
@@ -287,12 +288,20 @@ type ReadOptions struct {
 }
 
 // ReadDataSetInBytes is a shorthand for ReadDataSet(bytes.NewBuffer(data), len(data)).
+//
+// On parse error, this function may return a non-nil dataset and a non-nil
+// error. In such case, the dataset will contain parts of the file that are
+// parsable, and error will show the first error found by the parser.
 func ReadDataSetInBytes(data []byte, options ReadOptions) (*DataSet, error) {
 	return ReadDataSet(bytes.NewBuffer(data), int64(len(data)), options)
 }
 
 // ReadDataSetFromFile parses file cotents into dicom.DataSet. It is a thin
 // wrapper around ReadDataSet.
+//
+// On parse error, this function may return a non-nil dataset and a non-nil
+// error. In such case, the dataset will contain parts of the file that are
+// parsable, and error will show the first error found by the parser.
 func ReadDataSetFromFile(path string, options ReadOptions) (*DataSet, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -306,7 +315,11 @@ func ReadDataSetFromFile(path string, options ReadOptions) (*DataSet, error) {
 	return ReadDataSet(file, st.Size(), options)
 }
 
-// ReadDataSet reads a DICOM file from "io", up to "bytes". Returns a DICOM file struct.
+// ReadDataSet reads a DICOM file from "io", up to "bytes".
+//
+// On parse error, this function may return a non-nil dataset and a non-nil
+// error. In such case, the dataset will contain parts of the file that are
+// parsable, and error will show the first error found by the parser.
 func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, error) {
 	buffer := dicomio.NewDecoder(in, bytes, binary.LittleEndian, dicomio.ExplicitVR)
 	metaElems := ParseFileHeader(buffer)
@@ -325,13 +338,18 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 
 	// Read the list of elements.
 	for buffer.Len() > 0 {
+		startLen := buffer.Len()
 		elem := ReadElement(buffer, options)
-		if buffer.Error() != nil {
+		if buffer.Len() >= startLen { // Avoid silent infinite looping.
+			vlog.Fatalf("ReadElement failed to consume data: %d %d: %v", startLen, buffer.Len(), buffer.Error())
+		}
+		if elem == endOfDataElement {
+			// element is a pixel data and was dropped by options
 			break
 		}
 		if elem == nil {
-			// element is a pixel data and was dropped by options
-			break
+			// Parse error.
+			continue
 		}
 		if elem.Tag == dicomtag.SpecificCharacterSet {
 			// Set the []byte -> string decoder for the rest of the

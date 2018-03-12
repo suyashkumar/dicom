@@ -22,6 +22,11 @@ type transferSyntaxStackEntry struct {
 	implicit IsImplicitVR
 }
 
+type stackEntry struct {
+	limit int64
+	err   error
+}
+
 // Encoder is a helper class for encoding low-level DICOM data types.
 type Encoder struct {
 	err error
@@ -110,7 +115,7 @@ func (e *Encoder) PopTransferSyntax() {
 //
 // REQUIRES: err != nil
 func (e *Encoder) SetError(err error) {
-	if e.err == nil {
+	if err != nil && e.err == nil {
 		e.err = err
 	}
 }
@@ -221,7 +226,7 @@ type Decoder struct {
 	oldTransferSyntaxes []transferSyntaxStackEntry
 	// Stack of old limits. Used by {Push,Pop}Limit.
 	// INVARIANT: oldLimits[] store values in decreasing order.
-	oldLimits []int64
+	stateStack []stackEntry
 }
 
 // NewDecoder creates a decoder object that reads up to "limit" bytes from "in".
@@ -264,7 +269,10 @@ func NewBytesDecoderWithTransferSyntax(data []byte, transferSyntaxUID string) *D
 //
 // REQUIRES: err != nil
 func (d *Decoder) SetError(err error) {
-	if d.err == nil {
+	if err != nil && d.err == nil {
+		if err != io.EOF {
+			err = fmt.Errorf("%s (file offset %d)", err.Error(), d.pos)
+		}
 		d.err = err
 	}
 }
@@ -312,8 +320,8 @@ func (d *Decoder) PopTransferSyntax() {
 	d.oldTransferSyntaxes = d.oldTransferSyntaxes[:len(d.oldTransferSyntaxes)-1]
 }
 
-// PushLimit temporarily overrides the end of the buffer. PopLimit() will
-// restore the old limit.
+// PushLimit temporarily overrides the end of the buffer and clears
+// d.err. PopLimit() will restore the old limit and error.
 //
 // REQUIRES: limit must be smaller than the current limit
 func (d *Decoder) PushLimit(bytes int64) {
@@ -322,14 +330,25 @@ func (d *Decoder) PushLimit(bytes int64) {
 		d.SetError(fmt.Errorf("Trying to read %d bytes beyond buffer end", newLimit-d.limit))
 		newLimit = d.pos
 	}
-	d.oldLimits = append(d.oldLimits, d.limit)
+	d.stateStack = append(d.stateStack, stackEntry{limit: d.limit, err: d.err})
 	d.limit = newLimit
+	d.err = nil
 }
 
 // PopLimit restores the old limit overridden by PushLimit.
 func (d *Decoder) PopLimit() {
-	d.limit = d.oldLimits[len(d.oldLimits)-1]
-	d.oldLimits = d.oldLimits[:len(d.oldLimits)-1]
+	if d.pos < d.limit {
+		// d.pos < d.limit iff parse error happened and the caller didn't fully
+		// consume the input.  Here we skip over the unparsable part.  This is just a
+		// heuristics to parse as much data as possible from corrupt files.
+		d.Skip(int(d.limit - d.pos))
+	}
+	last := len(d.stateStack) - 1
+	d.limit = d.stateStack[last].limit
+	if d.stateStack[last].err != nil {
+		d.err = d.stateStack[last].err
+	}
+	d.stateStack = d.stateStack[:last]
 }
 
 // Error returns an error encountered so far.
@@ -362,7 +381,7 @@ func (d *Decoder) Read(p []byte) (int, error) {
 		desired = int64(len(p))
 	}
 	n, err := d.in.Read(p)
-	if err == nil {
+	if n >= 0 {
 		d.pos += int64(n)
 	}
 	return n, err
@@ -487,7 +506,7 @@ func (d *Decoder) ReadBytes(length int) []byte {
 		}
 		remaining = remaining[n:]
 	}
-	doassert(d.Error() != nil || len(remaining) == 0)
+	doassert(d.err != nil || len(remaining) == 0)
 	return v
 }
 
@@ -518,5 +537,5 @@ func (d *Decoder) Skip(length int) {
 		doassert(n > 0)
 		remaining -= n
 	}
-	doassert(d.Error() != nil || remaining == 0)
+	doassert(d.err != nil || remaining == 0)
 }

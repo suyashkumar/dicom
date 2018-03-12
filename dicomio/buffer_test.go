@@ -97,7 +97,6 @@ func TestLimit(t *testing.T) {
 	}
 	_ = d.ReadByte()
 	if v0 != 10 || v1 != 11 || d.Error() != io.EOF {
-		t.Error("Limit: %v %v %v", v0, v1, d.Error())
+		t.Errorf("Limit: %v %v %v", v0, v1, d.Error())
 	}
-
 }

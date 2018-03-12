@@ -25,6 +25,24 @@ type Tag struct {
 	Element uint16
 }
 
+// Compare returns -1, 0, or 1 if t<other, t==other, t>other, respectively.
+// Tags are ordered first by Group, then by Element.
+func (t Tag) Compare(other Tag) int {
+	if t.Group < other.Group {
+		return -1
+	}
+	if t.Group > other.Group {
+		return 1
+	}
+	if t.Element < other.Element {
+		return -1
+	}
+	if t.Element > other.Element {
+		return 1
+	}
+	return 0
+}
+
 func IsPrivate(group uint16) bool {
 	return group%2 == 1
 }

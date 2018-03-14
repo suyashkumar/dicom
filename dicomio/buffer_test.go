@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasic(t *testing.T) {
@@ -21,32 +22,18 @@ func TestBasic(t *testing.T) {
 	d := dicomio.NewDecoder(
 		bytes.NewBuffer(encoded), int64(len(encoded)),
 		binary.BigEndian, dicomio.ImplicitVR)
-	if v := d.ReadByte(); v != 10 {
-		t.Errorf("ReadByte %v", v)
-	}
-	if v := d.ReadByte(); v != 11 {
-		t.Errorf("ReadByte %v", v)
-	}
-	if v := d.ReadUInt16(); v != 0x123 {
-		t.Errorf("ReadUint16 %v", v)
-	}
-	if v := d.ReadUInt32(); v != 0x234 {
-		t.Errorf("ReadUint32 %v", v)
-	}
+	require.Equal(t, byte(10), d.ReadByte())
+	require.Equal(t, byte(11), d.ReadByte())
+	require.Equal(t, uint16(0x123), d.ReadUInt16())
+	require.Equal(t, uint32(0x234), d.ReadUInt32())
 	d.Skip(12)
-	if v := d.ReadString(5); v != "abcde" {
-		t.Errorf("ReadString %v", v)
-	}
-	if d.Len() != 0 {
-		t.Errorf("Len %d", d.Len())
-	}
-	if d.Error() != nil {
-		t.Errorf("!Error %v", d.Error())
-	}
+	require.Equal(t, "abcde", d.ReadString(5))
+	require.Equal(t, int64(0), d.Len())
+	require.NoError(t, d.Error())
+
 	// Read past the buffer. It should flag an error
-	if _ = d.ReadByte(); d.Error() == nil {
-		t.Errorf("Error %v %v", d.Error())
-	}
+	d.ReadByte()
+	require.Error(t, d.Error())
 }
 
 func TestSkip(t *testing.T) {
@@ -55,12 +42,8 @@ func TestSkip(t *testing.T) {
 	encoded := e.Bytes()
 	d := dicomio.NewBytesDecoder(encoded, binary.BigEndian, dicomio.UnknownVR)
 	d.Skip(3)
-	if d.Len() != 8 {
-		t.Error("Skip 3; len")
-	}
-	if d.ReadString(8) != "defghijk" {
-		t.Error("Skip 3; read")
-	}
+	require.Equal(t, int64(8), d.Len())
+	require.Equal(t, "defghijk", d.ReadString(8))
 }
 
 func TestPartialData(t *testing.T) {
@@ -84,17 +67,11 @@ func TestLimit(t *testing.T) {
 	// Allow reading only the first two bytes
 	d := dicomio.NewDecoder(bytes.NewBuffer(encoded), int64(len(encoded)),
 		binary.BigEndian, dicomio.ImplicitVR)
-	if d.Len() != 3 {
-		t.Errorf("Len %d", d.Len())
-	}
+	require.Equal(t, int64(3), d.Len())
 	d.PushLimit(2)
-	if d.Len() != 2 {
-		t.Errorf("Len %d", d.Len())
-	}
+	require.Equal(t, int64(2), d.Len())
 	v0, v1 := d.ReadByte(), d.ReadByte()
-	if d.Len() != 0 {
-		t.Errorf("Len %d", d.Len())
-	}
+	require.Equal(t, int64(0), d.Len())
 	_ = d.ReadByte()
 	if v0 != 10 || v1 != 11 || d.Error() != io.EOF {
 		t.Errorf("Limit: %v %v %v", v0, v1, d.Error())

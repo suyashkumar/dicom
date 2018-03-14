@@ -3,9 +3,9 @@ package dicomio
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"github.com/grailbio/go-dicom/dicomuid"
-	"v.io/x/lib/vlog"
 )
 
 // Standard list of transfer syntaxes.
@@ -38,7 +38,7 @@ func CanonicalTransferSyntaxUID(uid string) (string, error) {
 			return "", err
 		}
 		if e.Type != dicomuid.TypeTransferSyntax {
-			return "", fmt.Errorf("UID '%s' is not a transfer syntax (is %s)", uid, e.Type)
+			return "", fmt.Errorf("dicom.CanonicalTransferSyntaxUID: '%s' is not a transfer syntax (is %s)", uid, e.Type)
 		}
 		// The default is ExplicitVRLittleEndian
 		return dicomuid.ExplicitVRLittleEndian, nil
@@ -65,7 +65,7 @@ func ParseTransferSyntaxUID(uid string) (bo binary.ByteOrder, implicit IsImplici
 	case dicomuid.ExplicitVRBigEndian:
 		return binary.BigEndian, ExplicitVR, nil
 	default:
-		vlog.Fatal(canonical, uid)
+		log.Panicf("Invalid transfer syntax: %v,  %v", canonical, uid)
 		return binary.BigEndian, ExplicitVR, nil
 	}
 }

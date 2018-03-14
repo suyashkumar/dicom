@@ -4,11 +4,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/grailbio/go-dicom/dicomlog"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"v.io/x/lib/vlog"
 )
 
 // WriteFileHeader produces a DICOM file header. metaElems[] is be a list of
@@ -127,12 +128,14 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		if err == nil && entry.VR != vr {
 			if dicomtag.GetVRKind(elem.Tag, entry.VR) != dicomtag.GetVRKind(elem.Tag, vr) {
 				// The golang repl. is different. We can't continue.
-				e.SetErrorf("VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v",
+				e.SetErrorf("dicom.WriteElement: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v",
 					dicomtag.DebugString(elem.Tag), vr, entry.VR)
 				return
 			}
-			vlog.VI(1).Infof("VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
-				dicomtag.DebugString(elem.Tag), vr, entry.VR)
+			if dicomlog.Level >= 1 {
+				log.Printf("dicom.WriteElement: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
+					dicomtag.DebugString(elem.Tag), vr, entry.VR)
+			}
 		}
 	}
 	doassert(vr != "", vr)

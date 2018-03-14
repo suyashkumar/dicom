@@ -8,10 +8,9 @@ package dicomtag
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
-
-	"v.io/x/lib/vlog"
 )
 
 // Tag is a <group, element> tuple that identifies an element type in a DICOM
@@ -158,7 +157,7 @@ func Find(tag Tag) (TagInfo, error) {
 func MustFind(tag Tag) TagInfo {
 	e, err := Find(tag)
 	if err != nil {
-		vlog.Fatalf("tag %v not found: %s", tag, err)
+		log.Panicf("tag %v not found: %s", tag, err)
 	}
 	return e
 }

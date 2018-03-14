@@ -2,12 +2,12 @@ package dicom
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 
 	"github.com/gobwas/glob"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"v.io/x/lib/vlog"
 )
 
 func querySequence(elem *Element, f *Element) (match bool, err error) {
@@ -100,7 +100,7 @@ func queryElement(elem *Element, f *Element) (match bool, err error) {
 			return ok, nil
 		}
 	default:
-		vlog.Fatalf("Unknown data: %v", f)
+		log.Panicf("Unknown data: %v", f)
 	}
 	return false, nil
 }

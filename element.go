@@ -6,11 +6,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/grailbio/go-dicom/dicomio"
+	"github.com/grailbio/go-dicom/dicomlog"
 	"github.com/grailbio/go-dicom/dicomtag"
-	"v.io/x/lib/vlog"
 )
 
 // Constants
@@ -137,7 +138,7 @@ func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
 func MustNewElement(tag dicomtag.Tag, values ...interface{}) *Element {
 	elem, err := NewElement(tag, values...)
 	if err != nil {
-		vlog.Fatalf("Failed to create element with tag %v: %v", tag, err)
+		log.Panicf("Failed to create element with tag %v: %v", tag, err)
 	}
 	return elem
 }
@@ -425,7 +426,9 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 			break
 		}
 		metaElems = append(metaElems, elem)
-		vlog.VI(2).Infof("Meta elem: %v, len %v", elem.String(), d.Len())
+		if dicomlog.Level >= 2 {
+			log.Printf("dicom.ParseFileHeader: Meta elem: %v, len %v", elem.String(), d.Len())
+		}
 	}
 	return metaElems
 }
@@ -504,7 +507,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			var image PixelDataInfo
 			image.Offsets = readBasicOffsetTable(d) // TODO(saito) Use the offset table.
 			if len(image.Offsets) > 1 {
-				vlog.Infof("Warning: multiple images not supported yet. Combining them into a byte sequence: %v", image.Offsets)
+				log.Printf("dicom.ReadElement: Multiple images not supported yet. Combining them into a byte sequence: %v", image.Offsets)
 			}
 			for d.Len() > 0 {
 				chunk, endOfItems := readRawItem(d)
@@ -518,7 +521,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			}
 			data = append(data, image)
 		} else {
-			vlog.Errorf("Warning: defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
+			log.Printf("dicom.ReadElement: Defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
 			var image PixelDataInfo
 			image.Frames = append(image.Frames, d.ReadBytes(int(vl)))
 			data = append(data, image)
@@ -543,7 +546,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 					break
 				}
 				if item.Tag != dicomtag.Item {
-					d.SetErrorf("Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
+					d.SetErrorf("dicom.ReadElement: Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
 					break
 				}
 				data = append(data, item)
@@ -560,7 +563,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 					break
 				}
 				if item.Tag != dicomtag.Item {
-					d.SetErrorf("Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
+					d.SetErrorf("dicom.ReadElement: Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
 					break
 				}
 				data = append(data, item)
@@ -596,7 +599,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 		}
 	} else { // List of scalar
 		if vl == undefinedLength {
-			d.SetErrorf("Undefined length disallowed for VR=%s, tag %s", vr, dicomtag.DebugString(tag))
+			d.SetErrorf("dicom.ReadElement: Undefined length disallowed for VR=%s, tag %s", vr, dicomtag.DebugString(tag))
 			return nil
 		}
 		d.PushLimit(int64(vl))
@@ -613,7 +616,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			}
 		} else if vr == "OW" {
 			if vl%2 != 0 {
-				d.SetErrorf("%v: OW requires even length, but found %v", dicomtag.DebugString(tag), vl)
+				d.SetErrorf("dicom.ReadElement: tag %v: OW requires even length, but found %v", dicomtag.DebugString(tag), vl)
 			} else {
 				n := int(vl / 2)
 				e := dicomio.NewBytesEncoder(dicomio.NativeByteOrder, dicomio.UnknownVR)

@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 
 	"golang.org/x/text/encoding"
 )
@@ -503,7 +502,7 @@ func (d *Decoder) ReadBytes(length int) []byte {
 			break
 		}
 		if n < 0 || n > len(remaining) {
-			log.Panicf("Remaining: %d %d", n, len(remaining))
+			panic(fmt.Sprintf("Remaining: %d %d", n, len(remaining)))
 		}
 		remaining = remaining[n:]
 	}

@@ -8,7 +8,6 @@ package dicomtag
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -157,7 +156,7 @@ func Find(tag Tag) (TagInfo, error) {
 func MustFind(tag Tag) TagInfo {
 	e, err := Find(tag)
 	if err != nil {
-		log.Panicf("tag %v not found: %s", tag, err)
+		panic(fmt.Sprintf("tag %v not found: %s", tag, err))
 	}
 	return e
 }

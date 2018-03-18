@@ -3,7 +3,6 @@ package dicomio
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 
 	"github.com/grailbio/go-dicom/dicomuid"
 )
@@ -65,7 +64,7 @@ func ParseTransferSyntaxUID(uid string) (bo binary.ByteOrder, implicit IsImplici
 	case dicomuid.ExplicitVRBigEndian:
 		return binary.BigEndian, ExplicitVR, nil
 	default:
-		log.Panicf("Invalid transfer syntax: %v,  %v", canonical, uid)
+		panic(fmt.Sprintf("Invalid transfer syntax: %v,  %v", canonical, uid))
 		return binary.BigEndian, ExplicitVR, nil
 	}
 }

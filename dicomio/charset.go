@@ -1,7 +1,7 @@
 package dicomio
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/grailbio/go-dicom/dicomlog"
 	"golang.org/x/text/encoding"
@@ -86,17 +86,15 @@ func ParseSpecificCharacterSet(encodingNames []string) (CodingSystem, error) {
 	var decoders []*encoding.Decoder
 	for _, name := range encodingNames {
 		var c *encoding.Decoder
-		if dicomlog.Level >= 2 {
-			log.Printf("dicom.ParseSpecificCharacterSet: Using coding system %s", name)
-		}
+		dicomlog.Vprintf(2, "dicom.ParseSpecificCharacterSet: Using coding system %s", name)
 		if htmlName, ok := htmlEncodingNames[name]; !ok {
 			// TODO(saito) Support more encodings.
-			log.Printf("dicom.ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", encodingNames[0])
+			return CodingSystem{}, fmt.Errorf("dicom.ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", encodingNames[0])
 		} else {
 			if htmlName != "" {
 				d, err := htmlindex.Get(htmlName)
 				if err != nil {
-					log.Panicf("Encoding name %s (for %s) not found", name, htmlName)
+					panic(fmt.Sprintf("Encoding name %s (for %s) not found", name, htmlName))
 				}
 				c = d.NewDecoder()
 			}

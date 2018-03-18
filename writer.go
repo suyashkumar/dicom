@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"github.com/grailbio/go-dicom/dicomio"
@@ -132,10 +131,8 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 					dicomtag.DebugString(elem.Tag), vr, entry.VR)
 				return
 			}
-			if dicomlog.Level >= 1 {
-				log.Printf("dicom.WriteElement: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
-					dicomtag.DebugString(elem.Tag), vr, entry.VR)
-			}
+			dicomlog.Vprintf(1, "dicom.WriteElement: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
+				dicomtag.DebugString(elem.Tag), vr, entry.VR)
 		}
 	}
 	doassert(vr != "", vr)

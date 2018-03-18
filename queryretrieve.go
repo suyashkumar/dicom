@@ -2,7 +2,6 @@ package dicom
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 
@@ -100,7 +99,7 @@ func queryElement(elem *Element, f *Element) (match bool, err error) {
 			return ok, nil
 		}
 	default:
-		log.Panicf("Unknown data: %v", f)
+		panic(fmt.Sprintf("Unknown data: %v", f))
 	}
 	return false, nil
 }

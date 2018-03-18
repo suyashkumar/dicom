@@ -26,7 +26,7 @@ func TestAllFiles(t *testing.T) {
 	names, err := dir.Readdirnames(0)
 	require.NoError(t, err)
 	for _, name := range names {
-		log.Printf("Reading %s", name)
+		t.Logf("Reading %s", name)
 		_ = mustReadFile("examples/"+name, dicom.ReadOptions{})
 	}
 }
@@ -40,7 +40,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 	for i := range data.Elements {
 		if data.Elements[i].Tag == dicomtag.TransferSyntaxUID {
 			newElem := dicom.MustNewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
-			log.Printf("Setting transfer syntax UID from %v to %v",
+			t.Logf("Setting transfer syntax UID from %v to %v",
 				data.Elements[i].MustGetString(), newElem.MustGetString())
 			data.Elements[i] = newElem
 		}

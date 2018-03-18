@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/grailbio/go-dicom/dicomio"
@@ -138,7 +137,7 @@ func NewElement(tag dicomtag.Tag, values ...interface{}) (*Element, error) {
 func MustNewElement(tag dicomtag.Tag, values ...interface{}) *Element {
 	elem, err := NewElement(tag, values...)
 	if err != nil {
-		log.Panicf("Failed to create element with tag %v: %v", tag, err)
+		panic(fmt.Sprintf("Failed to create element with tag %v: %v", tag, err))
 	}
 	return elem
 }
@@ -426,9 +425,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 			break
 		}
 		metaElems = append(metaElems, elem)
-		if dicomlog.Level >= 2 {
-			log.Printf("dicom.ParseFileHeader: Meta elem: %v, len %v", elem.String(), d.Len())
-		}
+		dicomlog.Vprintf(2, "dicom.ParseFileHeader: Meta elem: %v, len %v", elem.String(), d.Len())
 	}
 	return metaElems
 }
@@ -507,7 +504,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			var image PixelDataInfo
 			image.Offsets = readBasicOffsetTable(d) // TODO(saito) Use the offset table.
 			if len(image.Offsets) > 1 {
-				log.Printf("dicom.ReadElement: Multiple images not supported yet. Combining them into a byte sequence: %v", image.Offsets)
+				dicomlog.Vprintf(1, "dicom.ReadElement: Multiple images not supported yet. Combining them into a byte sequence: %v", image.Offsets)
 			}
 			for d.Len() > 0 {
 				chunk, endOfItems := readRawItem(d)
@@ -521,7 +518,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			}
 			data = append(data, image)
 		} else {
-			log.Printf("dicom.ReadElement: Defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
+			dicomlog.Vprintf(1, "dicom.ReadElement: Defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
 			var image PixelDataInfo
 			image.Frames = append(image.Frames, d.ReadBytes(int(vl)))
 			data = append(data, image)

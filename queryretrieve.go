@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gobwas/glob"
-	"github.com/grailbio/go-dicom/dicomtag"
+	"github.com/gradienthealth/go-dicom/dicomtag"
 )
 
 func querySequence(elem *Element, f *Element) (match bool, err error) {

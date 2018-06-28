@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grailbio/go-dicom/dicomio"
-	"github.com/grailbio/go-dicom/dicomlog"
-	"github.com/grailbio/go-dicom/dicomtag"
+	"github.com/gradienthealth/go-dicom/dicomio"
+	"github.com/gradienthealth/go-dicom/dicomlog"
+	"github.com/gradienthealth/go-dicom/dicomtag"
 )
 
 // Constants

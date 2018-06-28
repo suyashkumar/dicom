@@ -1,5 +1,7 @@
 # DICOM parser in Go
-This is a fork of [go-dicom](https://github.com/gillesdemey/go-dicom) with commits from the grailbio [go-dicom repository](https://github.com/grailbio/go-dicom) applied on top. We will be augmenting this codebase to parse multi-frame enhanced CT images, and much more. 
+[![Build Status](https://travis-ci.org/gradienthealth/go-dicom.svg?branch=master)](https://travis-ci.org/gradienthealth/go-dicom)
+
+This is a fork of [go-dicom](https://github.com/gillesdemey/go-dicom) with commits from the grailbio [go-dicom repository](https://github.com/grailbio/go-dicom) applied on top. We will be augmenting this codebase to parse multi-frame enhanced CT images, and much more.
 
 ### Acknowledgements (from the original go-dicom)
 

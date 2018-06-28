@@ -6,19 +6,25 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/grailbio/go-dicom"
-	"github.com/grailbio/go-dicom/dicomtag"
+	"github.com/gradienthealth/go-dicom"
+	"github.com/gradienthealth/go-dicom/dicomtag"
+	"github.com/gradienthealth/go-dicom/dicomlog"
+	"math"
 )
 
 var (
 	printMetadata = flag.Bool("print-metadata", true, "Print image metadata")
 	extractImages = flag.Bool("extract-images", false, "Extract images into separate files")
+	verbose = flag.Bool("verbose", false, "Activate high verbosity log operation")
 )
 
 func main() {
 	flag.Parse()
 	if len(flag.Args()) == 0 {
 		log.Panic("dicomutil <dicomfile>")
+	}
+	if *verbose {
+		dicomlog.SetLevel(math.MaxInt32)
 	}
 	path := flag.Arg(0)
 	data, err := dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: !*extractImages})

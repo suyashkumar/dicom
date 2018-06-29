@@ -9,6 +9,7 @@ import (
 	"github.com/gradienthealth/go-dicom/dicomio"
 	"github.com/gradienthealth/go-dicom/dicomlog"
 	"github.com/gradienthealth/go-dicom/dicomtag"
+	"bytes"
 )
 
 // WriteFileHeader produces a DICOM file header. metaElems[] is be a list of
@@ -153,9 +154,15 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			}
 			encodeElementHeader(e, dicomtag.SequenceDelimitationItem, "" /*not used*/, 0)
 		} else {
-			doassert(len(image.EncapsulatedFrames) == 1, image.EncapsulatedFrames) // TODO
-			encodeElementHeader(e, elem.Tag, vr, uint32(len(image.EncapsulatedFrames[0])))
-			e.WriteBytes(image.EncapsulatedFrames[0])
+			//TODO(suyash) Revisit the below changes when diving deeper into writing functionality
+			// We should be dealing with NativeFrames here since we've got a defined value length for this PixelData
+			// as per Part 5 Sec A.4 of the DICOM spec
+			doassert(len(image.NativeFrames) == 1, image.NativeFrames) // TODO
+			encodeElementHeader(e, elem.Tag, vr, uint32(len(image.NativeFrames[0])))
+			buf := new(bytes.Buffer)
+			buf.Grow(2 * len(image.NativeFrames[0]))
+			binary.Write(buf, binary.LittleEndian, image.NativeFrames[0])
+			e.WriteBytes(buf.Bytes())
 		}
 		return
 	}

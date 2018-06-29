@@ -530,17 +530,20 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			}
 			data = append(data, image)
 		} else {
-			dicomlog.Vprintf(0, "dicom.ReadElement: Defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
+			// Assume we're reading Native data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
+			// We need Elements that have been already parsed (rows, cols, etc) to parse frames out of Native Pixel data
 			if parsedData == nil {
 				d.SetError(errors.New("dicom.ReadElement: parsedData is nil, must exist to parse Native pixel data"))
 				return elem // TODO(suyash) investigate error handling in this library
 			}
+
 			image, bytesRead, err := readNativeFrames(d, parsedData)
 
 			if bytesRead < int(vl) {
 				// Haven't quite figured out why we end up here for some dicoms...
 				fmt.Printf("bytes read %d, vl %v", bytesRead, vl)
-				d.Skip(int(vl) - bytesRead)
+				// d.SetError(errors.New("extra bytes in Pixel Data, not sure what to do with"))
+				d.Skip(int(vl) - bytesRead) // Skip over remaining bytes
 			}
 
 			if err != nil {

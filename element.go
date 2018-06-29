@@ -530,16 +530,23 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			}
 			data = append(data, image)
 		} else {
-			dicomlog.Vprintf(1, "dicom.ReadElement: Defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
+			dicomlog.Vprintf(0, "dicom.ReadElement: Defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
 			if parsedData == nil {
 				d.SetError(errors.New("dicom.ReadElement: parsedData is nil, must exist to parse Native pixel data"))
 				return elem // TODO(suyash) investigate error handling in this library
 			}
-			image, err := readNativeFrames(d, parsedData)
+			image, bytesRead, err := readNativeFrames(d, parsedData)
+
+			if bytesRead < int(vl) {
+				// Haven't quite figured out why we end up here for some dicoms...
+				fmt.Printf("bytes read %d, vl %v", bytesRead, vl)
+				d.Skip(int(vl) - bytesRead)
+			}
 
 			if err != nil {
 				d.SetError(err)
 				dicomlog.Vprintf(1, "dicom.ReadElement: Error reading native frames")
+				return elem
 			}
 
 			data = append(data, *image)
@@ -751,26 +758,31 @@ func readExplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 
 // readNativeFrames reads Native frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
-func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (*PixelDataInfo, error) {
+func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *PixelDataInfo, bytesRead int, err error) {
 	image := PixelDataInfo{
 		Encapsulated: false,
 	}
 
 	rows, err := parsedData.FindElementByTag(dicomtag.Rows)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	cols, err := parsedData.FindElementByTag(dicomtag.Columns)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	nof, err := parsedData.FindElementByTag(dicomtag.NumberOfFrames)
+	nFrames := 0
 	if err != nil {
-		return nil, err
+		//TODO(suyash): explicitly check for not found error, currently assume single frame image
+		nFrames = 1
 	}
-	nFrames, err := strconv.Atoi(nof.MustGetString()) // odd that number of frames is encoded as a string...
-	if err != nil {
-		return nil, err
+	if nFrames == 0 {
+		nFrames, err = strconv.Atoi(nof.MustGetString()) // odd that number of frames is encoded as a string...
+		if err != nil {
+			dicomlog.Vprintf(1, "ERROR converting nof")
+			return nil, 0, err
+		}
 	}
 
 	pixelsPerFrame := int(rows.MustGetUInt16()) * int(cols.MustGetUInt16())
@@ -789,7 +801,7 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (*PixelDataInfo, 
 		}
 		image.NativeFrames[frame] = currentFrame
 	}
-	return &image, nil
+	return &image, 2 * pixelsPerFrame * nFrames, nil
 }
 
 func tagInList(tag dicomtag.Tag, tags []dicomtag.Tag) bool {

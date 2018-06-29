@@ -75,7 +75,7 @@ func generateEncapsulatedImage(frame []byte, frameIndex int, wg *sync.WaitGroup)
 
 func generateNativeImage(frame []uint16, frameIndex int, wg *sync.WaitGroup) {
 	defer wg.Done()
-	i := image.NewGray16(image.Rect(0, 0, 512, 512))
+	i := image.NewGray16(image.Rect(0, 0, 512, 512)) //TODO(suyash): dont assume 512 x 512
 	for j := 0; j < len(frame); j++ {
 		i.SetGray16(j % 512, j / 512, color.Gray16{Y: frame[j]})
 	}

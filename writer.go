@@ -161,7 +161,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			encodeElementHeader(e, elem.Tag, vr, uint32(len(image.NativeFrames[0])))
 			buf := new(bytes.Buffer)
 			buf.Grow(2 * len(image.NativeFrames[0]))
-			binary.Write(buf, binary.LittleEndian, image.NativeFrames[0])
+			binary.Write(buf, binary.LittleEndian, image.NativeFrames[0]) //TODO(suyash) revisit little endian
 			e.WriteBytes(buf.Bytes())
 		}
 		return

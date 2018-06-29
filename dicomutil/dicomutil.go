@@ -14,6 +14,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"os"
+	"sync"
 )
 
 var (
@@ -41,27 +42,23 @@ func main() {
 		}
 	}
 	if *extractImages {
-		n := 0
 		for _, elem := range data.Elements {
 			if elem.Tag == dicomtag.PixelData {
 				data := elem.Value[0].(dicom.PixelDataInfo)
 				if data.Encapsulated {
-					for _, frame := range data.EncapsulatedFrames {
-						path := fmt.Sprintf("image.%d.jpg", n) // TODO: figure out the image format
-						n++
-						ioutil.WriteFile(path, frame, 0644)
-						fmt.Printf("%s: %d bytes\n", path, len(frame))
+					var wg sync.WaitGroup
+					for frameIndex, frame := range data.EncapsulatedFrames {
+						wg.Add(1)
+						go generateEncapsulatedImage(frame, frameIndex, &wg)
 					}
+					wg.Wait()
 				} else {
-					for _, frame := range data.NativeFrames {
-						i := image.NewGray16(image.Rect(0, 0, 512, 512))
-						for j := 0; j < len(frame); j++ {
-							i.SetGray16(j % 512, j / 512, color.Gray16{Y: frame[j]})
-						}
-						f, _ := os.Create(fmt.Sprintf("image_%d.jpg", n))
-						jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
-						n++
+					var wg sync.WaitGroup
+					for frameIndex, frame := range data.NativeFrames {
+						wg.Add(1)
+						go generateNativeImage(frame, frameIndex, &wg)
 					}
+					wg.Wait()
 				}
 			}
 		}
@@ -69,4 +66,21 @@ func main() {
 	log.Println("Complete.")
 }
 
+func generateEncapsulatedImage(frame []byte, frameIndex int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	path := fmt.Sprintf("image_%d.jpg", frameIndex) // TODO: figure out the image format
+	ioutil.WriteFile(path, frame, 0644)
+	fmt.Printf("%s: %d bytes\n", path, len(frame))
+}
 
+func generateNativeImage(frame []uint16, frameIndex int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	i := image.NewGray16(image.Rect(0, 0, 512, 512))
+	for j := 0; j < len(frame); j++ {
+		i.SetGray16(j % 512, j / 512, color.Gray16{Y: frame[j]})
+	}
+	name := fmt.Sprintf("image_%d.jpg", frameIndex)
+	f, _ := os.Create(name)
+	jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
+	fmt.Printf("%s written \n", name)
+}

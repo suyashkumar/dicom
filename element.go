@@ -11,6 +11,7 @@ import (
 	"github.com/gradienthealth/go-dicom/dicomio"
 	"github.com/gradienthealth/go-dicom/dicomlog"
 	"github.com/gradienthealth/go-dicom/dicomtag"
+	"strconv"
 )
 
 // Constants
@@ -347,17 +348,27 @@ func readRawItem(d *dicomio.Decoder) ([]byte, bool) {
 // PixelDataInfo is the Element.Value payload for PixelData element.
 type PixelDataInfo struct {
 	Offsets []uint32 // BasicOffsetTable
-	Frames  [][]byte // Parsed images
+	Encapsulated bool // is the data encapsulated/jpeg encoded?
+	EncapsulatedFrames  [][]byte // encapsulated frames
+	NativeFrames [][]uint16 // native frames
 }
 
 func (data PixelDataInfo) String() string {
-	s := fmt.Sprintf("image{offsets: %v, frames: [", data.Offsets)
-	for i := 0; i < len(data.Frames); i++ {
-		csum := sha256.Sum256(data.Frames[i])
-		s += fmt.Sprintf("%d:{size:%d, csum:%v} ",
-			i, len(data.Frames[i]),
+	s := fmt.Sprintf("image{offsets: %v, encapsulated frames: [", data.Offsets)
+	for i := 0; i < len(data.EncapsulatedFrames); i++ {
+		csum := sha256.Sum256(data.EncapsulatedFrames[i])
+		s += fmt.Sprintf("%d:{size:%d, csum:%v}, ",
+			i, len(data.EncapsulatedFrames[i]),
 			base64.URLEncoding.EncodeToString(csum[:]))
 	}
+
+	s += "], native frames: ["
+
+	for i := 0; i < len(data.NativeFrames); i++ {
+		s += fmt.Sprintf("%d:{size:%d}, ",
+			i, len(data.NativeFrames[i]))
+	}
+
 	return s + "]}"
 }
 
@@ -398,7 +409,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 	}
 
 	// (0002,0000) MetaElementGroupLength
-	metaElem := ReadElement(d, ReadOptions{})
+	metaElem := ReadElement(d, nil, ReadOptions{})
 	if d.Error() != nil {
 		return nil
 	}
@@ -420,7 +431,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 	d.PushLimit(int64(metaLength))
 	defer d.PopLimit()
 	for d.Len() > 0 {
-		elem := ReadElement(d, ReadOptions{})
+		elem := ReadElement(d, nil, ReadOptions{})
 		if d.Error() != nil {
 			break
 		}
@@ -441,7 +452,7 @@ var endOfDataElement = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff
 // element is a pixel data, or it sees an element defined by options.StopAtTag.
 //
 // - On successful parsing, it returns non-nil and non-endOfDataElement value.
-func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
+func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *Element {
 	tag := readTag(d)
 	if tag == dicomtag.PixelData && options.DropPixelData {
 		return endOfDataElement
@@ -502,6 +513,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 		// the bytesizes found in BasicOffsetTable.
 		if vl == undefinedLength {
 			var image PixelDataInfo
+			image.Encapsulated = true
 			image.Offsets = readBasicOffsetTable(d) // TODO(saito) Use the offset table.
 			if len(image.Offsets) > 1 {
 				dicomlog.Vprintf(1, "dicom.ReadElement: Multiple images not supported yet. Combining them into a byte sequence: %v", image.Offsets)
@@ -514,16 +526,24 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 				if endOfItems {
 					break
 				}
-				image.Frames = append(image.Frames, chunk)
+				image.EncapsulatedFrames = append(image.EncapsulatedFrames, chunk)
 			}
 			data = append(data, image)
 		} else {
 			dicomlog.Vprintf(1, "dicom.ReadElement: Defined-length pixel data not supported: tag %v, VR=%v, VL=%v", tag.String(), vr, vl)
-			var image PixelDataInfo
-			image.Frames = append(image.Frames, d.ReadBytes(int(vl)))
-			data = append(data, image)
+			if parsedData == nil {
+				d.SetError(errors.New("dicom.ReadElement: parsedData is nil, must exist to parse Native pixel data"))
+				return elem // TODO(suyash) investigate error handling in this library
+			}
+			image, err := readNativeFrames(d, parsedData)
+
+			if err != nil {
+				d.SetError(err)
+				dicomlog.Vprintf(1, "dicom.ReadElement: Error reading native frames")
+			}
+
+			data = append(data, *image)
 		}
-		// TODO(saito) handle multi-frame image.
 	} else if vr == "SQ" {
 		// Note: when reading subitems inside sequence or item, we ignore
 		// DropPixelData and other shortcircuiting options. If we honored them, we'd
@@ -535,7 +555,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			//             Item Any*N                     (when Item.VL has a defined value)
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, ReadOptions{})
+				item := ReadElement(d, parsedData, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -555,7 +575,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			d.PushLimit(int64(vl))
 			for d.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, ReadOptions{})
+				item := ReadElement(d, parsedData, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -572,7 +592,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			// Format: Item Any* ItemDelimitationItem
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, ReadOptions{})
+				subelem := ReadElement(d, parsedData, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -586,7 +606,7 @@ func ReadElement(d *dicomio.Decoder, options ReadOptions) *Element {
 			d.PushLimit(int64(vl))
 			for d.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, ReadOptions{})
+				subelem := ReadElement(d, parsedData, ReadOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -727,6 +747,49 @@ func readExplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 		vl = 0
 	}
 	return vr, vl
+}
+
+// readNativeFrames reads Native frames from a Decoder based on already parsed pixel information
+// that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
+func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (*PixelDataInfo, error) {
+	image := PixelDataInfo{
+		Encapsulated: false,
+	}
+
+	rows, err := parsedData.FindElementByTag(dicomtag.Rows)
+	if err != nil {
+		return nil, err
+	}
+	cols, err := parsedData.FindElementByTag(dicomtag.Columns)
+	if err != nil {
+		return nil, err
+	}
+	nof, err := parsedData.FindElementByTag(dicomtag.NumberOfFrames)
+	if err != nil {
+		return nil, err
+	}
+	nFrames, err := strconv.Atoi(nof.MustGetString()) // odd that number of frames is encoded as a string...
+	if err != nil {
+		return nil, err
+	}
+
+	pixelsPerFrame := int(rows.MustGetUInt16()) * int(cols.MustGetUInt16())
+
+	dicomlog.Vprintf(1, "Image size: %d x %d", rows.MustGetUInt16(), cols.MustGetUInt16())
+	dicomlog.Vprintf(1, "Pixels Per Frame: %d", pixelsPerFrame)
+	dicomlog.Vprintf(1, "Number of frames %d", nFrames)
+
+	// Assume BitsAllocated is 16 for now
+	//TODO(suyash): handle multiple different BitsAllocated values
+	image.NativeFrames = make([][]uint16, nFrames)
+	for frame := 0; frame < nFrames; frame++ {
+		currentFrame := make([]uint16, pixelsPerFrame)
+		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
+			currentFrame[pixel] = d.ReadUInt16()
+		}
+		image.NativeFrames[frame] = currentFrame
+	}
+	return &image, nil
 }
 
 func tagInList(tag dicomtag.Tag, tags []dicomtag.Tag) bool {

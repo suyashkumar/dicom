@@ -38,6 +38,15 @@
   version = "v1.2.2"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/image"
+  packages = [
+    "tiff",
+    "tiff/lzw"
+  ]
+  revision = "cc896f830cedae125428bc9fe1b0362aa91b3fb1"
+
+[[projects]]
   name = "golang.org/x/text"
   packages = [
     "encoding",
@@ -64,6 +73,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8205646c23f9c80149b091366875231f45345464050551531bacf1842c8a48c2"
+  inputs-digest = "82e03f75274c55ce6610857ec141c3d08f519498e7bbc9c7a57e2c1d4bfd04bc"
   solver-name = "gps-cdcl"
   solver-version = 1

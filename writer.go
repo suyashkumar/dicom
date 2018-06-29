@@ -148,14 +148,14 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		if elem.UndefinedLength {
 			encodeElementHeader(e, elem.Tag, vr, undefinedLength)
 			writeBasicOffsetTable(e, image.Offsets)
-			for _, image := range image.Frames {
+			for _, image := range image.EncapsulatedFrames {
 				writeRawItem(e, image)
 			}
 			encodeElementHeader(e, dicomtag.SequenceDelimitationItem, "" /*not used*/, 0)
 		} else {
-			doassert(len(image.Frames) == 1, image.Frames) // TODO
-			encodeElementHeader(e, elem.Tag, vr, uint32(len(image.Frames[0])))
-			e.WriteBytes(image.Frames[0])
+			doassert(len(image.EncapsulatedFrames) == 1, image.EncapsulatedFrames) // TODO
+			encodeElementHeader(e, elem.Tag, vr, uint32(len(image.EncapsulatedFrames[0])))
+			e.WriteBytes(image.EncapsulatedFrames[0])
 		}
 		return
 	}

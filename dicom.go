@@ -104,7 +104,7 @@ func ReadDataSet(in io.Reader, bytes int64, options ReadOptions) (*DataSet, erro
 	// Read the list of elements.
 	for buffer.Len() > 0 {
 		startLen := buffer.Len()
-		elem := ReadElement(buffer, options)
+		elem := ReadElement(buffer, file, options)
 		if buffer.Len() >= startLen { // Avoid silent infinite looping.
 			panic(fmt.Sprintf("ReadElement failed to consume data: %d %d: %v", startLen, buffer.Len(), buffer.Error()))
 		}

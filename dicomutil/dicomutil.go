@@ -6,21 +6,22 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/gradienthealth/go-dicom"
-	"github.com/gradienthealth/go-dicom/dicomtag"
-	"github.com/gradienthealth/go-dicom/dicomlog"
-	"math"
 	"image"
 	"image/color"
 	"image/jpeg"
+	"math"
 	"os"
 	"sync"
+
+	"github.com/gradienthealth/go-dicom"
+	"github.com/gradienthealth/go-dicom/dicomlog"
+	"github.com/gradienthealth/go-dicom/dicomtag"
 )
 
 var (
 	printMetadata = flag.Bool("print-metadata", true, "Print image metadata")
 	extractImages = flag.Bool("extract-images", false, "Extract images into separate files")
-	verbose = flag.Bool("verbose", false, "Activate high verbosity log operation")
+	verbose       = flag.Bool("verbose", false, "Activate high verbosity log operation")
 )
 
 func main() {
@@ -56,7 +57,7 @@ func main() {
 					var wg sync.WaitGroup
 					for frameIndex, frame := range data.NativeFrames {
 						wg.Add(1)
-						go generateNativeImage(frame, frameIndex, &wg)
+						go generateNativeImage(frame, frameIndex, &wg) // parse image as gray scale
 					}
 					wg.Wait()
 				}
@@ -73,11 +74,11 @@ func generateEncapsulatedImage(frame []byte, frameIndex int, wg *sync.WaitGroup)
 	fmt.Printf("%s: %d bytes\n", path, len(frame))
 }
 
-func generateNativeImage(frame []uint16, frameIndex int, wg *sync.WaitGroup) {
+func generateNativeImage(frame [][]int, frameIndex int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	i := image.NewGray16(image.Rect(0, 0, 512, 512)) //TODO(suyash): dont assume 512 x 512
 	for j := 0; j < len(frame); j++ {
-		i.SetGray16(j % 512, j / 512, color.Gray16{Y: frame[j]})
+		i.SetGray16(j%512, j/512, color.Gray16{Y: uint16(frame[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
 	}
 	name := fmt.Sprintf("image_%d.jpg", frameIndex)
 	f, _ := os.Create(name)

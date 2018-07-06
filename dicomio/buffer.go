@@ -427,6 +427,14 @@ func (d *Decoder) ReadUInt16() (v uint16) {
 	return v
 }
 
+func (d *Decoder) ReadUInt8() (v uint8) {
+	err := binary.Read(d, d.bo, &v)
+	if err != nil {
+		d.SetError(err)
+	}
+	return v
+}
+
 func (d *Decoder) ReadInt16() (v int16) {
 	err := binary.Read(d, d.bo, &v)
 	if err != nil {

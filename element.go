@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"strings"
 
+	"strconv"
+
 	"github.com/gradienthealth/go-dicom/dicomio"
 	"github.com/gradienthealth/go-dicom/dicomlog"
 	"github.com/gradienthealth/go-dicom/dicomtag"
-	"strconv"
 )
 
 // Constants
@@ -347,10 +348,11 @@ func readRawItem(d *dicomio.Decoder) ([]byte, bool) {
 
 // PixelDataInfo is the Element.Value payload for PixelData element.
 type PixelDataInfo struct {
-	Offsets []uint32 // BasicOffsetTable
-	Encapsulated bool // is the data encapsulated/jpeg encoded?
-	EncapsulatedFrames  [][]byte // encapsulated frames
-	NativeFrames [][]uint16 // native frames
+	Offsets            []uint32  // BasicOffsetTable
+	Encapsulated       bool      // is the data encapsulated/jpeg encoded?
+	EncapsulatedFrames [][]byte  // encapsulated frames
+	NativeFrames       [][][]int // native frames. Each frame has pixels, each pixel has values (potentially > 1 for color)
+	BitsPerSample      int       // solely for writing this element back out. TODO (suyash): rewrite/revisit the write func in this lib
 }
 
 func (data PixelDataInfo) String() string {
@@ -537,14 +539,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 				return elem // TODO(suyash) investigate error handling in this library
 			}
 
-			image, bytesRead, err := readNativeFrames(d, parsedData)
-
-			if bytesRead < int(vl) {
-				// Haven't quite figured out why we end up here for some dicoms...
-				fmt.Printf("bytes read %d, vl %v", bytesRead, vl)
-				// d.SetError(errors.New("extra bytes in Pixel Data, not sure what to do with"))
-				d.Skip(int(vl) - bytesRead) // Skip over remaining bytes
-			}
+			image, _, err := readNativeFrames(d, parsedData)
 
 			if err != nil {
 				d.SetError(err)
@@ -788,23 +783,47 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 		}
 	}
 
+	b, err := parsedData.FindElementByTag(dicomtag.BitsAllocated)
+	if err != nil {
+		dicomlog.Vprintf(1, "ERROR finding bits allocated.")
+		return nil, 0, err
+	}
+	bitsAllocated := int(b.MustGetUInt16())
+	image.BitsPerSample = bitsAllocated
+
+	s, err := parsedData.FindElementByTag(dicomtag.SamplesPerPixel)
+	if err != nil {
+		dicomlog.Vprintf(1, "ERROR finding samples per pixel")
+	}
+	samplesPerPixel := int(s.MustGetUInt16())
+
 	pixelsPerFrame := int(rows.MustGetUInt16()) * int(cols.MustGetUInt16())
 
 	dicomlog.Vprintf(1, "Image size: %d x %d", rows.MustGetUInt16(), cols.MustGetUInt16())
 	dicomlog.Vprintf(1, "Pixels Per Frame: %d", pixelsPerFrame)
 	dicomlog.Vprintf(1, "Number of frames %d", nFrames)
 
-	// Assume BitsAllocated is 16 for now
-	//TODO(suyash): handle multiple different BitsAllocated values
-	image.NativeFrames = make([][]uint16, nFrames)
+	// Parse the pixels:
+	image.NativeFrames = make([][][]int, nFrames)
 	for frame := 0; frame < nFrames; frame++ {
-		currentFrame := make([]uint16, pixelsPerFrame)
+		currentFrame := make([][]int, pixelsPerFrame)
 		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
-			currentFrame[pixel] = d.ReadUInt16()
+			currentPixel := make([]int, samplesPerPixel)
+			for value := 0; value < samplesPerPixel; value++ {
+				if bitsAllocated == 8 {
+					currentPixel[value] = int(d.ReadUInt8())
+				} else if bitsAllocated == 16 {
+					currentPixel[value] = int(d.ReadUInt16())
+				}
+			}
+			currentFrame[pixel] = currentPixel
 		}
 		image.NativeFrames[frame] = currentFrame
 	}
-	return &image, 2 * pixelsPerFrame * nFrames, nil
+
+	bytesRead = (bitsAllocated / 8) * samplesPerPixel * pixelsPerFrame * nFrames
+
+	return &image, bytesRead, nil
 }
 
 func tagInList(tag dicomtag.Tag, tags []dicomtag.Tag) bool {

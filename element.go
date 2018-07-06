@@ -761,6 +761,7 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 		Encapsulated: false,
 	}
 
+	// Parse information from previously parsed attributes that are needed to parse Native Frames:
 	rows, err := parsedData.FindElementByTag(dicomtag.Rows)
 	if err != nil {
 		return nil, 0, err
@@ -771,16 +772,16 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 	}
 	nof, err := parsedData.FindElementByTag(dicomtag.NumberOfFrames)
 	nFrames := 0
-	if err != nil {
-		//TODO(suyash): explicitly check for not found error, currently assume single frame image
-		nFrames = 1
-	}
-	if nFrames == 0 {
+	if err == nil {
+		// No error, so parse number of frames
 		nFrames, err = strconv.Atoi(nof.MustGetString()) // odd that number of frames is encoded as a string...
 		if err != nil {
 			dicomlog.Vprintf(1, "ERROR converting nof")
 			return nil, 0, err
 		}
+	} else {
+		// error fetching NumberOfFrames, so default to 1. TODO: revisit
+		nFrames = 1
 	}
 
 	b, err := parsedData.FindElementByTag(dicomtag.BitsAllocated)

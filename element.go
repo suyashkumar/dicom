@@ -446,7 +446,8 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 // endElement is an pseudoelement to cause the caller to stop reading the input.
 var endOfDataElement = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff}}
 
-// ReadElement reads one DICOM data element. It returns three kind of values.
+// ReadElement reads one DICOM data element. The parsedData ref must only be provided when potentially parsing PixelData,
+// otherwise can be nil. ReadElement returns three kind of values.
 //
 // - On parse error, it returns nil and sets the error in d.Error().
 //

@@ -30,7 +30,7 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	data := e.Bytes()
 	// Read them back.
 	d := dicomio.NewBytesDecoder(data, bo, implicit)
-	elem0 := dicom.ReadElement(d, dicom.ReadOptions{})
+	elem0 := dicom.ReadElement(d, nil, dicom.ReadOptions{})
 
 	require.NoError(t, d.Error())
 	tag := dicomtag.Tag{0x18, 0x9755}
@@ -38,7 +38,7 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	assert.Equal(t, len(elem0.Value), 1)
 	assert.Equal(t, elem0.Value[0].(string), "FooHah")
 	tag = dicomtag.Tag{Group: 0x20, Element: 0x9057}
-	elem1 := dicom.ReadElement(d, dicom.ReadOptions{})
+	elem1 := dicom.ReadElement(d, nil, dicom.ReadOptions{})
 	require.NoError(t, d.Error())
 	assert.Equal(t, elem1.Tag, tag)
 	assert.Equal(t, len(elem1.Value), 2)

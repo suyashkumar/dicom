@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 
+	"bytes"
+
 	"github.com/gradienthealth/go-dicom/dicomio"
 	"github.com/gradienthealth/go-dicom/dicomlog"
 	"github.com/gradienthealth/go-dicom/dicomtag"
@@ -148,14 +150,35 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		if elem.UndefinedLength {
 			encodeElementHeader(e, elem.Tag, vr, undefinedLength)
 			writeBasicOffsetTable(e, image.Offsets)
-			for _, image := range image.Frames {
+			for _, image := range image.EncapsulatedFrames {
 				writeRawItem(e, image)
 			}
 			encodeElementHeader(e, dicomtag.SequenceDelimitationItem, "" /*not used*/, 0)
 		} else {
-			doassert(len(image.Frames) == 1, image.Frames) // TODO
-			encodeElementHeader(e, elem.Tag, vr, uint32(len(image.Frames[0])))
-			e.WriteBytes(image.Frames[0])
+			//TODO(suyash) Revisit the below changes and this test when diving deeper into writing functionality and pre-existing tests
+			// We should be dealing with NativeFrames here since we've got a defined value length for this PixelData
+			// as per Part 5 Sec A.4 of the DICOM spec
+			numFrames := len(image.NativeFrames)
+			numPixels := len(image.NativeFrames[0])
+			numValues := len(image.NativeFrames[0][0])
+			length := numFrames * numPixels * numValues * image.BitsPerSample / 8 // length in bytes
+
+			doassert(len(image.NativeFrames) == 1, image.NativeFrames) //TODO(suyash) not sure why this is set to 1...we should be able to handle multi frame writes
+			encodeElementHeader(e, elem.Tag, vr, uint32(length))
+			buf := new(bytes.Buffer)
+			buf.Grow(length)
+			for frame := 0; frame < numFrames; frame++ {
+				for pixel := 0; pixel < numPixels; pixel++ {
+					for value := 0; value < numValues; value++ {
+						if image.BitsPerSample == 8 {
+							binary.Write(buf, binary.LittleEndian, uint8(image.NativeFrames[frame][pixel][value])) //TODO: revisit little endian
+						} else if image.BitsPerSample == 16 {
+							binary.Write(buf, binary.LittleEndian, uint16(image.NativeFrames[frame][pixel][value])) //TODO: revisit little endian
+						}
+					}
+				}
+			}
+			e.WriteBytes(buf.Bytes())
 		}
 		return
 	}

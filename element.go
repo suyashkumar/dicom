@@ -446,7 +446,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 // endElement is an pseudoelement to cause the caller to stop reading the input.
 var endOfDataElement = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff}}
 
-// ReadElement reads one DICOM data element. The parsedData ref must only be provided when potentially parsing PixelData,
+// ReadElement reads one DICOM data element. The parsedData ref must only be provided when potentially reading PixelData,
 // otherwise can be nil. ReadElement returns three kind of values.
 //
 // - On parse error, it returns nil and sets the error in d.Error().
@@ -537,7 +537,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			// We need Elements that have been already parsed (rows, cols, etc) to parse frames out of Native Pixel data
 			if parsedData == nil {
 				d.SetError(errors.New("dicom.ReadElement: parsedData is nil, must exist to parse Native pixel data"))
-				return elem // TODO(suyash) investigate error handling in this library
+				return nil // TODO(suyash) investigate error handling in this library
 			}
 
 			image, _, err := readNativeFrames(d, parsedData)
@@ -545,7 +545,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			if err != nil {
 				d.SetError(err)
 				dicomlog.Vprintf(1, "dicom.ReadElement: Error reading native frames")
-				return elem
+				return nil
 			}
 
 			data = append(data, *image)
@@ -767,10 +767,12 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 	if err != nil {
 		return nil, 0, err
 	}
+
 	cols, err := parsedData.FindElementByTag(dicomtag.Columns)
 	if err != nil {
 		return nil, 0, err
 	}
+
 	nof, err := parsedData.FindElementByTag(dicomtag.NumberOfFrames)
 	nFrames := 0
 	if err == nil {

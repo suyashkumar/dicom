@@ -95,8 +95,6 @@ func (p *parser) Parse(options ParseOptions) (*DataSet, error) {
 		}
 		if elem == endOfDataElement {
 			// element is a pixel data and was dropped by options
-			fmt.Println("BREAKED")
-			fmt.Println(p.decoder.Error())
 			break
 		}
 		if elem == nil {
@@ -239,7 +237,7 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 			//             Item Any*N                     (when Item.VL has a defined value)
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := p.ParseNext(options)
+				item := p.ParseNext(ParseOptions{})
 				if p.decoder.Error() != nil {
 					break
 				}
@@ -259,7 +257,7 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 			p.decoder.PushLimit(int64(vl))
 			for p.decoder.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := p.ParseNext(options)
+				item := p.ParseNext(ParseOptions{})
 				if p.decoder.Error() != nil {
 					break
 				}
@@ -276,7 +274,7 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 			// Format: Item Any* ItemDelimitationItem
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := p.ParseNext(options)
+				subelem := p.ParseNext(ParseOptions{})
 				if p.decoder.Error() != nil {
 					break
 				}
@@ -290,7 +288,7 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 			p.decoder.PushLimit(int64(vl))
 			for p.decoder.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := p.ParseNext(options)
+				subelem := p.ParseNext(ParseOptions{})
 				if p.decoder.Error() != nil {
 					break
 				}

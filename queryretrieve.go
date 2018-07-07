@@ -187,13 +187,13 @@ func (d DateInfo) String() string {
 }
 
 var (
-	dateRangeRE = regexp.MustCompile("^([\\decoder.]*)-([\\decoder.]*)$")
+	dateRangeRE = regexp.MustCompile("^([\\d.]*)-([\\d.]*)$")
 
 	// A date string can be 8-byte Date string of form 19930822 or 10-byte
 	// ACR-NEMA300 string of form "1993.08.22". The latter is not compliant
 	// according to P3.5 6.2, but it still happens in real life.
-	newDateRE = regexp.MustCompile("^(\\decoder\\decoder\\decoder\\decoder)(\\decoder\\decoder)(\\decoder\\decoder)$")
-	oldDateRE = regexp.MustCompile("^(\\decoder\\decoder\\decoder\\decoder)\\.(\\decoder\\decoder)\\.(\\decoder\\decoder)$")
+	newDateRE = regexp.MustCompile("^(\\d\\d\\d\\d)(\\d\\d)(\\d\\d)$")
+	oldDateRE = regexp.MustCompile("^(\\d\\d\\d\\d)\\.(\\d\\d)\\.(\\d\\d)$")
 )
 
 // ParseDate parses a date string or date-range string as defined for the VR

@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"fmt"
-
 	"github.com/gradienthealth/go-dicom"
 	"github.com/gradienthealth/go-dicom/dicomtag"
 	"github.com/gradienthealth/go-dicom/dicomuid"
@@ -110,7 +108,6 @@ func TestReadOptions(t *testing.T) {
 	require.NoError(t, err)
 	_, err = data.FindElementByTag(dicomtag.PixelData)
 	require.Error(t, err)
-	fmt.Println("done with 1")
 
 	// Test Return Tags
 	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ParseOptions{DropPixelData: true, ReturnTags: []dicomtag.Tag{dicomtag.StudyInstanceUID}})
@@ -122,7 +119,6 @@ func TestReadOptions(t *testing.T) {
 	if err == nil {
 		t.Errorf("PatientName should not be present")
 	}
-	fmt.Println("done with 1")
 
 	// Test Stop at Tag
 	data = mustReadFile("examples/IM-0001-0001.dcm",
@@ -138,7 +134,6 @@ func TestReadOptions(t *testing.T) {
 	if err == nil {
 		t.Errorf("PatientName should not be present")
 	}
-	fmt.Println("done with 1")
 }
 
 func BenchmarkParseSingle(b *testing.B) {

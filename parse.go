@@ -28,6 +28,8 @@ type Parser interface {
 	Parse(options ParseOptions) (*DataSet, error)
 	// ParseNext reads and parses the next element
 	ParseNext(options ParseOptions) *Element
+	DecoderError() error // This should go away as we continue refactors
+	Finish() error       // This should maybe go away as we continue refactors
 }
 
 // parser implements Parser
@@ -41,17 +43,17 @@ type parser struct {
 
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan [][]int) (Parser, error) {
 	buffer := dicomio.NewDecoder(in, bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
-	metaElems := ParseFileHeader(buffer)
+	p := parser{
+		decoder:      buffer,
+		frameChannel: frameChannel,
+	}
+
+	metaElems := p.ParseFileHeader()
 	if buffer.Error() != nil {
 		return nil, buffer.Error()
 	}
 	parsedElements := &DataSet{Elements: metaElems}
-	p := parser{
-		decoder:        buffer,
-		parsedElements: parsedElements,
-		frameChannel:   frameChannel,
-	}
-
+	p.parsedElements = parsedElements
 	return &p, nil
 }
 
@@ -373,6 +375,61 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 	}
 	elem.Value = data
 	return elem
+}
+
+func (p *parser) DecoderError() error {
+	return p.decoder.Error()
+}
+
+func (p *parser) Finish() error {
+	return p.decoder.Finish()
+}
+
+// ParseFileHeader consumes the DICOM magic header and metadata elements (whose
+// elements with tag group==2) from a Dicom file. Errors are reported through
+// decoder.Error().
+func (p *parser) ParseFileHeader() []*Element {
+	p.decoder.PushTransferSyntax(binary.LittleEndian, dicomio.ExplicitVR)
+	defer p.decoder.PopTransferSyntax()
+	p.decoder.Skip(128) // skip preamble
+
+	// check for magic word
+	if s := p.decoder.ReadString(4); s != "DICM" {
+		p.decoder.SetError(errors.New("Keyword 'DICM' not found in the header"))
+		return nil
+	}
+
+	// (0002,0000) MetaElementGroupLength
+	metaElem := p.ParseNext(ParseOptions{})
+	if p.decoder.Error() != nil {
+		return nil
+	}
+	if metaElem.Tag != dicomtag.FileMetaInformationGroupLength {
+		p.decoder.SetErrorf("MetaElementGroupLength not found; insteadfound %s", metaElem.Tag.String())
+	}
+	metaLength, err := metaElem.GetUInt32()
+	if err != nil {
+		p.decoder.SetErrorf("Failed to read uint32 in MetaElementGroupLength: %v", err)
+		return nil
+	}
+	if p.decoder.Len() <= 0 {
+		p.decoder.SetErrorf("No data element found")
+		return nil
+	}
+	metaElems := []*Element{metaElem}
+
+	// Read meta tags
+	p.decoder.PushLimit(int64(metaLength))
+	defer p.decoder.PopLimit()
+	for p.decoder.Len() > 0 {
+		elem := p.ParseNext(ParseOptions{})
+		if p.decoder.Error() != nil {
+			break
+		}
+		metaElems = append(metaElems, elem)
+		dicomlog.Vprintf(2, "dicom.ParseFileHeader: Meta elem: %v, len %v", elem.String(), p.decoder.Len())
+	}
+	return metaElems
 }
 
 // DataSet represents contents of one DICOM file.

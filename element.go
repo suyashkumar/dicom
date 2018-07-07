@@ -148,7 +148,7 @@ func MustNewElement(tag dicomtag.Tag, values ...interface{}) *Element {
 // element contains zero or >1 values, or the value is not a uint32.
 func (e *Element) GetUInt32() (uint32, error) {
 	if len(e.Value) != 1 {
-		return 0, fmt.Errorf("Found %d value(s) in getuint32 (expect 1): %v", len(e.Value), e)
+		return 0, fmt.Errorf("Found %decoder value(s) in getuint32 (expect 1): %v", len(e.Value), e)
 	}
 	v, ok := e.Value[0].(uint32)
 	if !ok {
@@ -170,7 +170,7 @@ func (e *Element) MustGetUInt32() uint32 {
 // element contains zero or >1 values, or the value is not a uint16.
 func (e *Element) GetUInt16() (uint16, error) {
 	if len(e.Value) != 1 {
-		return 0, fmt.Errorf("Found %d value(s) in getuint16 (expect 1): %v", len(e.Value), e)
+		return 0, fmt.Errorf("Found %decoder value(s) in getuint16 (expect 1): %v", len(e.Value), e)
 	}
 	v, ok := e.Value[0].(uint16)
 	if !ok {
@@ -192,7 +192,7 @@ func (e *Element) MustGetUInt16() uint16 {
 // element contains zero or >1 values, or the value is not a string.
 func (e *Element) GetString() (string, error) {
 	if len(e.Value) != 1 {
-		return "", fmt.Errorf("Found %d value(s) in getstring (expect 1): %v", len(e.Value), e.String())
+		return "", fmt.Errorf("Found %decoder value(s) in getstring (expect 1): %v", len(e.Value), e.String())
 	}
 	v, ok := e.Value[0].(string)
 	if !ok {
@@ -291,7 +291,7 @@ func elementString(e *Element, nestLevel int) string {
 	}
 	s = fmt.Sprintf("%s %s %s %s ", s, dicomtag.DebugString(e.Tag), e.VR, sVl)
 	if e.VR == "SQ" || e.Tag == dicomtag.Item {
-		s += fmt.Sprintf(" (#%d)[\n", len(e.Value))
+		s += fmt.Sprintf(" (#%decoder)[\n", len(e.Value))
 		for _, v := range e.Value {
 			s += elementString(v.(*Element), nestLevel+1) + "\n"
 		}
@@ -301,7 +301,7 @@ func elementString(e *Element, nestLevel int) string {
 		if len(e.Value) == 1 {
 			sv = fmt.Sprintf("%v", e.Value)
 		} else {
-			sv = fmt.Sprintf("(%d)%v", len(e.Value), e.Value)
+			sv = fmt.Sprintf("(%decoder)%v", len(e.Value), e.Value)
 		}
 		if len(sv) > 1024 {
 			sv = sv[1:1024] + "(...)"
@@ -359,7 +359,7 @@ func (data PixelDataInfo) String() string {
 	s := fmt.Sprintf("image{offsets: %v, encapsulated frames: [", data.Offsets)
 	for i := 0; i < len(data.EncapsulatedFrames); i++ {
 		csum := sha256.Sum256(data.EncapsulatedFrames[i])
-		s += fmt.Sprintf("%d:{size:%d, csum:%v}, ",
+		s += fmt.Sprintf("%decoder:{size:%decoder, csum:%v}, ",
 			i, len(data.EncapsulatedFrames[i]),
 			base64.URLEncoding.EncodeToString(csum[:]))
 	}
@@ -367,7 +367,7 @@ func (data PixelDataInfo) String() string {
 	s += "], native frames: ["
 
 	for i := 0; i < len(data.NativeFrames); i++ {
-		s += fmt.Sprintf("%d:{size:%d}, ",
+		s += fmt.Sprintf("%decoder:{size:%decoder}, ",
 			i, len(data.NativeFrames[i]))
 	}
 
@@ -398,7 +398,7 @@ func readBasicOffsetTable(d *dicomio.Decoder) []uint32 {
 
 // ParseFileHeader consumes the DICOM magic header and metadata elements (whose
 // elements with tag group==2) from a Dicom file. Errors are reported through
-// d.Error().
+// decoder.Error().
 func ParseFileHeader(d *dicomio.Decoder) []*Element {
 	d.PushTransferSyntax(binary.LittleEndian, dicomio.ExplicitVR)
 	defer d.PopTransferSyntax()
@@ -449,7 +449,7 @@ var endOfDataElement = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff
 // ReadElement reads one DICOM data element. The parsedData ref must only be provided when potentially reading PixelData,
 // otherwise can be nil. ReadElement returns three kind of values.
 //
-// - On parse error, it returns nil and sets the error in d.Error().
+// - On parse error, it returns nil and sets the error in decoder.Error().
 //
 // - It returns (endOfDataElement, nil) if options.DropPixelData=true and the
 // element is a pixel data, or it sees an element defined by options.StopAtTag.
@@ -552,7 +552,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 		}
 	} else if vr == "SQ" {
 		// Note: when reading subitems inside sequence or item, we ignore
-		// DropPixelData and other shortcircuiting options. If we honored them, we'd
+		// DropPixelData and other shortcircuiting options. If we honored them, we'decoder
 		// be unable to read the rest of the file.
 		if vl == undefinedLength {
 			// Format:
@@ -803,9 +803,9 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 
 	pixelsPerFrame := int(rows.MustGetUInt16()) * int(cols.MustGetUInt16())
 
-	dicomlog.Vprintf(1, "Image size: %d x %d", rows.MustGetUInt16(), cols.MustGetUInt16())
-	dicomlog.Vprintf(1, "Pixels Per Frame: %d", pixelsPerFrame)
-	dicomlog.Vprintf(1, "Number of frames %d", nFrames)
+	dicomlog.Vprintf(1, "Image size: %decoder x %decoder", rows.MustGetUInt16(), cols.MustGetUInt16())
+	dicomlog.Vprintf(1, "Pixels Per Frame: %decoder", pixelsPerFrame)
+	dicomlog.Vprintf(1, "Number of frames %decoder", nFrames)
 
 	// Parse the pixels:
 	image.NativeFrames = make([][][]int, nFrames)

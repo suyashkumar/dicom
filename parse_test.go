@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"fmt"
+
 	"github.com/gradienthealth/go-dicom"
 	"github.com/gradienthealth/go-dicom/dicomtag"
 	"github.com/gradienthealth/go-dicom/dicomuid"
@@ -12,8 +14,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func mustReadFile(path string, options dicom.ReadOptions) *dicom.DataSet {
-	data, err := dicom.ReadDataSetFromFile(path, options)
+func mustReadFile(path string, options dicom.ParseOptions) *dicom.DataSet {
+	p, err := dicom.NewParserFromFile(path, nil)
+	if err != nil {
+		log.Panic(err)
+	}
+	data, err := p.Parse(options)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -27,12 +33,12 @@ func TestAllFiles(t *testing.T) {
 	require.NoError(t, err)
 	for _, name := range names {
 		t.Logf("Reading %s", name)
-		_ = mustReadFile("examples/"+name, dicom.ReadOptions{})
+		_ = mustReadFile("examples/"+name, dicom.ParseOptions{})
 	}
 }
 
 func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
-	data := mustReadFile(dcmPath, dicom.ReadOptions{})
+	data := mustReadFile(dcmPath, dicom.ParseOptions{})
 	dstPath := "/tmp/test.dcm"
 	out, err := os.Create(dstPath)
 	require.NoError(t, err)
@@ -47,7 +53,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 	}
 	err = dicom.WriteDataSet(out, data)
 	require.NoError(t, err)
-	data2 := mustReadFile(dstPath, dicom.ReadOptions{})
+	data2 := mustReadFile(dstPath, dicom.ParseOptions{})
 
 	if len(data.Elements) != len(data2.Elements) {
 		t.Errorf("Wrong # of elements: %v %v", len(data.Elements), len(data2.Elements))
@@ -84,7 +90,7 @@ func TestWriteFile(t *testing.T) {
 }
 
 func TestReadDataSet(t *testing.T) {
-	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{})
+	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ParseOptions{})
 	elem, err := data.FindElementByName("PatientName")
 	require.NoError(t, err)
 	assert.Equal(t, elem.MustGetString(), "TOUTATIX")
@@ -99,14 +105,15 @@ func TestReadDataSet(t *testing.T) {
 // Test ReadOptions
 func TestReadOptions(t *testing.T) {
 	// Test Drop Pixel Data
-	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true})
+	data := mustReadFile("examples/IM-0001-0001.dcm", dicom.ParseOptions{DropPixelData: true})
 	_, err := data.FindElementByTag(dicomtag.PatientName)
 	require.NoError(t, err)
 	_, err = data.FindElementByTag(dicomtag.PixelData)
 	require.Error(t, err)
+	fmt.Println("done with 1")
 
 	// Test Return Tags
-	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{DropPixelData: true, ReturnTags: []dicomtag.Tag{dicomtag.StudyInstanceUID}})
+	data = mustReadFile("examples/IM-0001-0001.dcm", dicom.ParseOptions{DropPixelData: true, ReturnTags: []dicomtag.Tag{dicomtag.StudyInstanceUID}})
 	_, err = data.FindElementByTag(dicomtag.StudyInstanceUID)
 	if err != nil {
 		t.Error(err)
@@ -115,10 +122,11 @@ func TestReadOptions(t *testing.T) {
 	if err == nil {
 		t.Errorf("PatientName should not be present")
 	}
+	fmt.Println("done with 1")
 
 	// Test Stop at Tag
 	data = mustReadFile("examples/IM-0001-0001.dcm",
-		dicom.ReadOptions{
+		dicom.ParseOptions{
 			DropPixelData: true,
 			// Study Instance UID Element tag is Tag{0x0020, 0x000D}
 			StopAtTag: &dicomtag.StudyInstanceUID})
@@ -130,10 +138,11 @@ func TestReadOptions(t *testing.T) {
 	if err == nil {
 		t.Errorf("PatientName should not be present")
 	}
+	fmt.Println("done with 1")
 }
 
 func BenchmarkParseSingle(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = mustReadFile("examples/IM-0001-0001.dcm", dicom.ReadOptions{})
+		_ = mustReadFile("examples/IM-0001-0001.dcm", dicom.ParseOptions{})
 	}
 }

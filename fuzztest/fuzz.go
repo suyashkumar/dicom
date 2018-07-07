@@ -8,6 +8,6 @@ import (
 
 func Fuzz(data []byte) int {
 	_, _ = dicom.ReadDataSet(bytes.NewBuffer(data), int64(len(data)),
-		dicom.ReadOptions{})
+		dicom.ParseOptions{})
 	return 1
 }

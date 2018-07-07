@@ -34,7 +34,7 @@ func main() {
 	}
 	path := flag.Arg(0)
 	p, err := dicom.NewParserFromFile(path, nil)
-	parsedData, err := p.Parse(dicom.ReadOptions{DropPixelData: !*extractImages})
+	parsedData, err := p.Parse(dicom.ParseOptions{DropPixelData: !*extractImages})
 	if parsedData == nil {
 		log.Panic("Error reading %s: %v", path, err)
 	}

@@ -411,7 +411,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 	}
 
 	// (0002,0000) MetaElementGroupLength
-	metaElem := ReadElement(d, nil, ReadOptions{})
+	metaElem := ReadElement(d, nil, ParseOptions{})
 	if d.Error() != nil {
 		return nil
 	}
@@ -433,7 +433,7 @@ func ParseFileHeader(d *dicomio.Decoder) []*Element {
 	d.PushLimit(int64(metaLength))
 	defer d.PopLimit()
 	for d.Len() > 0 {
-		elem := ReadElement(d, nil, ReadOptions{})
+		elem := ReadElement(d, nil, ParseOptions{})
 		if d.Error() != nil {
 			break
 		}
@@ -455,7 +455,7 @@ var endOfDataElement = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff
 // element is a pixel data, or it sees an element defined by options.StopAtTag.
 //
 // - On successful parsing, it returns non-nil and non-endOfDataElement value.
-func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *Element {
+func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ParseOptions) *Element {
 	tag := readTag(d)
 	if tag == dicomtag.PixelData && options.DropPixelData {
 		return endOfDataElement
@@ -561,7 +561,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			//             Item Any*N                     (when Item.VL has a defined value)
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, parsedData, ReadOptions{})
+				item := ReadElement(d, parsedData, ParseOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -581,7 +581,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			d.PushLimit(int64(vl))
 			for d.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, parsedData, ReadOptions{})
+				item := ReadElement(d, parsedData, ParseOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -598,7 +598,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			// Format: Item Any* ItemDelimitationItem
 			for {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, parsedData, ReadOptions{})
+				subelem := ReadElement(d, parsedData, ParseOptions{})
 				if d.Error() != nil {
 					break
 				}
@@ -612,7 +612,7 @@ func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *
 			d.PushLimit(int64(vl))
 			for d.Len() > 0 {
 				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, parsedData, ReadOptions{})
+				subelem := ReadElement(d, parsedData, ParseOptions{})
 				if d.Error() != nil {
 					break
 				}

@@ -9,7 +9,11 @@ import (
 )
 
 func TestParse0(t *testing.T) {
-	ds, err := dicom.ReadDataSetFromFile("examples/I_000013.dcm", dicom.ReadOptions{})
+	p, err := dicom.NewParserFromFile("examples/I_000013.dcm", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ds, err := p.Parse(dicom.ParseOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

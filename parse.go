@@ -49,7 +49,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan [][]int) (Pars
 		frameChannel: frameChannel,
 	}
 
-	metaElems := p.ParseFileHeader()
+	metaElems := p.parseFileHeader()
 	if buffer.Error() != nil {
 		return nil, buffer.Error()
 	}
@@ -386,10 +386,10 @@ func (p *parser) Finish() error {
 	return p.decoder.Finish()
 }
 
-// ParseFileHeader consumes the DICOM magic header and metadata elements (whose
+// parseFileHeader consumes the DICOM magic header and metadata elements (whose
 // elements with tag group==2) from a Dicom file. Errors are reported through
 // decoder.Error().
-func (p *parser) ParseFileHeader() []*Element {
+func (p *parser) parseFileHeader() []*Element {
 	p.decoder.PushTransferSyntax(binary.LittleEndian, dicomio.ExplicitVR)
 	defer p.decoder.PopTransferSyntax()
 	p.decoder.Skip(128) // skip preamble
@@ -428,7 +428,7 @@ func (p *parser) ParseFileHeader() []*Element {
 			break
 		}
 		metaElems = append(metaElems, elem)
-		dicomlog.Vprintf(2, "dicom.ParseFileHeader: Meta elem: %v, len %v", elem.String(), p.decoder.Len())
+		dicomlog.Vprintf(2, "dicom.parseFileHeader: Meta elem: %v, len %v", elem.String(), p.decoder.Len())
 	}
 	return metaElems
 }

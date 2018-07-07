@@ -75,7 +75,7 @@ func TestReadWriteFileHeader(t *testing.T) {
 	p := parser{
 		decoder: d,
 	}
-	elems := p.ParseFileHeader()
+	elems := p.parseFileHeader()
 	require.NoError(t, d.Finish())
 	elem, err := FindElementByTag(elems, dicomtag.TransferSyntaxUID)
 	require.NoError(t, err)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gradienthealth/go-dicom/dicomio"
@@ -487,4 +488,79 @@ func getTransferSyntax(ds *DataSet) (bo binary.ByteOrder, implicit dicomio.IsImp
 		return nil, dicomio.UnknownVR, err
 	}
 	return dicomio.ParseTransferSyntaxUID(transferSyntaxUID)
+}
+
+// readNativeFrames reads Native frames from a Decoder based on already parsed pixel information
+// that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
+func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *PixelDataInfo, bytesRead int, err error) {
+	image := PixelDataInfo{
+		Encapsulated: false,
+	}
+
+	// Parse information from previously parsed attributes that are needed to parse Native Frames:
+	rows, err := parsedData.FindElementByTag(dicomtag.Rows)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	cols, err := parsedData.FindElementByTag(dicomtag.Columns)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	nof, err := parsedData.FindElementByTag(dicomtag.NumberOfFrames)
+	nFrames := 0
+	if err == nil {
+		// No error, so parse number of frames
+		nFrames, err = strconv.Atoi(nof.MustGetString()) // odd that number of frames is encoded as a string...
+		if err != nil {
+			dicomlog.Vprintf(1, "ERROR converting nof")
+			return nil, 0, err
+		}
+	} else {
+		// error fetching NumberOfFrames, so default to 1. TODO: revisit
+		nFrames = 1
+	}
+
+	b, err := parsedData.FindElementByTag(dicomtag.BitsAllocated)
+	if err != nil {
+		dicomlog.Vprintf(1, "ERROR finding bits allocated.")
+		return nil, 0, err
+	}
+	bitsAllocated := int(b.MustGetUInt16())
+	image.BitsPerSample = bitsAllocated
+
+	s, err := parsedData.FindElementByTag(dicomtag.SamplesPerPixel)
+	if err != nil {
+		dicomlog.Vprintf(1, "ERROR finding samples per pixel")
+	}
+	samplesPerPixel := int(s.MustGetUInt16())
+
+	pixelsPerFrame := int(rows.MustGetUInt16()) * int(cols.MustGetUInt16())
+
+	dicomlog.Vprintf(1, "Image size: %decoder x %decoder", rows.MustGetUInt16(), cols.MustGetUInt16())
+	dicomlog.Vprintf(1, "Pixels Per Frame: %decoder", pixelsPerFrame)
+	dicomlog.Vprintf(1, "Number of frames %decoder", nFrames)
+
+	// Parse the pixels:
+	image.NativeFrames = make([][][]int, nFrames)
+	for frame := 0; frame < nFrames; frame++ {
+		currentFrame := make([][]int, pixelsPerFrame)
+		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
+			currentPixel := make([]int, samplesPerPixel)
+			for value := 0; value < samplesPerPixel; value++ {
+				if bitsAllocated == 8 {
+					currentPixel[value] = int(d.ReadUInt8())
+				} else if bitsAllocated == 16 {
+					currentPixel[value] = int(d.ReadUInt16())
+				}
+			}
+			currentFrame[pixel] = currentPixel
+		}
+		image.NativeFrames[frame] = currentFrame
+	}
+
+	bytesRead = (bitsAllocated / 8) * samplesPerPixel * pixelsPerFrame * nFrames
+
+	return &image, bytesRead, nil
 }

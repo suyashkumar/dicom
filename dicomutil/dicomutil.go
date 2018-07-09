@@ -34,9 +34,12 @@ func main() {
 	}
 	path := flag.Arg(0)
 	p, err := dicom.NewParserFromFile(path, nil)
+	if err != nil {
+		log.Panic("error creating new parser", err)
+	}
 	parsedData, err := p.Parse(dicom.ParseOptions{DropPixelData: !*extractImages})
-	if parsedData == nil {
-		log.Panic("Error reading %s: %v", path, err)
+	if parsedData == nil || err != nil {
+		log.Panicf("Error reading %s: %v", path, err)
 	}
 	if *printMetadata {
 		for _, elem := range parsedData.Elements {

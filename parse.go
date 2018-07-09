@@ -29,8 +29,10 @@ type Parser interface {
 	Parse(options ParseOptions) (*DataSet, error)
 	// ParseNext reads and parses the next element
 	ParseNext(options ParseOptions) *Element
+	// DecoderError fetches an error (if exists) from the dicomio.Decoder
 	DecoderError() error // This should go away as we continue refactors
-	Finish() error       // This should maybe go away as we continue refactors
+	// Finish should be called after manually parsing elements using ParseNext (instead of Parse)
+	Finish() error // This should maybe go away as we continue refactors
 }
 
 // parser implements Parser
@@ -42,6 +44,7 @@ type parser struct {
 	file           *os.File // may be populated if coming from file
 }
 
+// NewParser initializes and returns a new Parser
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan [][]int) (Parser, error) {
 	buffer := dicomio.NewDecoder(in, bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
 	p := parser{
@@ -58,10 +61,12 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan [][]int) (Pars
 	return &p, nil
 }
 
+// NewParserFromBytes initializes and returns a new Parser from []byte
 func NewParserFromBytes(data []byte, frameChannel chan [][]int) (Parser, error) {
 	return NewParser(bytes.NewBuffer(data), int64(len(data)), frameChannel)
 }
 
+// NewParserFromFile initializes and returns a new dicom Parser from a file path
 func NewParserFromFile(path string, frameChannel chan [][]int) (Parser, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -85,6 +90,7 @@ func (p *parser) Parse(options ParseOptions) (*DataSet, error) {
 	p.decoder.PushTransferSyntax(endian, implicit)
 	defer p.decoder.PopTransferSyntax()
 
+	// if reading from file, close the file after done parsing
 	if p.file != nil {
 		defer p.file.Close()
 	}
@@ -383,6 +389,10 @@ func (p *parser) DecoderError() error {
 }
 
 func (p *parser) Finish() error {
+	// if we've been reading from a file, close it
+	if p.file != nil {
+		p.file.Close()
+	}
 	return p.decoder.Finish()
 }
 

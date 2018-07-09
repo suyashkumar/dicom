@@ -25,9 +25,16 @@ var (
 )
 
 func main() {
+	// Update usage docs
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n%s <dicom file> [flags]\n", os.Args[0], os.Args[0])
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 	if len(flag.Args()) == 0 {
-		log.Panic("dicomutil <dicomfile>")
+		flag.Usage()
+		os.Exit(1)
 	}
 	if *verbose {
 		dicomlog.SetLevel(math.MaxInt32)

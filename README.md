@@ -25,6 +25,11 @@ More details about the package can be found in the [godoc](https://godoc.org/git
 
 ## CLI Tool
 A CLI tool that uses this package to parse imagery and metadata out of DICOMs is provided in the `dicomutil` package. 
+### Usage
+```
+dicomutil --extract-images myfile.dcm
+```
+Note: for some dicoms (with native pixel data) no automatic intensity scaling is applied yet (this is coming). You can apply this in your image viewer if needed. 
 ### Docker build
 To build the tool for all platforms (Mac, Windows, Linux) from source using docker, execute the following in the cloned repo:
 ```bash

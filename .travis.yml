@@ -2,5 +2,5 @@ language: go
 go:
         - 1.9.x
 script:
-        - go test -v ./...
-        - go build ./...
+        - go get github.com/golang/dep/cmd/dep
+        - make

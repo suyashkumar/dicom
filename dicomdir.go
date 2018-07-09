@@ -22,7 +22,11 @@ func ParseDICOMDIR(in io.Reader) (recs []DirectoryRecord, err error) {
 	if err != nil {
 		return nil, err
 	}
-	ds, err := ReadDataSetInBytes(bytes, ReadOptions{})
+	p, err := NewParserFromBytes(bytes, nil)
+	if err != nil {
+		return nil, err
+	}
+	ds, err := p.Parse(ParseOptions{})
 	if err != nil {
 		return nil, err
 	}

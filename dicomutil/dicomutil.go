@@ -33,9 +33,13 @@ func main() {
 		dicomlog.SetLevel(math.MaxInt32)
 	}
 	path := flag.Arg(0)
-	parsedData, err := dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: !*extractImages})
-	if parsedData == nil {
-		log.Panic("Error reading %s: %v", path, err)
+	p, err := dicom.NewParserFromFile(path, nil)
+	if err != nil {
+		log.Panic("error creating new parser", err)
+	}
+	parsedData, err := p.Parse(dicom.ParseOptions{DropPixelData: !*extractImages})
+	if parsedData == nil || err != nil {
+		log.Panicf("Error reading %s: %v", path, err)
 	}
 	if *printMetadata {
 		for _, elem := range parsedData.Elements {

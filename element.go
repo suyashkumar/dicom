@@ -3,15 +3,11 @@ package dicom
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"strings"
 
-	"strconv"
-
 	"github.com/gradienthealth/go-dicom/dicomio"
-	"github.com/gradienthealth/go-dicom/dicomlog"
 	"github.com/gradienthealth/go-dicom/dicomtag"
 )
 
@@ -148,7 +144,7 @@ func MustNewElement(tag dicomtag.Tag, values ...interface{}) *Element {
 // element contains zero or >1 values, or the value is not a uint32.
 func (e *Element) GetUInt32() (uint32, error) {
 	if len(e.Value) != 1 {
-		return 0, fmt.Errorf("Found %d value(s) in getuint32 (expect 1): %v", len(e.Value), e)
+		return 0, fmt.Errorf("Found %decoder value(s) in getuint32 (expect 1): %v", len(e.Value), e)
 	}
 	v, ok := e.Value[0].(uint32)
 	if !ok {
@@ -170,7 +166,7 @@ func (e *Element) MustGetUInt32() uint32 {
 // element contains zero or >1 values, or the value is not a uint16.
 func (e *Element) GetUInt16() (uint16, error) {
 	if len(e.Value) != 1 {
-		return 0, fmt.Errorf("Found %d value(s) in getuint16 (expect 1): %v", len(e.Value), e)
+		return 0, fmt.Errorf("Found %decoder value(s) in getuint16 (expect 1): %v", len(e.Value), e)
 	}
 	v, ok := e.Value[0].(uint16)
 	if !ok {
@@ -192,7 +188,7 @@ func (e *Element) MustGetUInt16() uint16 {
 // element contains zero or >1 values, or the value is not a string.
 func (e *Element) GetString() (string, error) {
 	if len(e.Value) != 1 {
-		return "", fmt.Errorf("Found %d value(s) in getstring (expect 1): %v", len(e.Value), e.String())
+		return "", fmt.Errorf("Found %decoder value(s) in getstring (expect 1): %v", len(e.Value), e.String())
 	}
 	v, ok := e.Value[0].(string)
 	if !ok {
@@ -291,7 +287,7 @@ func elementString(e *Element, nestLevel int) string {
 	}
 	s = fmt.Sprintf("%s %s %s %s ", s, dicomtag.DebugString(e.Tag), e.VR, sVl)
 	if e.VR == "SQ" || e.Tag == dicomtag.Item {
-		s += fmt.Sprintf(" (#%d)[\n", len(e.Value))
+		s += fmt.Sprintf(" (#%decoder)[\n", len(e.Value))
 		for _, v := range e.Value {
 			s += elementString(v.(*Element), nestLevel+1) + "\n"
 		}
@@ -301,7 +297,7 @@ func elementString(e *Element, nestLevel int) string {
 		if len(e.Value) == 1 {
 			sv = fmt.Sprintf("%v", e.Value)
 		} else {
-			sv = fmt.Sprintf("(%d)%v", len(e.Value), e.Value)
+			sv = fmt.Sprintf("(%decoder)%v", len(e.Value), e.Value)
 		}
 		if len(sv) > 1024 {
 			sv = sv[1:1024] + "(...)"
@@ -359,7 +355,7 @@ func (data PixelDataInfo) String() string {
 	s := fmt.Sprintf("image{offsets: %v, encapsulated frames: [", data.Offsets)
 	for i := 0; i < len(data.EncapsulatedFrames); i++ {
 		csum := sha256.Sum256(data.EncapsulatedFrames[i])
-		s += fmt.Sprintf("%d:{size:%d, csum:%v}, ",
+		s += fmt.Sprintf("%decoder:{size:%decoder, csum:%v}, ",
 			i, len(data.EncapsulatedFrames[i]),
 			base64.URLEncoding.EncodeToString(csum[:]))
 	}
@@ -367,7 +363,7 @@ func (data PixelDataInfo) String() string {
 	s += "], native frames: ["
 
 	for i := 0; i < len(data.NativeFrames); i++ {
-		s += fmt.Sprintf("%d:{size:%d}, ",
+		s += fmt.Sprintf("%decoder:{size:%decoder}, ",
 			i, len(data.NativeFrames[i]))
 	}
 
@@ -396,308 +392,8 @@ func readBasicOffsetTable(d *dicomio.Decoder) []uint32 {
 	return offsets
 }
 
-// ParseFileHeader consumes the DICOM magic header and metadata elements (whose
-// elements with tag group==2) from a Dicom file. Errors are reported through
-// d.Error().
-func ParseFileHeader(d *dicomio.Decoder) []*Element {
-	d.PushTransferSyntax(binary.LittleEndian, dicomio.ExplicitVR)
-	defer d.PopTransferSyntax()
-	d.Skip(128) // skip preamble
-
-	// check for magic word
-	if s := d.ReadString(4); s != "DICM" {
-		d.SetError(errors.New("Keyword 'DICM' not found in the header"))
-		return nil
-	}
-
-	// (0002,0000) MetaElementGroupLength
-	metaElem := ReadElement(d, nil, ReadOptions{})
-	if d.Error() != nil {
-		return nil
-	}
-	if metaElem.Tag != dicomtag.FileMetaInformationGroupLength {
-		d.SetErrorf("MetaElementGroupLength not found; insteadfound %s", metaElem.Tag.String())
-	}
-	metaLength, err := metaElem.GetUInt32()
-	if err != nil {
-		d.SetErrorf("Failed to read uint32 in MetaElementGroupLength: %v", err)
-		return nil
-	}
-	if d.Len() <= 0 {
-		d.SetErrorf("No data element found")
-		return nil
-	}
-	metaElems := []*Element{metaElem}
-
-	// Read meta tags
-	d.PushLimit(int64(metaLength))
-	defer d.PopLimit()
-	for d.Len() > 0 {
-		elem := ReadElement(d, nil, ReadOptions{})
-		if d.Error() != nil {
-			break
-		}
-		metaElems = append(metaElems, elem)
-		dicomlog.Vprintf(2, "dicom.ParseFileHeader: Meta elem: %v, len %v", elem.String(), d.Len())
-	}
-	return metaElems
-}
-
 // endElement is an pseudoelement to cause the caller to stop reading the input.
 var endOfDataElement = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff}}
-
-// ReadElement reads one DICOM data element. The parsedData ref must only be provided when potentially reading PixelData,
-// otherwise can be nil. ReadElement returns three kind of values.
-//
-// - On parse error, it returns nil and sets the error in d.Error().
-//
-// - It returns (endOfDataElement, nil) if options.DropPixelData=true and the
-// element is a pixel data, or it sees an element defined by options.StopAtTag.
-//
-// - On successful parsing, it returns non-nil and non-endOfDataElement value.
-func ReadElement(d *dicomio.Decoder, parsedData *DataSet, options ReadOptions) *Element {
-	tag := readTag(d)
-	if tag == dicomtag.PixelData && options.DropPixelData {
-		return endOfDataElement
-	}
-
-	// Return nil if the tag is greater than the StopAtTag if a StopAtTag is given
-	if options.StopAtTag != nil && tag.Group >= options.StopAtTag.Group && tag.Element >= options.StopAtTag.Element {
-		return endOfDataElement
-	}
-	// The elements for group 0xFFFE should be Encoded as Implicit VR.
-	// DICOM Standard 09. PS 3.6 - Section 7.5: "Nesting of Data Sets"
-	_, implicit := d.TransferSyntax()
-	if tag.Group == itemSeqGroup {
-		implicit = dicomio.ImplicitVR
-	}
-	var vr string // Value Representation
-	var vl uint32 // Value Length
-	if implicit == dicomio.ImplicitVR {
-		vr, vl = readImplicit(d, tag)
-	} else {
-		doassert(implicit == dicomio.ExplicitVR, implicit)
-		vr, vl = readExplicit(d, tag)
-	}
-	var data []interface{}
-
-	elem := &Element{
-		Tag:             tag,
-		VR:              vr,
-		UndefinedLength: (vl == undefinedLength),
-	}
-	if vr == "UN" && vl == undefinedLength {
-		// This combination appears in some file, but it's unclear what
-		// to do. The standard, as always, is unclear. The best guess is
-		// in PS3.5, 6.2.2, where it states that the combination of
-		// vr=UN and undefined length is allowed, it refers to a section
-		// of parsing "Data Elemets with Unknown Length". That reference
-		// is specifically about element of type SQ, so I'm just
-		// assuming <UN, undefinedlength> is the same as <SQ, undefined
-		// length>.
-		vr = "SQ"
-	}
-	if tag == dicomtag.PixelData {
-		// P3.5, A.4 describes the format. Currently we only support an encapsulated image format.
-		//
-		// PixelData is usually the last element in a DICOM file. When
-		// the file stores N images, the elements that follow PixelData
-		// are laid out in the following way:
-		//
-		// Item(BasicOffsetTable) Item(PixelDataInfo0) ... Item(PixelDataInfoM) SequenceDelimiterItem
-		//
-		// Item(BasicOffsetTable) is an Item element whose payload
-		// encodes N uint32 values. Kth uint32 is the bytesize of the
-		// Kth image. Item(PixelDataInfo*) are chunked sequences of bytes. I
-		// presume that single PixelDataInfo item doesn't cross a image
-		// boundary, but the spec isn't clear.
-		//
-		// The total byte size of Item(PixelDataInfo*) equal the total of
-		// the bytesizes found in BasicOffsetTable.
-		if vl == undefinedLength {
-			var image PixelDataInfo
-			image.Encapsulated = true
-			image.Offsets = readBasicOffsetTable(d) // TODO(saito) Use the offset table.
-			if len(image.Offsets) > 1 {
-				dicomlog.Vprintf(1, "dicom.ReadElement: Multiple images not supported yet. Combining them into a byte sequence: %v", image.Offsets)
-			}
-			for d.Len() > 0 {
-				chunk, endOfItems := readRawItem(d)
-				if d.Error() != nil {
-					break
-				}
-				if endOfItems {
-					break
-				}
-				image.EncapsulatedFrames = append(image.EncapsulatedFrames, chunk)
-			}
-			data = append(data, image)
-		} else {
-			// Assume we're reading Native data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
-			// We need Elements that have been already parsed (rows, cols, etc) to parse frames out of Native Pixel data
-			if parsedData == nil {
-				d.SetError(errors.New("dicom.ReadElement: parsedData is nil, must exist to parse Native pixel data"))
-				return nil // TODO(suyash) investigate error handling in this library
-			}
-
-			image, _, err := readNativeFrames(d, parsedData)
-
-			if err != nil {
-				d.SetError(err)
-				dicomlog.Vprintf(1, "dicom.ReadElement: Error reading native frames")
-				return nil
-			}
-
-			data = append(data, *image)
-		}
-	} else if vr == "SQ" {
-		// Note: when reading subitems inside sequence or item, we ignore
-		// DropPixelData and other shortcircuiting options. If we honored them, we'd
-		// be unable to read the rest of the file.
-		if vl == undefinedLength {
-			// Format:
-			//  Sequence := ItemSet* SequenceDelimitationItem
-			//  ItemSet := Item Any* ItemDelimitationItem (when Item.VL is undefined) or
-			//             Item Any*N                     (when Item.VL has a defined value)
-			for {
-				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, parsedData, ReadOptions{})
-				if d.Error() != nil {
-					break
-				}
-				if item.Tag == dicomtag.SequenceDelimitationItem {
-					break
-				}
-				if item.Tag != dicomtag.Item {
-					d.SetErrorf("dicom.ReadElement: Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
-					break
-				}
-				data = append(data, item)
-			}
-		} else {
-			// Format:
-			//  Sequence := ItemSet*VL
-			// See the above comment for the definition of ItemSet.
-			d.PushLimit(int64(vl))
-			for d.Len() > 0 {
-				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				item := ReadElement(d, parsedData, ReadOptions{})
-				if d.Error() != nil {
-					break
-				}
-				if item.Tag != dicomtag.Item {
-					d.SetErrorf("dicom.ReadElement: Found non-Item element in seq w/ undefined length: %v", dicomtag.DebugString(item.Tag))
-					break
-				}
-				data = append(data, item)
-			}
-			d.PopLimit()
-		}
-	} else if tag == dicomtag.Item { // Item (component of SQ)
-		if vl == undefinedLength {
-			// Format: Item Any* ItemDelimitationItem
-			for {
-				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, parsedData, ReadOptions{})
-				if d.Error() != nil {
-					break
-				}
-				if subelem.Tag == dicomtag.ItemDelimitationItem {
-					break
-				}
-				data = append(data, subelem)
-			}
-		} else {
-			// Sequence of arbitary elements, for the  total of "vl" bytes.
-			d.PushLimit(int64(vl))
-			for d.Len() > 0 {
-				// Makes sure to return all sub elements even if the tag is not in the return tags list of options or is greater than the Stop At Tag
-				subelem := ReadElement(d, parsedData, ReadOptions{})
-				if d.Error() != nil {
-					break
-				}
-				data = append(data, subelem)
-			}
-			d.PopLimit()
-		}
-	} else { // List of scalar
-		if vl == undefinedLength {
-			d.SetErrorf("dicom.ReadElement: Undefined length disallowed for VR=%s, tag %s", vr, dicomtag.DebugString(tag))
-			return nil
-		}
-		d.PushLimit(int64(vl))
-		defer d.PopLimit()
-		if vr == "DA" {
-			// TODO(saito) Maybe we should validate the date.
-			date := strings.Trim(d.ReadString(int(vl)), " \000")
-			data = []interface{}{date}
-		} else if vr == "AT" {
-			// (2byte group, 2byte elem)
-			for d.Len() > 0 && d.Error() == nil {
-				tag := dicomtag.Tag{d.ReadUInt16(), d.ReadUInt16()}
-				data = append(data, tag)
-			}
-		} else if vr == "OW" {
-			if vl%2 != 0 {
-				d.SetErrorf("dicom.ReadElement: tag %v: OW requires even length, but found %v", dicomtag.DebugString(tag), vl)
-			} else {
-				n := int(vl / 2)
-				e := dicomio.NewBytesEncoder(dicomio.NativeByteOrder, dicomio.UnknownVR)
-				for i := 0; i < n; i++ {
-					v := d.ReadUInt16()
-					e.WriteUInt16(v)
-				}
-				doassert(e.Error() == nil, e.Error())
-				// TODO(saito) Check that size is even. Byte swap??
-				// TODO(saito) If OB's length is odd, is VL odd too? Need to check!
-				data = append(data, e.Bytes())
-			}
-		} else if vr == "OB" {
-			// TODO(saito) Check that size is even. Byte swap??
-			// TODO(saito) If OB's length is odd, is VL odd too? Need to check!
-			data = append(data, d.ReadBytes(int(vl)))
-		} else if vr == "LT" || vr == "UT" {
-			str := d.ReadString(int(vl))
-			data = append(data, str)
-		} else if vr == "UL" {
-			for d.Len() > 0 && d.Error() == nil {
-				data = append(data, d.ReadUInt32())
-			}
-		} else if vr == "SL" {
-			for d.Len() > 0 && d.Error() == nil {
-				data = append(data, d.ReadInt32())
-			}
-		} else if vr == "US" {
-			for d.Len() > 0 && d.Error() == nil {
-				data = append(data, d.ReadUInt16())
-			}
-		} else if vr == "SS" {
-			for d.Len() > 0 && d.Error() == nil {
-				data = append(data, d.ReadInt16())
-			}
-		} else if vr == "FL" {
-			for d.Len() > 0 && d.Error() == nil {
-				data = append(data, d.ReadFloat32())
-			}
-		} else if vr == "FD" {
-			for d.Len() > 0 && d.Error() == nil {
-				data = append(data, d.ReadFloat64())
-			}
-		} else {
-			// List of strings, each delimited by '\\'.
-			v := d.ReadString(int(vl))
-			// String may have '\0' suffix if its length is odd.
-			str := strings.Trim(v, " \000")
-			if len(str) > 0 {
-				for _, s := range strings.Split(str, "\\") {
-					data = append(data, s)
-				}
-			}
-		}
-	}
-	elem.Value = data
-	return elem
-}
 
 const undefinedLength uint32 = 0xffffffff
 
@@ -753,81 +449,6 @@ func readExplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
 		vl = 0
 	}
 	return vr, vl
-}
-
-// readNativeFrames reads Native frames from a Decoder based on already parsed pixel information
-// that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
-func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *PixelDataInfo, bytesRead int, err error) {
-	image := PixelDataInfo{
-		Encapsulated: false,
-	}
-
-	// Parse information from previously parsed attributes that are needed to parse Native Frames:
-	rows, err := parsedData.FindElementByTag(dicomtag.Rows)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	cols, err := parsedData.FindElementByTag(dicomtag.Columns)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	nof, err := parsedData.FindElementByTag(dicomtag.NumberOfFrames)
-	nFrames := 0
-	if err == nil {
-		// No error, so parse number of frames
-		nFrames, err = strconv.Atoi(nof.MustGetString()) // odd that number of frames is encoded as a string...
-		if err != nil {
-			dicomlog.Vprintf(1, "ERROR converting nof")
-			return nil, 0, err
-		}
-	} else {
-		// error fetching NumberOfFrames, so default to 1. TODO: revisit
-		nFrames = 1
-	}
-
-	b, err := parsedData.FindElementByTag(dicomtag.BitsAllocated)
-	if err != nil {
-		dicomlog.Vprintf(1, "ERROR finding bits allocated.")
-		return nil, 0, err
-	}
-	bitsAllocated := int(b.MustGetUInt16())
-	image.BitsPerSample = bitsAllocated
-
-	s, err := parsedData.FindElementByTag(dicomtag.SamplesPerPixel)
-	if err != nil {
-		dicomlog.Vprintf(1, "ERROR finding samples per pixel")
-	}
-	samplesPerPixel := int(s.MustGetUInt16())
-
-	pixelsPerFrame := int(rows.MustGetUInt16()) * int(cols.MustGetUInt16())
-
-	dicomlog.Vprintf(1, "Image size: %d x %d", rows.MustGetUInt16(), cols.MustGetUInt16())
-	dicomlog.Vprintf(1, "Pixels Per Frame: %d", pixelsPerFrame)
-	dicomlog.Vprintf(1, "Number of frames %d", nFrames)
-
-	// Parse the pixels:
-	image.NativeFrames = make([][][]int, nFrames)
-	for frame := 0; frame < nFrames; frame++ {
-		currentFrame := make([][]int, pixelsPerFrame)
-		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
-			currentPixel := make([]int, samplesPerPixel)
-			for value := 0; value < samplesPerPixel; value++ {
-				if bitsAllocated == 8 {
-					currentPixel[value] = int(d.ReadUInt8())
-				} else if bitsAllocated == 16 {
-					currentPixel[value] = int(d.ReadUInt16())
-				}
-			}
-			currentFrame[pixel] = currentPixel
-		}
-		image.NativeFrames[frame] = currentFrame
-	}
-
-	bytesRead = (bitsAllocated / 8) * samplesPerPixel * pixelsPerFrame * nFrames
-
-	return &image, bytesRead, nil
 }
 
 func tagInList(tag dicomtag.Tag, tags []dicomtag.Tag) bool {

@@ -413,7 +413,7 @@ func maybeInitUIDDict() {
 	add("1.2.840.10008.5.1.4.45.2", "Implant Template Group Information Model - FIND", TypeSOPClass, "", "")
 	add("1.2.840.10008.5.1.4.45.3", "Implant Template Group Information Model - MOVE", TypeSOPClass, "", "")
 	add("1.2.840.10008.5.1.4.45.4", "Implant Template Group Information Model - GET", TypeSOPClass, "", "")
-	add("1.2.840.10008.7.1.1", "NativeFrame DICOM Model", "Application Hosting Model", "", "")
+	add("1.2.840.10008.7.1.1", "NativeData DICOM Model", "Application Hosting Model", "", "")
 	add("1.2.840.10008.7.1.2", "Abstract Multi-Dimensional Image Model", "Application Hosting Model", "", "")
 	add("1.2.840.10008.8.1.1", "DICOM Content Mapping Resource", "Mapping Resource", "", "")
 	add("1.2.840.10008.15.0.3.1", "dicomDeviceName", "LDAP OID", "", "")

@@ -183,7 +183,7 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 		vr = "SQ"
 	}
 	if tag == dicomtag.PixelData {
-		// P3.5, A.4 describes the format. Currently we only support an encapsulated image format.
+		// P3.5, A.4 describes the format.
 		//
 		// PixelData is usually the last element in a DICOM file. When
 		// the file stores N images, the elements that follow PixelData
@@ -216,17 +216,17 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 				}
 				image.Frames = append(image.Frames, Frame{
 					IsEncapsulated: true,
-					EncapsulatedFrame: EncapsulatedFrame{
+					EncapsulatedData: EncapsulatedFrame{
 						Data: chunk,
 					},
 				})
 			}
 			data = append(data, image)
 		} else {
-			// Assume we're reading NativeFrame data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
-			// We need Elements that have been already parsed (rows, cols, etc) to parse frames out of NativeFrame Pixel data
+			// Assume we're reading NativeData data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
+			// We need Elements that have been already parsed (rows, cols, etc) to parse frames out of NativeData Pixel data
 			if p.parsedElements == nil {
-				p.decoder.SetError(errors.New("dicom.ReadElement: parsedData is nil, must exist to parse NativeFrame pixel data"))
+				p.decoder.SetError(errors.New("dicom.ReadElement: parsedData is nil, must exist to parse NativeData pixel data"))
 				return nil // TODO(suyash) investigate error handling in this library
 			}
 
@@ -505,14 +505,14 @@ func getTransferSyntax(ds *DataSet) (bo binary.ByteOrder, implicit dicomio.IsImp
 	return dicomio.ParseTransferSyntaxUID(transferSyntaxUID)
 }
 
-// readNativeFrames reads NativeFrame frames from a Decoder based on already parsed pixel information
+// readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
 func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *PixelDataInfo, bytesRead int, err error) {
 	image := PixelDataInfo{
 		IsEncapsulated: false,
 	}
 
-	// Parse information from previously parsed attributes that are needed to parse NativeFrame Frames:
+	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
 	rows, err := parsedData.FindElementByTag(dicomtag.Rows)
 	if err != nil {
 		return nil, 0, err
@@ -562,7 +562,7 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 		// Init current frame
 		currentFrame := Frame{
 			IsEncapsulated: false,
-			NativeFrame: NativeFrame{
+			NativeData: NativeFrame{
 				BitsPerSample: bitsAllocated,
 				Rows:          int(rows.MustGetUInt16()),
 				Cols:          int(cols.MustGetUInt16()),
@@ -578,7 +578,7 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 					currentPixel[value] = int(d.ReadUInt16())
 				}
 			}
-			currentFrame.NativeFrame.Data[pixel] = currentPixel
+			currentFrame.NativeData.Data[pixel] = currentPixel
 		}
 		image.Frames[frame] = currentFrame
 	}

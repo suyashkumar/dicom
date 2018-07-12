@@ -151,7 +151,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			encodeElementHeader(e, elem.Tag, vr, undefinedLength)
 			writeBasicOffsetTable(e, image.Offsets)
 			for _, frame := range image.Frames {
-				writeRawItem(e, frame.EncapsulatedFrame.Data)
+				writeRawItem(e, frame.EncapsulatedData.Data)
 			}
 			encodeElementHeader(e, dicomtag.SequenceDelimitationItem, "" /*not used*/, 0)
 		} else {
@@ -159,9 +159,9 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			// We should be dealing with NativeFrames here since we've got a defined value length for this PixelData
 			// as per Part 5 Sec A.4 of the DICOM spec. We will also assume that all Frames in image.Frames are NativeFrames.
 			numFrames := len(image.Frames)
-			numPixels := len(image.Frames[0].NativeFrame.Data)
-			numValues := len(image.Frames[0].NativeFrame.Data[0])
-			length := numFrames * numPixels * numValues * image.Frames[0].NativeFrame.BitsPerSample / 8 // length in bytes
+			numPixels := len(image.Frames[0].NativeData.Data)
+			numValues := len(image.Frames[0].NativeData.Data[0])
+			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
 			doassert(len(image.Frames) == 1, image.Frames) //TODO(suyash) not sure why this is set to 1...we should be able to handle multi frame writes
 			encodeElementHeader(e, elem.Tag, vr, uint32(length))
@@ -170,10 +170,10 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			for frame := 0; frame < numFrames; frame++ {
 				for pixel := 0; pixel < numPixels; pixel++ {
 					for value := 0; value < numValues; value++ {
-						if image.Frames[frame].NativeFrame.BitsPerSample == 8 {
-							binary.Write(buf, binary.LittleEndian, uint8(image.Frames[frame].NativeFrame.Data[pixel][value])) //TODO: revisit little endian
-						} else if image.Frames[frame].NativeFrame.BitsPerSample == 16 {
-							binary.Write(buf, binary.LittleEndian, uint16(image.Frames[frame].NativeFrame.Data[pixel][value])) //TODO: revisit little endian
+						if image.Frames[frame].NativeData.BitsPerSample == 8 {
+							binary.Write(buf, binary.LittleEndian, uint8(image.Frames[frame].NativeData.Data[pixel][value])) //TODO: revisit little endian
+						} else if image.Frames[frame].NativeData.BitsPerSample == 16 {
+							binary.Write(buf, binary.LittleEndian, uint16(image.Frames[frame].NativeData.Data[pixel][value])) //TODO: revisit little endian
 						}
 					}
 				}

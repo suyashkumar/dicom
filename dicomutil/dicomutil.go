@@ -73,9 +73,9 @@ func main() {
 
 func generateImage(frame dicom.Frame, frameIndex int, wg *sync.WaitGroup) {
 	if frame.IsEncapsulated {
-		go generateEncapsulatedImage(frame.EncapsulatedFrame, frameIndex, wg)
+		go generateEncapsulatedImage(frame.EncapsulatedData, frameIndex, wg)
 	} else {
-		go generateNativeImage(frame.NativeFrame, frameIndex, wg)
+		go generateNativeImage(frame.NativeData, frameIndex, wg)
 	}
 }
 

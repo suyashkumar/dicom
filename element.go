@@ -342,22 +342,26 @@ func readRawItem(d *dicomio.Decoder) ([]byte, bool) {
 	return d.ReadBytes(int(vl)), false
 }
 
+// NativeFrame represents a native image frame
 type NativeFrame struct {
-	Data          [][]int // Slice of pixels that each have multiple values
+	// Data is a slice of pixels, where each pixel can have multiple values
+	Data          [][]int
 	Rows          int
 	Cols          int
 	BitsPerSample int
 }
 
+// EncapsulatedFrame represents an encapsulated image frame
 type EncapsulatedFrame struct {
+	// Data is a collection of bytes representing a JPEG encoded image frame
 	Data []byte
 }
 
-// Frame represents a single encapsulated or native image frame
+// Frame wraps a single encapsulated or native image frame
 type Frame struct {
-	IsEncapsulated    bool
-	EncapsulatedFrame EncapsulatedFrame
-	NativeFrame       NativeFrame
+	IsEncapsulated   bool
+	EncapsulatedData EncapsulatedFrame
+	NativeData       NativeFrame
 }
 
 // PixelDataInfo is the Element.Value payload for PixelData element.
@@ -371,13 +375,13 @@ func (data PixelDataInfo) String() string {
 	s := fmt.Sprintf("image{offsets: %v, frames: [", data.Offsets)
 	for i := 0; i < len(data.Frames); i++ {
 		if data.Frames[i].IsEncapsulated {
-			csum := sha256.Sum256(data.Frames[i].EncapsulatedFrame.Data)
+			csum := sha256.Sum256(data.Frames[i].EncapsulatedData.Data)
 			s += fmt.Sprintf("%decoder:{size:%decoder, csum:%v, encapsulated:true}, ",
-				i, len(data.Frames[i].EncapsulatedFrame.Data),
+				i, len(data.Frames[i].EncapsulatedData.Data),
 				base64.URLEncoding.EncodeToString(csum[:]))
 		} else {
 			s += fmt.Sprintf("%decoder:{size:%decoder, encapsulated: false}, ",
-				i, len(data.Frames[i].NativeFrame.Data))
+				i, len(data.Frames[i].NativeData.Data))
 		}
 	}
 

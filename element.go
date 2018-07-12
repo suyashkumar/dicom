@@ -342,29 +342,43 @@ func readRawItem(d *dicomio.Decoder) ([]byte, bool) {
 	return d.ReadBytes(int(vl)), false
 }
 
+type NativeFrame struct {
+	Data          [][]int // Slice of pixels that each have multiple values
+	Rows          int
+	Cols          int
+	BitsPerSample int
+}
+
+type EncapsulatedFrame struct {
+	Data []byte
+}
+
+// Frame represents a single encapsulated or native image frame
+type Frame struct {
+	IsEncapsulated    bool
+	EncapsulatedFrame EncapsulatedFrame
+	NativeFrame       NativeFrame
+}
+
 // PixelDataInfo is the Element.Value payload for PixelData element.
 type PixelDataInfo struct {
-	Offsets            []uint32  // BasicOffsetTable
-	Encapsulated       bool      // is the data encapsulated/jpeg encoded?
-	EncapsulatedFrames [][]byte  // encapsulated frames
-	NativeFrames       [][][]int // native frames. Each frame has pixels, each pixel has values (potentially > 1 for color)
-	BitsPerSample      int       // solely for writing this element back out. TODO (suyash): rewrite/revisit the write func in this lib
+	Offsets        []uint32 // BasicOffsetTable
+	IsEncapsulated bool     // is the data encapsulated/jpeg encoded?
+	Frames         []Frame  // Frames
 }
 
 func (data PixelDataInfo) String() string {
-	s := fmt.Sprintf("image{offsets: %v, encapsulated frames: [", data.Offsets)
-	for i := 0; i < len(data.EncapsulatedFrames); i++ {
-		csum := sha256.Sum256(data.EncapsulatedFrames[i])
-		s += fmt.Sprintf("%decoder:{size:%decoder, csum:%v}, ",
-			i, len(data.EncapsulatedFrames[i]),
-			base64.URLEncoding.EncodeToString(csum[:]))
-	}
-
-	s += "], native frames: ["
-
-	for i := 0; i < len(data.NativeFrames); i++ {
-		s += fmt.Sprintf("%decoder:{size:%decoder}, ",
-			i, len(data.NativeFrames[i]))
+	s := fmt.Sprintf("image{offsets: %v, frames: [", data.Offsets)
+	for i := 0; i < len(data.Frames); i++ {
+		if data.Frames[i].IsEncapsulated {
+			csum := sha256.Sum256(data.Frames[i].EncapsulatedFrame.Data)
+			s += fmt.Sprintf("%decoder:{size:%decoder, csum:%v, encapsulated:true}, ",
+				i, len(data.Frames[i].EncapsulatedFrame.Data),
+				base64.URLEncoding.EncodeToString(csum[:]))
+		} else {
+			s += fmt.Sprintf("%decoder:{size:%decoder, encapsulated: false}, ",
+				i, len(data.Frames[i].NativeFrame.Data))
+		}
 	}
 
 	return s + "]}"

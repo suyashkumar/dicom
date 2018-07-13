@@ -214,12 +214,22 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 				if endOfItems {
 					break
 				}
-				image.Frames = append(image.Frames, Frame{
+
+				// Construct frame
+				f := Frame{
 					IsEncapsulated: true,
 					EncapsulatedData: EncapsulatedFrame{
 						Data: chunk,
 					},
-				})
+				}
+
+				image.Frames = append(image.Frames, f)
+				if p.frameChannel != nil {
+					p.frameChannel <- &f // write frame to channel
+				}
+			}
+			if p.frameChannel != nil {
+				close(p.frameChannel)
 			}
 			data = append(data, image)
 		} else {
@@ -230,7 +240,7 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 				return nil // TODO(suyash) investigate error handling in this library
 			}
 
-			image, _, err := readNativeFrames(p.decoder, p.parsedElements)
+			image, _, err := readNativeFrames(p.decoder, p.parsedElements, p.frameChannel)
 
 			if err != nil {
 				p.decoder.SetError(err)
@@ -507,7 +517,7 @@ func getTransferSyntax(ds *DataSet) (bo binary.ByteOrder, implicit dicomio.IsImp
 
 // readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
-func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *PixelDataInfo, bytesRead int, err error) {
+func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet, frameChan chan *Frame) (pixelData *PixelDataInfo, bytesRead int, err error) {
 	image := PixelDataInfo{
 		IsEncapsulated: false,
 	}
@@ -581,6 +591,13 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet) (pixelData *Pixel
 			currentFrame.NativeData.Data[pixel] = currentPixel
 		}
 		image.Frames[frame] = currentFrame
+		if frameChan != nil {
+			frameChan <- &currentFrame // write the current frame to the frameChan
+		}
+	}
+
+	if frameChan != nil {
+		close(frameChan) // close frameChan if it exists
 	}
 
 	bytesRead = (bitsAllocated / 8) * samplesPerPixel * pixelsPerFrame * nFrames

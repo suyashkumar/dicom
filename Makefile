@@ -6,6 +6,10 @@ build:
 	$(MAKE) test
 	go build -o build/${BINARY} ./dicomutil
 
+.PHONY: build-fast
+build-fast:
+	go build -o build/${BINARY} ./dicomutil
+
 .PHONY: test
 test:
 	go test ./...

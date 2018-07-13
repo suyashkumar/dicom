@@ -131,7 +131,7 @@ func generateEncapsulatedImage(frame dicom.EncapsulatedFrame, frameIndex int, wg
 	defer wg.Done()
 	path := fmt.Sprintf("image_%d.jpg", frameIndex) // TODO: figure out the image format
 	ioutil.WriteFile(path, frame.Data, 0644)
-	fmt.Printf("%s: %d bytes\n", path, len(frame.Data))
+	log.Printf("%s: %d bytes\n", path, len(frame.Data))
 }
 
 func generateNativeImage(frame dicom.NativeFrame, frameIndex int, wg *sync.WaitGroup) {

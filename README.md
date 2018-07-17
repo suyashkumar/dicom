@@ -1,5 +1,5 @@
 # DICOM parser in Go
-[![Build Status](https://travis-ci.org/gradienthealth/go-dicom.svg?branch=master)](https://travis-ci.org/gradienthealth/go-dicom)
+[![Build Status](https://travis-ci.org/gradienthealth/dicom.svg?branch=master)](https://travis-ci.org/gradienthealth/dicom)
 [![GoDoc Reference](https://godoc.org/github.com/gradienthealth/go-dicom?status.svg)](https://godoc.org/github.com/gradienthealth/go-dicom)
 
 This is a (hard-ish) fork of [go-dicom](https://github.com/gillesdemey/go-dicom)--a golang DICOM image parsing library. A command line tool to parse imagery and data out of DICOM files is also included (`dicomutil`). We have been working on this package with the goal of building a full-featured and high-performance dicom parser with new features and improvements. So far improvements include: 

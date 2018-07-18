@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gradienthealth/go-dicom/dicomio"
-	"github.com/gradienthealth/go-dicom/dicomtag"
+	"github.com/gradienthealth/dicom/dicomio"
+	"github.com/gradienthealth/dicom/dicomtag"
 )
 
 // Constants

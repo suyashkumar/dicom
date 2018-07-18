@@ -13,9 +13,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/gradienthealth/go-dicom"
-	"github.com/gradienthealth/go-dicom/dicomlog"
-	"github.com/gradienthealth/go-dicom/dicomtag"
+	"github.com/gradienthealth/dicom"
+	"github.com/gradienthealth/dicom/dicomlog"
+	"github.com/gradienthealth/dicom/dicomtag"
 )
 
 var (

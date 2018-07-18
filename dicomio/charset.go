@@ -3,7 +3,7 @@ package dicomio
 import (
 	"fmt"
 
-	"github.com/gradienthealth/go-dicom/dicomlog"
+	"github.com/gradienthealth/dicom/dicomlog"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/htmlindex"
 )

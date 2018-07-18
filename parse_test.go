@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gradienthealth/go-dicom"
-	"github.com/gradienthealth/go-dicom/dicomtag"
-	"github.com/gradienthealth/go-dicom/dicomuid"
+	"github.com/gradienthealth/dicom"
+	"github.com/gradienthealth/dicom/dicomtag"
+	"github.com/gradienthealth/dicom/dicomuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -10,13 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gradienthealth/go-dicom/dicomio"
-	"github.com/gradienthealth/go-dicom/dicomlog"
-	"github.com/gradienthealth/go-dicom/dicomtag"
+	"github.com/gradienthealth/dicom/dicomio"
+	"github.com/gradienthealth/dicom/dicomlog"
+	"github.com/gradienthealth/dicom/dicomtag"
 )
 
 // GoDICOMImplementationClassUIDPrefix defines the UID prefix for
-// go-dicom. Provided by https://www.medicalconnections.co.uk/Free_UID
+// dicom. Provided by https://www.medicalconnections.co.uk/Free_UID
 const GoDICOMImplementationClassUIDPrefix = "1.2.826.0.1.3680043.9.7133"
 
 var GoDICOMImplementationClassUID = GoDICOMImplementationClassUIDPrefix + ".1.1"

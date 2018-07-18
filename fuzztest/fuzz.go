@@ -1,7 +1,7 @@
 package fuzz
 
 import (
-	"github.com/gradienthealth/go-dicom"
+	"github.com/gradienthealth/dicom"
 )
 
 func Fuzz(data []byte) int {

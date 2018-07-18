@@ -3,7 +3,7 @@ package dicomuid_test
 import (
 	"testing"
 
-	"github.com/gradienthealth/go-dicom/dicomuid"
+	"github.com/gradienthealth/dicom/dicomuid"
 	"github.com/stretchr/testify/assert"
 )
 

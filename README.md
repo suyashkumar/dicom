@@ -5,8 +5,6 @@
 This is a (hard-ish) fork of [go-dicom](https://github.com/gillesdemey/go-dicom)--a golang DICOM image parsing library. A command line tool to parse imagery and data out of DICOM files is also included (`dicomutil`). We have been working on this package with the goal of building a full-featured and high-performance dicom parser with new features and improvements. So far improvements include: 
 * parsing and extracting multi-frame DICOM imagery (both encapsulated and native pixel data)
 * exposing a `Parser` golang interface to make mock-based testing easier for clients
-
-Upcoming features:
 * Channel-based streaming of frames to a client _as they are parsed_ out of the dicom
 
 We're open to suggestions and comments -- open an issue if you have any. 
@@ -21,7 +19,7 @@ element := p.ParseNext(opts) // parse and return the next dicom element
 // or
 dataset, err := p.Parse(opts) // parse whole dicom
 ```
-More details about the package can be found in the [godoc](https://godoc.org/github.com/gradienthealth/go-dicom)
+More details about the package can be found in the [godoc](https://godoc.org/github.com/gradienthealth/dicom)
 
 ## CLI Tool
 A CLI tool that uses this package to parse imagery and metadata out of DICOMs is provided in the `dicomutil` package. 

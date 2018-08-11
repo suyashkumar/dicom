@@ -10,7 +10,7 @@ This is a (hard-ish) fork of [go-dicom](https://github.com/gillesdemey/go-dicom)
 We're open to suggestions and comments -- open an issue if you have any. 
 
 ## Usage
-To use this in your golang project, simply import our pacakge `github.com/gradienthealth/go-dicom` and then you can use our `Parser` for your parsing needs:
+To use this in your golang project, simply import our pacakge `github.com/gradienthealth/dicom` and then you can use our `Parser` for your parsing needs:
 ```go 
 p, err := dicom.NewParserFromFile("myfile.dcm", nil)
 opts := dicom.ParseOptions{DropPixelData: true}
@@ -32,7 +32,7 @@ Note: for some dicoms (with native pixel data) no automatic intensity scaling is
 To build the tool for all platforms (Mac, Windows, Linux) from source using docker, execute the following in the cloned repo:
 ```bash
 docker build . -t godicom
-docker run -it -v $PWD/build:/go/src/github.com/gradienthealth/go-dicom/build godicom make release
+docker run -it -v $PWD/build:/go/src/github.com/gradienthealth/dicom/build godicom make release
 ```
 You can then use the binaries that will show up in the `build` folder in your current working directory
 ### Build manually

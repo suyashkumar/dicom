@@ -223,7 +223,7 @@ func (p *parser) ParseNext(options ParseOptions) *Element {
 					},
 				}
 
-				image.Frames = append(image.Frames, f)
+				image.Frames = append(image.Frames, &f)
 				if p.frameChannel != nil {
 					p.frameChannel <- &f // write frame to channel
 				}
@@ -567,8 +567,9 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet, frameChan chan *F
 	dicomlog.Vprintf(1, "Number of frames %decoder", nFrames)
 
 	// Parse the pixels:
-	image.Frames = make([]Frame, nFrames)
+	image.Frames = make([]*Frame, nFrames)
 	for frame := 0; frame < nFrames; frame++ {
+		data := make([]*[]int, int(pixelsPerFrame))
 		// Init current frame
 		currentFrame := Frame{
 			IsEncapsulated: false,
@@ -576,7 +577,7 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet, frameChan chan *F
 				BitsPerSample: bitsAllocated,
 				Rows:          int(rows.MustGetUInt16()),
 				Cols:          int(cols.MustGetUInt16()),
-				Data:          make([][]int, int(pixelsPerFrame)),
+				Data:          &data,
 			},
 		}
 		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
@@ -588,9 +589,9 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet, frameChan chan *F
 					currentPixel[value] = int(d.ReadUInt16())
 				}
 			}
-			currentFrame.NativeData.Data[pixel] = currentPixel
+			data[pixel] = &currentPixel
 		}
-		image.Frames[frame] = currentFrame
+		image.Frames[frame] = &currentFrame
 		if frameChan != nil {
 			frameChan <- &currentFrame // write the current frame to the frameChan
 		}

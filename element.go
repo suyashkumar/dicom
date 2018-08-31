@@ -345,7 +345,7 @@ func readRawItem(d *dicomio.Decoder) ([]byte, bool) {
 // NativeFrame represents a native image frame
 type NativeFrame struct {
 	// Data is a slice of pixels, where each pixel can have multiple values
-	Data          [][]int
+	Data          *[]*[]int
 	Rows          int
 	Cols          int
 	BitsPerSample int
@@ -368,7 +368,7 @@ type Frame struct {
 type PixelDataInfo struct {
 	Offsets        []uint32 // BasicOffsetTable
 	IsEncapsulated bool     // is the data encapsulated/jpeg encoded?
-	Frames         []Frame  // Frames
+	Frames         []*Frame  // Frames
 }
 
 func (data PixelDataInfo) String() string {
@@ -381,7 +381,7 @@ func (data PixelDataInfo) String() string {
 				base64.URLEncoding.EncodeToString(csum[:]))
 		} else {
 			s += fmt.Sprintf("%decoder:{size:%decoder, encapsulated: false}, ",
-				i, len(data.Frames[i].NativeData.Data))
+				i, len(*data.Frames[i].NativeData.Data))
 		}
 	}
 

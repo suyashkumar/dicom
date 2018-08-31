@@ -87,7 +87,7 @@ func main() {
 					var wg sync.WaitGroup
 					for frameIndex, frame := range data.Frames {
 						wg.Add(1)
-						go generateImage(&frame, frameIndex, &wg)
+						go generateImage(frame, frameIndex, &wg)
 					}
 					wg.Wait()
 
@@ -137,8 +137,8 @@ func generateEncapsulatedImage(frame dicom.EncapsulatedFrame, frameIndex int, wg
 func generateNativeImage(frame dicom.NativeFrame, frameIndex int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	i := image.NewGray16(image.Rect(0, 0, frame.Cols, frame.Rows))
-	for j := 0; j < len(frame.Data); j++ {
-		i.SetGray16(j%frame.Cols, j/frame.Rows, color.Gray16{Y: uint16(frame.Data[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
+	for j := 0; j < len(*frame.Data); j++ {
+		i.SetGray16(j%frame.Cols, j/frame.Rows, color.Gray16{Y: uint16((*(*frame.Data)[j])[0])}) // for now, assume we're not overflowing uint16, assume gray image
 	}
 	name := fmt.Sprintf("image_%d.jpg", frameIndex)
 	f, err := os.Create(name)

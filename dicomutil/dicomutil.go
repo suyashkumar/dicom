@@ -16,7 +16,8 @@ import (
 	"github.com/gradienthealth/dicom"
 	"github.com/gradienthealth/dicom/dicomlog"
 	"github.com/gradienthealth/dicom/dicomtag"
-)
+
+	)
 
 var (
 	printMetadata       = flag.Bool("print-metadata", true, "Print image metadata")

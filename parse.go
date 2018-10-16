@@ -13,6 +13,7 @@ import (
 	"github.com/gradienthealth/dicom/dicomio"
 	"github.com/gradienthealth/dicom/dicomlog"
 	"github.com/gradienthealth/dicom/dicomtag"
+	"bufio"
 )
 
 // GoDICOMImplementationClassUIDPrefix defines the UID prefix for
@@ -46,7 +47,7 @@ type parser struct {
 
 // NewParser initializes and returns a new Parser
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *Frame) (Parser, error) {
-	buffer := dicomio.NewDecoder(in, bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
+	buffer := dicomio.NewDecoder(bufio.NewReader(in), bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
 	p := parser{
 		decoder:      buffer,
 		frameChannel: frameChannel,

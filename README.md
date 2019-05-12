@@ -1,6 +1,10 @@
-# DICOM parser in Go
-[![Build Status](https://travis-ci.org/suyashkumar/dicom.svg?branch=master)](https://travis-ci.org/suyashkumar/dicom)
-[![GoDoc Reference](https://godoc.org/github.com/suyashkumar/dicom?status.svg)](https://godoc.org/github.com/suyashkumar/dicom)
+<p align="center">
+  <img src="https://suyashkumar.com/assets/img/magnetic-resonance.png" width="125px"/>
+  <h3 align="center">dicom</h3>
+  <p align="center">High Performance Golang DICOM Medical Image Parser<p>
+  <p align="center"> <a href="https://travis-ci.org/suyashkumar/dicom"><img src="https://travis-ci.org/suyashkumar/dicom.svg?branch=master" /></a> <a href="https://godoc.org/github.com/suyashkumar/dicom"><img src="https://godoc.org/github.com/suyashkumar/dicom?status.svg" alt=""></a> 
+  </p>
+</p>
 
 This is a (hard-ish) fork of work I did at [gradienthealth](https://github.com/gradienthealth/dicom) which built on top of [go-dicom](https://github.com/gillesdemey/go-dicom)--a golang DICOM image parsing library and command line tool. We have been working on this package with the goal of building a full-featured and high-performance dicom parser in Golang with new features and improvements. I will continue to add some (potentially API breaking) improvements on my repository fork here.
 
@@ -50,3 +54,4 @@ make
 * GradientHealth for supporting work I did on this while there [gradienthealth/dicom](https://github.com/gradienthealth/dicom)
 * Innolitics [DICOM browser](https://dicom.innolitics.com/ciods)
 * [DICOM Specification](http://dicom.nema.org/medical/dicom/current/output/pdf/part05.pdf)
+* <div>Icons made by <a href="https://www.freepik.com/?__hstc=57440181.48e262e7f01bcb2b41259e2e5a8103b3.1557697512782.1557697512782.1557697512782.1&__hssc=57440181.4.1557697512783&__hsfp=2768524783" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gradienthealth/dicom"
+	"github.com/suyashkumar/dicom"
 )
 
 func TestParseDICOMDIR(t *testing.T) {

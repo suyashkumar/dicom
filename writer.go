@@ -8,9 +8,9 @@ import (
 
 	"bytes"
 
-	"github.com/gradienthealth/dicom/dicomio"
-	"github.com/gradienthealth/dicom/dicomlog"
-	"github.com/gradienthealth/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/dicomio"
+	"github.com/suyashkumar/dicom/dicomlog"
+	"github.com/suyashkumar/dicom/dicomtag"
 )
 
 // WriteFileHeader produces a DICOM file header. metaElems[] is be a list of

@@ -1,16 +1,18 @@
 # DICOM parser in Go
-[![Build Status](https://travis-ci.org/gradienthealth/dicom.svg?branch=master)](https://travis-ci.org/gradienthealth/dicom)
-[![GoDoc Reference](https://godoc.org/github.com/gradienthealth/dicom?status.svg)](https://godoc.org/github.com/gradienthealth/dicom)
+[![Build Status](https://travis-ci.org/suyashkumar/dicom.svg?branch=master)](https://travis-ci.org/suyashkumar/dicom)
+[![GoDoc Reference](https://godoc.org/github.com/suyashkumar/dicom?status.svg)](https://godoc.org/github.com/suyashkumar/dicom)
 
-This is a (hard-ish) fork of [go-dicom](https://github.com/gillesdemey/go-dicom)--a golang DICOM image parsing library. A command line tool to parse imagery and data out of DICOM files is also included (`dicomutil`). We have been working on this package with the goal of building a full-featured and high-performance dicom parser with new features and improvements. So far improvements include: 
-* parsing and extracting multi-frame DICOM imagery (both encapsulated and native pixel data)
-* exposing a `Parser` golang interface to make mock-based testing easier for clients
-* Channel-based streaming of frames to a client _as they are parsed_ out of the dicom
+This is a (hard-ish) fork of work I did at [gradienthealth](https://github.com/gradienthealth/dicom) which built on top of [go-dicom](https://github.com/gillesdemey/go-dicom)--a golang DICOM image parsing library and command line tool. We have been working on this package with the goal of building a full-featured and high-performance dicom parser in Golang with new features and improvements. I will continue to add some (potentially API breaking) improvements on my repository fork here.
 
-We're open to suggestions and comments -- open an issue if you have any. 
+So far, improvements that have made on top of [go-dicom](https://github.com/gillesdemey/go-dicom) include: 
+- [x] parsing and extracting multi-frame DICOM imagery (both encapsulated and native pixel data)
+- [x] exposing a `Parser` golang interface to make mock-based testing easier for clients
+- [x] Channel-based streaming of `Frame`s to a client _as they are parsed_ out of the dicom
+- [x] Parsing performance improvements 
+- [x] General refactors to the [go-dicom](https://github.com/gillesdemey/go-dicom) code (though there's more work to be done here) for maintainability an readability. 
 
 ## Usage
-To use this in your golang project, simply import our pacakge `github.com/gradienthealth/dicom` and then you can use our `Parser` for your parsing needs:
+To use this in your golang project, simply import our pacakge `github.com/suyashkumar/dicom` and then you can use our `Parser` for your parsing needs:
 ```go 
 p, err := dicom.NewParserFromFile("myfile.dcm", nil)
 opts := dicom.ParseOptions{DropPixelData: true}
@@ -19,7 +21,7 @@ element := p.ParseNext(opts) // parse and return the next dicom element
 // or
 dataset, err := p.Parse(opts) // parse whole dicom
 ```
-More details about the package can be found in the [godoc](https://godoc.org/github.com/gradienthealth/dicom)
+More details about the package can be found in the [godoc](https://godoc.org/github.com/suyashkumar/dicom)
 
 ## CLI Tool
 A CLI tool that uses this package to parse imagery and metadata out of DICOMs is provided in the `dicomutil` package. 
@@ -32,7 +34,7 @@ Note: for some dicoms (with native pixel data) no automatic intensity scaling is
 To build the tool for all platforms (Mac, Windows, Linux) from source using docker, execute the following in the cloned repo:
 ```bash
 docker build . -t godicom
-docker run -it -v $PWD/build:/go/src/github.com/gradienthealth/dicom/build godicom make release
+docker run -it -v $PWD/build:/go/src/github.com/suyashkumar/dicom/build godicom make release
 ```
 You can then use the binaries that will show up in the `build` folder in your current working directory
 ### Build manually
@@ -45,5 +47,6 @@ make
 
 * Original [go-dicom](https://github.com/gillesdemey/go-dicom)
 * Grailbio [go-dicom](https://github.com/grailbio/go-dicom) -- commits from their fork were applied to ours
+* GradientHealth for supporting work I did on this while there [gradienthealth/dicom](https://github.com/gradienthealth/dicom)
 * Innolitics [DICOM browser](https://dicom.innolitics.com/ciods)
 * [DICOM Specification](http://dicom.nema.org/medical/dicom/current/output/pdf/part05.pdf)

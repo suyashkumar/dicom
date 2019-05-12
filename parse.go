@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gradienthealth/dicom/dicomio"
-	"github.com/gradienthealth/dicom/dicomlog"
-	"github.com/gradienthealth/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/dicomio"
+	"github.com/suyashkumar/dicom/dicomlog"
+	"github.com/suyashkumar/dicom/dicomtag"
 	"bufio"
 )
 

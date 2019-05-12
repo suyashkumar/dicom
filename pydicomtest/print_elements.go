@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gradienthealth/dicom"
-	"github.com/gradienthealth/dicom/dicomtag"
-	"github.com/gradienthealth/dicom/dicomuid"
+	"github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/dicomuid"
 )
 
 var (

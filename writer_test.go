@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gradienthealth/dicom/dicomio"
-	"github.com/gradienthealth/dicom/dicomtag"
-	"github.com/gradienthealth/dicom/dicomuid"
+	"github.com/suyashkumar/dicom/dicomio"
+	"github.com/suyashkumar/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/dicomuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

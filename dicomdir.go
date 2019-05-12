@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/gradienthealth/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/dicomtag"
 )
 
 // DirectoryRecord contains info about one DICOM file mentioned in DICOMDIR.

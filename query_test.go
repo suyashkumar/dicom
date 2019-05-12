@@ -3,8 +3,8 @@ package dicom_test
 import (
 	"testing"
 
-	"github.com/gradienthealth/dicom"
-	"github.com/gradienthealth/dicom/dicomtag"
+	"github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/gradienthealth/dicom/dicomio"
+	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/stretchr/testify/require"
 )
 

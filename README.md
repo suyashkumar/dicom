@@ -16,7 +16,7 @@ So far, improvements that have made on top of [go-dicom](https://github.com/gill
 - [x] General refactors to the [go-dicom](https://github.com/gillesdemey/go-dicom) code (though there's more work to be done here) for maintainability an readability. 
 
 ## Usage
-To use this in your golang project, simply import our pacakge `github.com/suyashkumar/dicom` and then you can use our `Parser` for your parsing needs:
+To use this in your golang project, simply import our package `github.com/suyashkumar/dicom` and then you can use our `Parser` for your parsing needs:
 ```go 
 p, err := dicom.NewParserFromFile("myfile.dcm", nil)
 opts := dicom.ParseOptions{DropPixelData: true}

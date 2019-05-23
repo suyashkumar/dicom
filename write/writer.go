@@ -15,7 +15,7 @@ import (
 	"github.com/suyashkumar/dicom/element"
 )
 
-// WriteFileHeader produces a DICOM file header. metaElems[] is be a list of
+// FileHeader produces a DICOM file header. metaElems[] is be a list of
 // elements to be embedded in the header part.  Every element in metaElems[]
 // must have Tag.Group==2. It must contain at least the following three
 // elements: TagTransferSyntaxUID, TagMediaStorageSOPClassUID,
@@ -27,7 +27,7 @@ import (
 // Consult the following page for the DICOM file header format.
 //
 // http://dicom.nema.org/dicom/2013/output/chtml/part10/chapter_7.html
-func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
+func FileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	e.PushTransferSyntax(binary.LittleEndian, dicomio.ExplicitVR)
 	defer e.PopTransferSyntax()
 
@@ -36,7 +36,7 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	tagsUsed[dicomtag.FileMetaInformationGroupLength] = true
 	writeRequiredMetaElem := func(tag dicomtag.Tag) {
 		if elem, err := element.FindByTag(metaElems, tag); err == nil {
-			WriteElement(subEncoder, elem)
+			Element(subEncoder, elem)
 		} else {
 			subEncoder.SetErrorf("%v not found in metaelems: %v", dicomtag.DebugString(tag), err)
 		}
@@ -44,9 +44,9 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	}
 	writeOptionalMetaElem := func(tag dicomtag.Tag, defaultValue interface{}) {
 		if elem, err := element.FindByTag(metaElems, tag); err == nil {
-			WriteElement(subEncoder, elem)
+			Element(subEncoder, elem)
 		} else {
-			WriteElement(subEncoder, element.MustNewElement(tag, defaultValue))
+			Element(subEncoder, element.MustNewElement(tag, defaultValue))
 		}
 		tagsUsed[tag] = true
 	}
@@ -59,7 +59,7 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	for _, elem := range metaElems {
 		if elem.Tag.Group == dicomtag.MetadataGroup {
 			if _, ok := tagsUsed[elem.Tag]; !ok {
-				WriteElement(subEncoder, elem)
+				Element(subEncoder, elem)
 			}
 		}
 	}
@@ -70,7 +70,7 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	metaBytes := subEncoder.Bytes()
 	e.WriteZeros(128)
 	e.WriteString("DICM")
-	WriteElement(e, element.MustNewElement(dicomtag.FileMetaInformationGroupLength, uint32(len(metaBytes))))
+	Element(e, element.MustNewElement(dicomtag.FileMetaInformationGroupLength, uint32(len(metaBytes))))
 	e.WriteBytes(metaBytes)
 }
 
@@ -113,12 +113,12 @@ func writeBasicOffsetTable(e *dicomio.Encoder, offsets []uint32) {
 	writeRawItem(e, subEncoder.Bytes())
 }
 
-// WriteElement encodes one data element.  Errors are reported through e.Error()
+// Element encodes one data element.  Errors are reported through e.Error()
 // and/or E.Finish().
 //
 // REQUIRES: Each value in values[] must match the VR of the tag. E.g., if tag
 // is for UL, then each value must be uint32.
-func WriteElement(e *dicomio.Encoder, elem *element.Element) {
+func Element(e *dicomio.Encoder, elem *element.Element) {
 	vr := elem.VR
 	entry, err := dicomtag.Find(elem.Tag)
 	if vr == "" {
@@ -131,11 +131,11 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 		if err == nil && entry.VR != vr {
 			if dicomtag.GetVRKind(elem.Tag, entry.VR) != dicomtag.GetVRKind(elem.Tag, vr) {
 				// The golang repl. is different. We can't continue.
-				e.SetErrorf("dicom.WriteElement: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v",
+				e.SetErrorf("dicom.Element: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v",
 					dicomtag.DebugString(elem.Tag), vr, entry.VR)
 				return
 			}
-			dicomlog.Vprintf(1, "dicom.WriteElement: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
+			dicomlog.Vprintf(1, "dicom.Element: VR value mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v (continuing)",
 				dicomtag.DebugString(elem.Tag), vr, entry.VR)
 		}
 	}
@@ -193,7 +193,7 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 					e.SetError(fmt.Errorf("SQ element must be an Item, but found %v", value))
 					return
 				}
-				WriteElement(e, subelem)
+				Element(e, subelem)
 			}
 			encodeElementHeader(e, dicomtag.SequenceDelimitationItem, "" /*not used*/, 0)
 		} else {
@@ -204,7 +204,7 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 					e.SetErrorf("SQ element must be an Item, but found %v", value)
 					return
 				}
-				WriteElement(sube, subelem)
+				Element(sube, subelem)
 			}
 			if sube.Error() != nil {
 				e.SetError(sube.Error())
@@ -223,7 +223,7 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 					e.SetErrorf("Item values must be an element.Element, but found %v", value)
 					return
 				}
-				WriteElement(e, subelem)
+				Element(e, subelem)
 			}
 			encodeElementHeader(e, dicomtag.ItemDelimitationItem, "" /*not used*/, 0)
 		} else {
@@ -234,7 +234,7 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 					e.SetErrorf("Item values must be an element.Element, but found %v", value)
 					return
 				}
-				WriteElement(sube, subelem)
+				Element(sube, subelem)
 			}
 			if sube.Error() != nil {
 				e.SetError(sube.Error())
@@ -372,7 +372,7 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 	}
 }
 
-// WriteDataSet writes the dataset into the stream in DICOM file format,
+// DataSet writes the dataset into the stream in DICOM file format,
 // complete with the magic header and metadata elements.
 //
 // The transfer syntax (byte order, etc) of the file is determined by the
@@ -382,7 +382,7 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 //  ds := ... read or create dicom.Dataset ...
 //  out, err := os.Create("test.dcm")
 //  err := dicom.Write(out, ds)
-func WriteDataSet(out io.Writer, ds *element.DataSet) error {
+func DataSet(out io.Writer, ds *element.DataSet) error {
 	e := dicomio.NewEncoder(out, nil, dicomio.UnknownVR)
 	var metaElems []*element.Element
 	for _, elem := range ds.Elements {
@@ -390,7 +390,7 @@ func WriteDataSet(out io.Writer, ds *element.DataSet) error {
 			metaElems = append(metaElems, elem)
 		}
 	}
-	WriteFileHeader(e, metaElems)
+	FileHeader(e, metaElems)
 	if e.Error() != nil {
 		return e.Error()
 	}
@@ -401,21 +401,21 @@ func WriteDataSet(out io.Writer, ds *element.DataSet) error {
 	e.PushTransferSyntax(endian, implicit)
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group != dicomtag.MetadataGroup {
-			WriteElement(e, elem)
+			Element(e, elem)
 		}
 	}
 	e.PopTransferSyntax()
 	return e.Error()
 }
 
-// WriteDataSetToFile writes "ds" to the given file. If the file already exists,
+// DataSetToFile writes "ds" to the given file. If the file already exists,
 // existing contents are clobbered. Else, the file is newly created.
-func WriteDataSetToFile(path string, ds *element.DataSet) error {
+func DataSetToFile(path string, ds *element.DataSet) error {
 	out, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	if err := WriteDataSet(out, ds); err != nil {
+	if err := DataSet(out, ds); err != nil {
 		out.Close()
 		return err
 	}

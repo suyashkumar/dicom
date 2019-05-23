@@ -20,13 +20,13 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	e := dicomio.NewBytesEncoder(bo, implicit)
 	var values []interface{}
 	values = append(values, string("FooHah"))
-	write.WriteElement(e, &element.Element{
+	write.Element(e, &element.Element{
 		Tag:   dicomtag.Tag{0x0018, 0x9755},
 		Value: values})
 	values = nil
 	values = append(values, uint32(1234))
 	values = append(values, uint32(2345))
-	write.WriteElement(e, &element.Element{
+	write.Element(e, &element.Element{
 		Tag:   dicomtag.Tag{0x0020, 0x9057},
 		Value: values})
 	data := e.Bytes()
@@ -65,7 +65,7 @@ func TestWriteDataElementBigEndianExplicit(t *testing.T) {
 
 func TestReadWriteFileHeader(t *testing.T) {
 	e := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ImplicitVR)
-	write.WriteFileHeader(
+	write.FileHeader(
 		e,
 		[]*element.Element{
 			element.MustNewElement(dicomtag.TransferSyntaxUID, dicomuid.ImplicitVRLittleEndian),

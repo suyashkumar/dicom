@@ -47,7 +47,7 @@ func main() {
 	}
 	path := flag.Arg(0)
 
-	var parsedData *dicom.DataSet
+	var parsedData *element.DataSet
 
 	if *extractImagesStream {
 		// Stream process frames as they become available:

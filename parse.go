@@ -19,18 +19,10 @@ import (
 	"github.com/suyashkumar/dicom/frame"
 )
 
-// GoDICOMImplementationClassUIDPrefix defines the UID prefix for
-// dicom. Provided by https://www.medicalconnections.co.uk/Free_UID
-const GoDICOMImplementationClassUIDPrefix = "1.2.826.0.1.3680043.9.7133"
-
-var GoDICOMImplementationClassUID = GoDICOMImplementationClassUIDPrefix + ".1.1"
-
-const GoDICOMImplementationVersionName = "GODICOM_1_1"
-
 // Parser represents an entity that can read and parse DICOMs
 type Parser interface {
 	// Parse DICOM data
-	Parse(options ParseOptions) (*DataSet, error)
+	Parse(options ParseOptions) (*element.DataSet, error)
 	// ParseNext reads and parses the next element
 	ParseNext(options ParseOptions) *element.Element
 	// DecoderError fetches an error (if exists) from the dicomio.Decoder
@@ -42,7 +34,7 @@ type Parser interface {
 // parser implements Parser
 type parser struct {
 	decoder        *dicomio.Decoder
-	parsedElements *DataSet
+	parsedElements *element.DataSet
 	op             ParseOptions
 	frameChannel   chan *frame.Frame
 	file           *os.File // may be populated if coming from file
@@ -57,11 +49,10 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 	}
 
 	metaElems := p.parseFileHeader()
-	if buffer.Error() != nil {
-		return nil, buffer.Error()
+	if p.decoder.Error() != nil {
+		return nil, p.decoder.Error()
 	}
-	parsedElements := &DataSet{Elements: metaElems}
-	p.parsedElements = parsedElements
+	p.parsedElements = &element.DataSet{Elements: metaElems}
 	return &p, nil
 }
 
@@ -85,9 +76,36 @@ func NewParserFromFile(path string, frameChannel chan *frame.Frame) (Parser, err
 	return p, err
 }
 
-func (p *parser) Parse(options ParseOptions) (*DataSet, error) {
+// NewParserFromDecoder returns parser from a decoder
+// TODO: remove or cleanup, currently needed for testing
+func NewParserFromDecoder(decoder *dicomio.Decoder, frameChannel chan *frame.Frame) (Parser, error) {
+	p := parser{
+		decoder:      decoder,
+		frameChannel: frameChannel,
+	}
+
+	metaElems := p.parseFileHeader()
+	if p.decoder.Error() != nil {
+		return nil, p.decoder.Error()
+	}
+
+	p.parsedElements = &element.DataSet{Elements: metaElems}
+	return &p, nil
+}
+
+// NewUninitializedParserFromDecoder returns parser from a decoder
+// TODO: remove or cleanup, currently needed for testing
+func NewUninitializedParserFromDecoder(decoder *dicomio.Decoder, frameChannel chan *frame.Frame) Parser {
+	p := parser{
+		decoder:      decoder,
+		frameChannel: frameChannel,
+	}
+	return &p
+}
+
+func (p *parser) Parse(options ParseOptions) (*element.DataSet, error) {
 	// Change the transfer syntax for the rest of the file.
-	endian, implicit, err := getTransferSyntax(p.parsedElements)
+	endian, implicit, err := p.parsedElements.TransferSyntax()
 	if err != nil {
 		return nil, err
 	}
@@ -462,27 +480,6 @@ func (p *parser) parseFileHeader() []*element.Element {
 	return metaElems
 }
 
-// DataSet represents contents of one DICOM file.
-type DataSet struct {
-	// Elements in the file, in order of appearance.
-	//
-	// Note: unlike pydicom, Elements also contains meta elements (those
-	// with Tag.Group==2).
-	Elements []*element.Element
-}
-
-// FindElementByName finds an element from the dataset given the element name,
-// such as "PatientName".
-func (f *DataSet) FindElementByName(name string) (*element.Element, error) {
-	return element.FindElementByName(f.Elements, name)
-}
-
-// FindElementByTag finds an element from the dataset given its tag, such as
-// Tag{0x0010, 0x0010}.
-func (f *DataSet) FindElementByTag(tag dicomtag.Tag) (*element.Element, error) {
-	return element.FindElementByTag(f.Elements, tag)
-}
-
 func doassert(cond bool, values ...interface{}) {
 	if !cond {
 		var s string
@@ -507,21 +504,9 @@ type ParseOptions struct {
 	StopAtTag *dicomtag.Tag
 }
 
-func getTransferSyntax(ds *DataSet) (bo binary.ByteOrder, implicit dicomio.IsImplicitVR, err error) {
-	elem, err := ds.FindElementByTag(dicomtag.TransferSyntaxUID)
-	if err != nil {
-		return nil, dicomio.UnknownVR, err
-	}
-	transferSyntaxUID, err := elem.GetString()
-	if err != nil {
-		return nil, dicomio.UnknownVR, err
-	}
-	return dicomio.ParseTransferSyntaxUID(transferSyntaxUID)
-}
-
 // readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
-func readNativeFrames(d *dicomio.Decoder, parsedData *DataSet, frameChan chan *frame.Frame) (pixelData *element.PixelDataInfo, bytesRead int, err error) {
+func readNativeFrames(d *dicomio.Decoder, parsedData *element.DataSet, frameChan chan *frame.Frame) (pixelData *element.PixelDataInfo, bytesRead int, err error) {
 	image := element.PixelDataInfo{
 		IsEncapsulated: false,
 	}

@@ -11,9 +11,10 @@ import (
 	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/dicomuid"
 	"github.com/suyashkumar/dicom/element"
+	"github.com/suyashkumar/dicom/write"
 )
 
-func mustReadFile(path string, options dicom.ParseOptions) *dicom.DataSet {
+func mustReadFile(path string, options dicom.ParseOptions) *element.DataSet {
 	p, err := dicom.NewParserFromFile(path, nil)
 	if err != nil {
 		log.Panic(err)
@@ -50,7 +51,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 			data.Elements[i] = newElem
 		}
 	}
-	err = dicom.WriteDataSet(out, data)
+	err = write.WriteDataSet(out, data)
 	require.NoError(t, err)
 	data2 := mustReadFile(dstPath, dicom.ParseOptions{})
 

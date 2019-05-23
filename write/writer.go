@@ -1,4 +1,4 @@
-package dicom
+package write
 
 import (
 	"encoding/binary"
@@ -8,6 +8,7 @@ import (
 
 	"bytes"
 
+	"github.com/suyashkumar/dicom/constants"
 	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/suyashkumar/dicom/dicomlog"
 	"github.com/suyashkumar/dicom/dicomtag"
@@ -34,7 +35,7 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	tagsUsed := make(map[dicomtag.Tag]bool)
 	tagsUsed[dicomtag.FileMetaInformationGroupLength] = true
 	writeRequiredMetaElem := func(tag dicomtag.Tag) {
-		if elem, err := element.FindElementByTag(metaElems, tag); err == nil {
+		if elem, err := element.FindByTag(metaElems, tag); err == nil {
 			WriteElement(subEncoder, elem)
 		} else {
 			subEncoder.SetErrorf("%v not found in metaelems: %v", dicomtag.DebugString(tag), err)
@@ -42,7 +43,7 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 		tagsUsed[tag] = true
 	}
 	writeOptionalMetaElem := func(tag dicomtag.Tag, defaultValue interface{}) {
-		if elem, err := element.FindElementByTag(metaElems, tag); err == nil {
+		if elem, err := element.FindByTag(metaElems, tag); err == nil {
 			WriteElement(subEncoder, elem)
 		} else {
 			WriteElement(subEncoder, element.MustNewElement(tag, defaultValue))
@@ -53,8 +54,8 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	writeRequiredMetaElem(dicomtag.MediaStorageSOPClassUID)
 	writeRequiredMetaElem(dicomtag.MediaStorageSOPInstanceUID)
 	writeRequiredMetaElem(dicomtag.TransferSyntaxUID)
-	writeOptionalMetaElem(dicomtag.ImplementationClassUID, GoDICOMImplementationClassUID)
-	writeOptionalMetaElem(dicomtag.ImplementationVersionName, GoDICOMImplementationVersionName)
+	writeOptionalMetaElem(dicomtag.ImplementationClassUID, constants.GoDICOMImplementationClassUID)
+	writeOptionalMetaElem(dicomtag.ImplementationVersionName, constants.GoDICOMImplementationVersionName)
 	for _, elem := range metaElems {
 		if elem.Tag.Group == dicomtag.MetadataGroup {
 			if _, ok := tagsUsed[elem.Tag]; !ok {
@@ -381,7 +382,7 @@ func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 //  ds := ... read or create dicom.Dataset ...
 //  out, err := os.Create("test.dcm")
 //  err := dicom.Write(out, ds)
-func WriteDataSet(out io.Writer, ds *DataSet) error {
+func WriteDataSet(out io.Writer, ds *element.DataSet) error {
 	e := dicomio.NewEncoder(out, nil, dicomio.UnknownVR)
 	var metaElems []*element.Element
 	for _, elem := range ds.Elements {
@@ -393,7 +394,7 @@ func WriteDataSet(out io.Writer, ds *DataSet) error {
 	if e.Error() != nil {
 		return e.Error()
 	}
-	endian, implicit, err := getTransferSyntax(ds)
+	endian, implicit, err := ds.TransferSyntax()
 	if err != nil {
 		return err
 	}
@@ -409,7 +410,7 @@ func WriteDataSet(out io.Writer, ds *DataSet) error {
 
 // WriteDataSetToFile writes "ds" to the given file. If the file already exists,
 // existing contents are clobbered. Else, the file is newly created.
-func WriteDataSetToFile(path string, ds *DataSet) error {
+func WriteDataSetToFile(path string, ds *element.DataSet) error {
 	out, err := os.Create(path)
 	if err != nil {
 		return err
@@ -419,4 +420,15 @@ func WriteDataSetToFile(path string, ds *DataSet) error {
 		return err
 	}
 	return out.Close()
+}
+
+// copied here from parse.go, temporary hack. This should be done away with.
+func doassert(cond bool, values ...interface{}) {
+	if !cond {
+		var s string
+		for _, value := range values {
+			s += fmt.Sprintf("%v ", value)
+		}
+		panic(s)
+	}
 }

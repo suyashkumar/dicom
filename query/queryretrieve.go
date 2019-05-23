@@ -1,4 +1,4 @@
-package dicom
+package query
 
 import (
 	"fmt"
@@ -147,7 +147,7 @@ func isEmptyQuery(f *element.Element) bool {
 // query value), and the element for f.Tag doesn't exist, the function returns
 // <true, nil, nil>. If "f" is malformed, the function returns <false, nil,
 // error reason>.
-func Query(ds *DataSet, f *element.Element) (match bool, matchedElem *element.Element, err error) {
+func Query(ds *element.DataSet, f *element.Element) (match bool, matchedElem *element.Element, err error) {
 	if len(f.Value) > 1 {
 		// A filter can't contain multiple values. P3.4, C.2.2.2.1
 		return false, nil, fmt.Errorf("Multiple values found in filter '%v'", f)

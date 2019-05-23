@@ -3,9 +3,11 @@ package element
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"strings"
 
+	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/frame"
 )
@@ -339,9 +341,9 @@ var EndOfData = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff}}
 
 const VLUndefinedLength uint32 = 0xffffffff
 
-// FindElementByName finds an element with the given Element.Name in
+// FindByName finds an element with the given Element.Name in
 // "elems" If not found, returns an error.
-func FindElementByName(elems []*Element, name string) (*Element, error) {
+func FindByName(elems []*Element, name string) (*Element, error) {
 	t, err := dicomtag.FindByName(name)
 	if err != nil {
 		return nil, err
@@ -354,13 +356,48 @@ func FindElementByName(elems []*Element, name string) (*Element, error) {
 	return nil, fmt.Errorf("Could not find element named '%s' in dicom file", name)
 }
 
-// FindElementByTag finds an element with the given Element.Tag in
+// FindByTag finds an element with the given Element.Tag in
 // "elems" If not found, returns an error.
-func FindElementByTag(elems []*Element, tag dicomtag.Tag) (*Element, error) {
+// TODO: consider a map lookup table perhaps in DataSet
+func FindByTag(elems []*Element, tag dicomtag.Tag) (*Element, error) {
 	for _, elem := range elems {
 		if elem.Tag == tag {
 			return elem, nil
 		}
 	}
 	return nil, fmt.Errorf("%s: element not found", dicomtag.DebugString(tag))
+}
+
+// DataSet represents contents of one DICOM file.
+// TODO(suyashkumar): consider putting this in another package
+type DataSet struct {
+	// Elements in the file, in order of appearance.
+	//
+	// Note: unlike pydicom, Elements also contains meta elements (those
+	// with Tag.Group==2).
+	Elements []*Element
+}
+
+// FindByName finds an element from the dataset given the element name,
+// such as "PatientName".
+func (f *DataSet) FindElementByName(name string) (*Element, error) {
+	return FindByName(f.Elements, name)
+}
+
+// FindByTag finds an element from the dataset given its tag, such as
+// Tag{0x0010, 0x0010}.
+func (f *DataSet) FindElementByTag(tag dicomtag.Tag) (*Element, error) {
+	return FindByTag(f.Elements, tag)
+}
+
+func (ds *DataSet) TransferSyntax() (bo binary.ByteOrder, implicit dicomio.IsImplicitVR, err error) {
+	elem, err := ds.FindElementByTag(dicomtag.TransferSyntaxUID)
+	if err != nil {
+		return nil, dicomio.UnknownVR, err
+	}
+	transferSyntaxUID, err := elem.GetString()
+	if err != nil {
+		return nil, dicomio.UnknownVR, err
+	}
+	return dicomio.ParseTransferSyntaxUID(transferSyntaxUID)
 }

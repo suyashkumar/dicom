@@ -1,4 +1,4 @@
-package dicom_test
+package query_test
 
 import (
 	"testing"
@@ -7,10 +7,11 @@ import (
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/element"
+	"github.com/suyashkumar/dicom/query"
 )
 
 func TestParse0(t *testing.T) {
-	p, err := dicom.NewParserFromFile("examples/I_000013.dcm", nil)
+	p, err := dicom.NewParserFromFile("../examples/I_000013.dcm", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +20,7 @@ func TestParse0(t *testing.T) {
 		t.Fatal(err)
 	}
 	studyUID := "1.2.840.113857.1907.192833.1115.220048"
-	match, elem, err := dicom.Query(ds, element.MustNewElement(dicomtag.StudyInstanceUID, studyUID))
+	match, elem, err := query.Query(ds, element.MustNewElement(dicomtag.StudyInstanceUID, studyUID))
 	assert.True(t, match)
 	assert.NoError(t, err)
 	assert.Equal(t, elem.MustGetString(), studyUID)
@@ -36,7 +37,7 @@ func TestParseDate(t *testing.T) {
 		{"20170927-", "2017-09-27", "9999-12-31"},
 	}
 	for _, r := range goodDateRanges {
-		s, e, err := dicom.ParseDate(r.str)
+		s, e, err := query.ParseDate(r.str)
 		assert.NoError(t, err)
 		assert.Equal(t, s.String(), r.startISO8601)
 		assert.Equal(t, e.String(), r.endISO8601)
@@ -49,14 +50,14 @@ func TestParseDate(t *testing.T) {
 		{"2017.02.03", "2017-02-03"},
 	}
 	for _, goodDate := range goodDates {
-		s, e, err := dicom.ParseDate(goodDate.str)
+		s, e, err := query.ParseDate(goodDate.str)
 		assert.NoError(t, err, "Date:", goodDate)
 		assert.Equal(t, s.String(), goodDate.iso8601)
-		assert.Equal(t, e.Year, dicom.InvalidYear)
+		assert.Equal(t, e.Year, query.InvalidYear)
 	}
 	badDates := []string{"2017.0101", "2017.01", "2017X01.02", "201X0405"}
 	for _, badDate := range badDates {
-		_, _, err := dicom.ParseDate(badDate)
+		_, _, err := query.ParseDate(badDate)
 		assert.Error(t, err, "Date:", badDate)
 	}
 }

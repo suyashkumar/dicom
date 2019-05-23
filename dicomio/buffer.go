@@ -192,7 +192,7 @@ type IsImplicitVR int
 
 const (
 	// TODO(saito) Where are implicit/explicit defined? Add a ref!
-
+	// TODO(suyashkumar) should this enum live here or in element?
 	// ImplicitVR encodes a data element without a VR tag. The reader
 	// consults the static tag->VR mapping (see tags.go) defined by DICOM
 	// standard.

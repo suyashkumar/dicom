@@ -11,6 +11,7 @@ import (
 	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/suyashkumar/dicom/dicomlog"
 	"github.com/suyashkumar/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/element"
 )
 
 // WriteFileHeader produces a DICOM file header. metaElems[] is be a list of
@@ -25,7 +26,7 @@ import (
 // Consult the following page for the DICOM file header format.
 //
 // http://dicom.nema.org/dicom/2013/output/chtml/part10/chapter_7.html
-func WriteFileHeader(e *dicomio.Encoder, metaElems []*Element) {
+func WriteFileHeader(e *dicomio.Encoder, metaElems []*element.Element) {
 	e.PushTransferSyntax(binary.LittleEndian, dicomio.ExplicitVR)
 	defer e.PopTransferSyntax()
 
@@ -33,7 +34,7 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*Element) {
 	tagsUsed := make(map[dicomtag.Tag]bool)
 	tagsUsed[dicomtag.FileMetaInformationGroupLength] = true
 	writeRequiredMetaElem := func(tag dicomtag.Tag) {
-		if elem, err := FindElementByTag(metaElems, tag); err == nil {
+		if elem, err := element.FindElementByTag(metaElems, tag); err == nil {
 			WriteElement(subEncoder, elem)
 		} else {
 			subEncoder.SetErrorf("%v not found in metaelems: %v", dicomtag.DebugString(tag), err)
@@ -41,10 +42,10 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*Element) {
 		tagsUsed[tag] = true
 	}
 	writeOptionalMetaElem := func(tag dicomtag.Tag, defaultValue interface{}) {
-		if elem, err := FindElementByTag(metaElems, tag); err == nil {
+		if elem, err := element.FindElementByTag(metaElems, tag); err == nil {
 			WriteElement(subEncoder, elem)
 		} else {
-			WriteElement(subEncoder, MustNewElement(tag, defaultValue))
+			WriteElement(subEncoder, element.MustNewElement(tag, defaultValue))
 		}
 		tagsUsed[tag] = true
 	}
@@ -68,17 +69,17 @@ func WriteFileHeader(e *dicomio.Encoder, metaElems []*Element) {
 	metaBytes := subEncoder.Bytes()
 	e.WriteZeros(128)
 	e.WriteString("DICM")
-	WriteElement(e, MustNewElement(dicomtag.FileMetaInformationGroupLength, uint32(len(metaBytes))))
+	WriteElement(e, element.MustNewElement(dicomtag.FileMetaInformationGroupLength, uint32(len(metaBytes))))
 	e.WriteBytes(metaBytes)
 }
 
 func encodeElementHeader(e *dicomio.Encoder, tag dicomtag.Tag, vr string, vl uint32) {
-	doassert(vl == undefinedLength || vl%2 == 0, vl)
+	doassert(vl == element.VLUndefinedLength || vl%2 == 0, vl)
 	e.WriteUInt16(tag.Group)
 	e.WriteUInt16(tag.Element)
 
 	_, implicit := e.TransferSyntax()
-	if tag.Group == itemSeqGroup {
+	if tag.Group == dicomtag.GROUP_ItemSeq {
 		implicit = dicomio.ImplicitVR
 	}
 	if implicit == dicomio.ExplicitVR {
@@ -116,7 +117,7 @@ func writeBasicOffsetTable(e *dicomio.Encoder, offsets []uint32) {
 //
 // REQUIRES: Each value in values[] must match the VR of the tag. E.g., if tag
 // is for UL, then each value must be uint32.
-func WriteElement(e *dicomio.Encoder, elem *Element) {
+func WriteElement(e *dicomio.Encoder, elem *element.Element) {
 	vr := elem.VR
 	entry, err := dicomtag.Find(elem.Tag)
 	if vr == "" {
@@ -143,12 +144,12 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 			// TODO(saito) Use of PixelDataInfo is a temp hack. Come up with a more proper solution.
 			e.SetError(fmt.Errorf("PixelData element must have one value of type PixelDataInfo"))
 		}
-		image, ok := elem.Value[0].(PixelDataInfo)
+		image, ok := elem.Value[0].(element.PixelDataInfo)
 		if !ok {
 			e.SetError(fmt.Errorf("PixelData element must have one value of type PixelDataInfo"))
 		}
 		if elem.UndefinedLength {
-			encodeElementHeader(e, elem.Tag, vr, undefinedLength)
+			encodeElementHeader(e, elem.Tag, vr, element.VLUndefinedLength)
 			writeBasicOffsetTable(e, image.Offsets)
 			for _, frame := range image.Frames {
 				writeRawItem(e, frame.EncapsulatedData.Data)
@@ -184,9 +185,9 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 	}
 	if vr == "SQ" {
 		if elem.UndefinedLength {
-			encodeElementHeader(e, elem.Tag, vr, undefinedLength)
+			encodeElementHeader(e, elem.Tag, vr, element.VLUndefinedLength)
 			for _, value := range elem.Value {
-				subelem, ok := value.(*Element)
+				subelem, ok := value.(*element.Element)
 				if !ok || subelem.Tag != dicomtag.Item {
 					e.SetError(fmt.Errorf("SQ element must be an Item, but found %v", value))
 					return
@@ -197,7 +198,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		} else {
 			sube := dicomio.NewBytesEncoder(e.TransferSyntax())
 			for _, value := range elem.Value {
-				subelem, ok := value.(*Element)
+				subelem, ok := value.(*element.Element)
 				if !ok || subelem.Tag != dicomtag.Item {
 					e.SetErrorf("SQ element must be an Item, but found %v", value)
 					return
@@ -214,11 +215,11 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		}
 	} else if vr == "NA" { // Item
 		if elem.UndefinedLength {
-			encodeElementHeader(e, elem.Tag, vr, undefinedLength)
+			encodeElementHeader(e, elem.Tag, vr, element.VLUndefinedLength)
 			for _, value := range elem.Value {
-				subelem, ok := value.(*Element)
+				subelem, ok := value.(*element.Element)
 				if !ok {
-					e.SetErrorf("Item values must be a dicom.Element, but found %v", value)
+					e.SetErrorf("Item values must be an element.Element, but found %v", value)
 					return
 				}
 				WriteElement(e, subelem)
@@ -227,9 +228,9 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 		} else {
 			sube := dicomio.NewBytesEncoder(e.TransferSyntax())
 			for _, value := range elem.Value {
-				subelem, ok := value.(*Element)
+				subelem, ok := value.(*element.Element)
 				if !ok {
-					e.SetErrorf("Item values must be a dicom.Element, but found %v", value)
+					e.SetErrorf("Item values must be an element.Element, but found %v", value)
 					return
 				}
 				WriteElement(sube, subelem)
@@ -382,7 +383,7 @@ func WriteElement(e *dicomio.Encoder, elem *Element) {
 //  err := dicom.Write(out, ds)
 func WriteDataSet(out io.Writer, ds *DataSet) error {
 	e := dicomio.NewEncoder(out, nil, dicomio.UnknownVR)
-	var metaElems []*Element
+	var metaElems []*element.Element
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group == dicomtag.MetadataGroup {
 			metaElems = append(metaElems, elem)

@@ -5,11 +5,12 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/dicomuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/suyashkumar/dicom/element"
 )
 
 func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.IsImplicitVR) {
@@ -17,13 +18,13 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	e := dicomio.NewBytesEncoder(bo, implicit)
 	var values []interface{}
 	values = append(values, string("FooHah"))
-	WriteElement(e, &Element{
+	WriteElement(e, &element.Element{
 		Tag:   dicomtag.Tag{0x0018, 0x9755},
 		Value: values})
 	values = nil
 	values = append(values, uint32(1234))
 	values = append(values, uint32(2345))
-	WriteElement(e, &Element{
+	WriteElement(e, &element.Element{
 		Tag:   dicomtag.Tag{0x0020, 0x9057},
 		Value: values})
 	data := e.Bytes()
@@ -65,10 +66,10 @@ func TestReadWriteFileHeader(t *testing.T) {
 	e := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ImplicitVR)
 	WriteFileHeader(
 		e,
-		[]*Element{
-			MustNewElement(dicomtag.TransferSyntaxUID, dicomuid.ImplicitVRLittleEndian),
-			MustNewElement(dicomtag.MediaStorageSOPClassUID, "1.2.840.10008.5.1.4.1.1.1.2"),
-			MustNewElement(dicomtag.MediaStorageSOPInstanceUID, "1.2.3.4.5.6.7"),
+		[]*element.Element{
+			element.MustNewElement(dicomtag.TransferSyntaxUID, dicomuid.ImplicitVRLittleEndian),
+			element.MustNewElement(dicomtag.MediaStorageSOPClassUID, "1.2.840.10008.5.1.4.1.1.1.2"),
+			element.MustNewElement(dicomtag.MediaStorageSOPInstanceUID, "1.2.3.4.5.6.7"),
 		})
 	bytes := e.Bytes()
 	d := dicomio.NewBytesDecoder(bytes, binary.LittleEndian, dicomio.ImplicitVR)
@@ -77,25 +78,25 @@ func TestReadWriteFileHeader(t *testing.T) {
 	}
 	elems := p.parseFileHeader()
 	require.NoError(t, d.Finish())
-	elem, err := FindElementByTag(elems, dicomtag.TransferSyntaxUID)
+	elem, err := element.FindElementByTag(elems, dicomtag.TransferSyntaxUID)
 	require.NoError(t, err)
 	assert.Equalf(t, elem.MustGetString(), dicomuid.ImplicitVRLittleEndian,
 		"Wrong element value %+v", elem)
-	elem, err = FindElementByTag(elems, dicomtag.MediaStorageSOPClassUID)
+	elem, err = element.FindElementByTag(elems, dicomtag.MediaStorageSOPClassUID)
 	require.NoError(t, err)
 	assert.Equal(t, elem.MustGetString(), "1.2.840.10008.5.1.4.1.1.1.2")
-	elem, err = FindElementByTag(elems, dicomtag.MediaStorageSOPInstanceUID)
+	elem, err = element.FindElementByTag(elems, dicomtag.MediaStorageSOPInstanceUID)
 	require.NoError(t, err)
 	assert.Equal(t, elem.MustGetString(), "1.2.3.4.5.6.7")
 }
 
 func TestNewElement(t *testing.T) {
-	elem, err := NewElement(dicomtag.TriggerSamplePosition, uint32(10), uint32(11))
+	elem, err := element.NewElement(dicomtag.TriggerSamplePosition, uint32(10), uint32(11))
 	require.NoError(t, err)
 	require.Equal(t, elem.Tag, dicomtag.TriggerSamplePosition)
 	require.Truef(t, reflect.DeepEqual(elem.MustGetUint32s(), []uint32{10, 11}),
 		"Elem: %+v", elem)
 	// Pass a wrong value type.
-	elem, err = NewElement(dicomtag.TriggerSamplePosition, "foo")
+	elem, err = element.NewElement(dicomtag.TriggerSamplePosition, "foo")
 	require.Error(t, err)
 }

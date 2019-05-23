@@ -3,9 +3,10 @@ package dicom_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/dicomtag"
-	"github.com/stretchr/testify/assert"
+	"github.com/suyashkumar/dicom/element"
 )
 
 func TestParse0(t *testing.T) {
@@ -18,7 +19,7 @@ func TestParse0(t *testing.T) {
 		t.Fatal(err)
 	}
 	studyUID := "1.2.840.113857.1907.192833.1115.220048"
-	match, elem, err := dicom.Query(ds, dicom.MustNewElement(dicomtag.StudyInstanceUID, studyUID))
+	match, elem, err := dicom.Query(ds, element.MustNewElement(dicomtag.StudyInstanceUID, studyUID))
 	assert.True(t, match)
 	assert.NoError(t, err)
 	assert.Equal(t, elem.MustGetString(), studyUID)

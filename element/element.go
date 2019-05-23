@@ -1,21 +1,19 @@
-package dicom
+package element
 
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/suyashkumar/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/frame"
 )
 
 // Constants
 const (
-	itemSeqGroup     = 0xFFFE
-	unknownGroupName = "Unknown Group"
-	privateGroupName = "Private Data"
+	UnknownGroupName = "Unknown Group"
+	PrivateGroupName = "Private Data"
 )
 
 // Element represents a single DICOM element. Use NewElement() to create a
@@ -278,7 +276,7 @@ func (e *Element) MustGetUint16s() []uint16 {
 }
 
 func elementString(e *Element, nestLevel int) string {
-	doassert(nestLevel < 10)
+	// doassert(nestLevel < 10)
 	indent := strings.Repeat(" ", nestLevel)
 	s := indent
 	sVl := ""
@@ -312,63 +310,11 @@ func (e *Element) String() string {
 	return elementString(e, 0)
 }
 
-// Read an Item object as raw bytes, w/o parsing them into DataElement. Used to
-// parse pixel data.
-func readRawItem(d *dicomio.Decoder) ([]byte, bool) {
-	tag := readTag(d)
-	// Item is always encoded implicit. PS3.6 7.5
-	vr, vl := readImplicit(d, tag)
-	if d.Error() != nil {
-		return nil, true
-	}
-	if tag == dicomtag.SequenceDelimitationItem {
-		if vl != 0 {
-			d.SetErrorf("SequenceDelimitationItem's VL != 0: %v", vl)
-		}
-		return nil, true
-	}
-	if tag != dicomtag.Item {
-		d.SetErrorf("Expect Item in pixeldata but found tag %v", dicomtag.DebugString(tag))
-		return nil, false
-	}
-	if vl == undefinedLength {
-		d.SetErrorf("Expect defined-length item in pixeldata")
-		return nil, false
-	}
-	if vr != "NA" {
-		d.SetErrorf("Expect NA item, but found %s", vr)
-		return nil, true
-	}
-	return d.ReadBytes(int(vl)), false
-}
-
-// NativeFrame represents a native image frame
-type NativeFrame struct {
-	// Data is a slice of pixels, where each pixel can have multiple values
-	Data          [][]int
-	Rows          int
-	Cols          int
-	BitsPerSample int
-}
-
-// EncapsulatedFrame represents an encapsulated image frame
-type EncapsulatedFrame struct {
-	// Data is a collection of bytes representing a JPEG encoded image frame
-	Data []byte
-}
-
-// Frame wraps a single encapsulated or native image frame
-type Frame struct {
-	IsEncapsulated   bool
-	EncapsulatedData EncapsulatedFrame
-	NativeData       NativeFrame
-}
-
 // PixelDataInfo is the Element.Value payload for PixelData element.
 type PixelDataInfo struct {
-	Offsets        []uint32 // BasicOffsetTable
-	IsEncapsulated bool     // is the data encapsulated/jpeg encoded?
-	Frames         []Frame  // Frames
+	Offsets        []uint32      // BasicOffsetTable
+	IsEncapsulated bool          // is the data encapsulated/jpeg encoded?
+	Frames         []frame.Frame // Frames
 }
 
 func (data PixelDataInfo) String() string {
@@ -388,95 +334,10 @@ func (data PixelDataInfo) String() string {
 	return s + "]}"
 }
 
-// Read the basic offset table. This is the first Item object embedded inside
-// PixelData element. P3.5 8.2. P3.5, A4 has a better example.
-func readBasicOffsetTable(d *dicomio.Decoder) []uint32 {
-	data, endOfData := readRawItem(d)
-	if endOfData {
-		d.SetErrorf("basic offset table not found")
-	}
-	if len(data) == 0 {
-		return []uint32{0}
-	}
+// EndOfData is an pseudoelement to cause the caller to stop reading the input.
+var EndOfData = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff}}
 
-	byteOrder, _ := d.TransferSyntax()
-	// The payload of the item is sequence of uint32s, each representing the
-	// byte size of an image that follows.
-	subdecoder := dicomio.NewBytesDecoder(data, byteOrder, dicomio.ImplicitVR)
-	var offsets []uint32
-	for subdecoder.Len() > 0 && subdecoder.Error() == nil {
-		offsets = append(offsets, subdecoder.ReadUInt32())
-	}
-	return offsets
-}
-
-// endElement is an pseudoelement to cause the caller to stop reading the input.
-var endOfDataElement = &Element{Tag: dicomtag.Tag{Group: 0x7fff, Element: 0x7fff}}
-
-const undefinedLength uint32 = 0xffffffff
-
-// Read a DICOM data element's tag value ie. (0002,0000) added Value
-// Multiplicity PS 3.5 6.4
-func readTag(buffer *dicomio.Decoder) dicomtag.Tag {
-	group := buffer.ReadUInt16()   // group
-	element := buffer.ReadUInt16() // element
-	return dicomtag.Tag{group, element}
-}
-
-// Read the VR from the DICOM ditionary The VL is a 32-bit unsigned integer
-func readImplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
-	vr := "UN"
-	if entry, err := dicomtag.Find(tag); err == nil {
-		vr = entry.VR
-	}
-
-	vl := buffer.ReadUInt32()
-	if vl != undefinedLength && vl%2 != 0 {
-		buffer.SetErrorf("Encountered odd length (vl=%v) when reading implicit VR '%v' for tag %s", vl, vr, dicomtag.DebugString(tag))
-		vl = 0
-	}
-	return vr, vl
-}
-
-// The VR is represented by the next two consecutive bytes
-// The VL depends on the VR value
-func readExplicit(buffer *dicomio.Decoder, tag dicomtag.Tag) (string, uint32) {
-	vr := buffer.ReadString(2)
-	var vl uint32
-	if vr == "US" {
-		vl = 2
-	}
-	// long value representations
-	switch vr {
-	case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
-		buffer.Skip(2) // ignore two bytes for "future use" (0000H)
-		vl = buffer.ReadUInt32()
-		if vl == undefinedLength && (vr == "UC" || vr == "UR" || vr == "UT") {
-			buffer.SetError(errors.New("UC, UR and UT may not have an Undefined Length, i.e.,a Value Length of FFFFFFFFH"))
-			vl = 0
-		}
-	default:
-		vl = uint32(buffer.ReadUInt16())
-		// Rectify Undefined Length VL
-		if vl == 0xffff {
-			vl = undefinedLength
-		}
-	}
-	if vl != undefinedLength && vl%2 != 0 {
-		buffer.SetErrorf("Encountered odd length (vl=%v) when reading explicit VR %v for tag %s", vl, vr, dicomtag.DebugString(tag))
-		vl = 0
-	}
-	return vr, vl
-}
-
-func tagInList(tag dicomtag.Tag, tags []dicomtag.Tag) bool {
-	for _, t := range tags {
-		if tag == t {
-			return true
-		}
-	}
-	return false
-}
+const VLUndefinedLength uint32 = 0xffffffff
 
 // FindElementByName finds an element with the given Element.Name in
 // "elems" If not found, returns an error.

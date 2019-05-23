@@ -5,11 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/dicomuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/suyashkumar/dicom/element"
 )
 
 func mustReadFile(path string, options dicom.ParseOptions) *dicom.DataSet {
@@ -43,7 +44,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 
 	for i := range data.Elements {
 		if data.Elements[i].Tag == dicomtag.TransferSyntaxUID {
-			newElem := dicom.MustNewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
+			newElem := element.MustNewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
 			t.Logf("Setting transfer syntax UID from %v to %v",
 				data.Elements[i].MustGetString(), newElem.MustGetString())
 			data.Elements[i] = newElem

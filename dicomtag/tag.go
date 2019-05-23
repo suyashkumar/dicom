@@ -12,6 +12,10 @@ import (
 	"strings"
 )
 
+const (
+	GROUP_ItemSeq = 0xFFFE
+)
+
 // Tag is a <group, element> tuple that identifies an element type in a DICOM
 // file. List of standard tags are defined in tag.go. See also:
 //

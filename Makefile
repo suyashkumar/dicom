@@ -4,11 +4,11 @@ BINARY = dicomutil
 build:
 	dep ensure
 	$(MAKE) test
-	go build -o build/${BINARY} ./dicomutil
+	go build -o build/${BINARY} ./cmd/dicomutil
 
 .PHONY: build-fast
 build-fast:
-	go build -o build/${BINARY} ./dicomutil
+	go build -o build/${BINARY} ./cmd/dicomutil
 
 .PHONY: test
 test:
@@ -23,6 +23,6 @@ run:
 release:
 	dep ensure
 	$(MAKE) test
-	GOOS=linux GOARCH=amd64 go build -o build/${BINARY}-linux-amd64 ./dicomutil;
-	GOOS=darwin GOARCH=amd64 go build -o build/${BINARY}-darwin-amd64 ./dicomutil;
-	GOOS=windows GOARCH=amd64 go build -o build/${BINARY}-windows-amd64.exe ./dicomutil;
+	GOOS=linux GOARCH=amd64 go build -o build/${BINARY}-linux-amd64 ./cmd/dicomutil;
+	GOOS=darwin GOARCH=amd64 go build -o build/${BINARY}-darwin-amd64 ./cmd/dicomutil;
+	GOOS=windows GOARCH=amd64 go build -o build/${BINARY}-windows-amd64.exe ./cmd/dicomutil;

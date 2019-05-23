@@ -381,7 +381,7 @@ func Element(e *dicomio.Encoder, elem *element.Element) {
 //
 //  ds := ... read or create dicom.Dataset ...
 //  out, err := os.Create("test.dcm")
-//  err := dicom.Write(out, ds)
+//  err := write.DataSet(out, ds)
 func DataSet(out io.Writer, ds *element.DataSet) error {
 	e := dicomio.NewEncoder(out, nil, dicomio.UnknownVR)
 	var metaElems []*element.Element

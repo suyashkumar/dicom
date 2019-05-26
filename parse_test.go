@@ -5,14 +5,16 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/dicomuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/suyashkumar/dicom/element"
+	"github.com/suyashkumar/dicom/write"
 )
 
-func mustReadFile(path string, options dicom.ParseOptions) *dicom.DataSet {
+func mustReadFile(path string, options dicom.ParseOptions) *element.DataSet {
 	p, err := dicom.NewParserFromFile(path, nil)
 	if err != nil {
 		log.Panic(err)
@@ -43,13 +45,13 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 
 	for i := range data.Elements {
 		if data.Elements[i].Tag == dicomtag.TransferSyntaxUID {
-			newElem := dicom.MustNewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
+			newElem := element.MustNewElement(dicomtag.TransferSyntaxUID, transferSyntaxUID)
 			t.Logf("Setting transfer syntax UID from %v to %v",
 				data.Elements[i].MustGetString(), newElem.MustGetString())
 			data.Elements[i] = newElem
 		}
 	}
-	err = dicom.WriteDataSet(out, data)
+	err = write.DataSet(out, data)
 	require.NoError(t, err)
 	data2 := mustReadFile(dstPath, dicom.ParseOptions{})
 

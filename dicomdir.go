@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/suyashkumar/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/element"
 )
 
 // DirectoryRecord contains info about one DICOM file mentioned in DICOMDIR.
@@ -36,8 +37,8 @@ func ParseDICOMDIR(in io.Reader) (recs []DirectoryRecord, err error) {
 	}
 	for _, item := range seq.Value {
 		path := ""
-		for _, subvalue := range item.(*Element).Value {
-			subelem := subvalue.(*Element)
+		for _, subvalue := range item.(*element.Element).Value {
+			subelem := subvalue.(*element.Element)
 			if subelem.Tag == dicomtag.ReferencedFileID {
 				names, err := subelem.GetStrings()
 				if err != nil {

@@ -16,6 +16,8 @@ import (
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/dicomlog"
 	"github.com/suyashkumar/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/element"
+	"github.com/suyashkumar/dicom/frame"
 )
 
 var (
@@ -45,11 +47,11 @@ func main() {
 	}
 	path := flag.Arg(0)
 
-	var parsedData *dicom.DataSet
+	var parsedData *element.DataSet
 
 	if *extractImagesStream {
 		// Stream process frames as they become available:
-		frameChannel := make(chan *dicom.Frame, FrameBufferSize)
+		frameChannel := make(chan *frame.Frame, FrameBufferSize)
 		p, err := dicom.NewParserFromFile(path, frameChannel)
 		if err != nil {
 			log.Panic("error creating parser", err)
@@ -82,7 +84,7 @@ func main() {
 		if *extractImages {
 			for _, elem := range parsedData.Elements {
 				if elem.Tag == dicomtag.PixelData {
-					data := elem.Value[0].(dicom.PixelDataInfo)
+					data := elem.Value[0].(element.PixelDataInfo)
 
 					var wg sync.WaitGroup
 					for frameIndex, frame := range data.Frames {
@@ -107,7 +109,7 @@ func main() {
 	log.Println("Complete.")
 }
 
-func writeStreamingFrames(frameChan chan *dicom.Frame, doneWG *sync.WaitGroup) {
+func writeStreamingFrames(frameChan chan *frame.Frame, doneWG *sync.WaitGroup) {
 	count := 0 // may not correspond to frame number
 	var wg sync.WaitGroup
 	for frame := range frameChan {
@@ -119,26 +121,26 @@ func writeStreamingFrames(frameChan chan *dicom.Frame, doneWG *sync.WaitGroup) {
 	doneWG.Done()
 }
 
-func generateImage(frame *dicom.Frame, frameIndex int, wg *sync.WaitGroup) {
-	if frame.IsEncapsulated {
-		go generateEncapsulatedImage(frame.EncapsulatedData, frameIndex, wg)
+func generateImage(fr *frame.Frame, frameIndex int, wg *sync.WaitGroup) {
+	if fr.IsEncapsulated {
+		go generateEncapsulatedImage(fr.EncapsulatedData, frameIndex, wg)
 	} else {
-		go generateNativeImage(frame.NativeData, frameIndex, wg)
+		go generateNativeImage(fr.NativeData, frameIndex, wg)
 	}
 }
 
-func generateEncapsulatedImage(frame dicom.EncapsulatedFrame, frameIndex int, wg *sync.WaitGroup) {
+func generateEncapsulatedImage(frame frame.EncapsulatedFrame, frameIndex int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	path := fmt.Sprintf("image_%d.jpg", frameIndex) // TODO: figure out the image format
 	ioutil.WriteFile(path, frame.Data, 0644)
 	log.Printf("%s: %d bytes\n", path, len(frame.Data))
 }
 
-func generateNativeImage(frame dicom.NativeFrame, frameIndex int, wg *sync.WaitGroup) {
+func generateNativeImage(fr frame.NativeFrame, frameIndex int, wg *sync.WaitGroup) {
 	defer wg.Done()
-	i := image.NewGray16(image.Rect(0, 0, frame.Cols, frame.Rows))
-	for j := 0; j < len(frame.Data); j++ {
-		i.SetGray16(j%frame.Cols, j/frame.Rows, color.Gray16{Y: uint16(frame.Data[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
+	i := image.NewGray16(image.Rect(0, 0, fr.Cols, fr.Rows))
+	for j := 0; j < len(fr.Data); j++ {
+		i.SetGray16(j%fr.Cols, j/fr.Rows, color.Gray16{Y: uint16(fr.Data[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
 	}
 	name := fmt.Sprintf("image_%d.jpg", frameIndex)
 	f, err := os.Create(name)

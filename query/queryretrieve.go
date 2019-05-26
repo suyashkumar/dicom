@@ -1,4 +1,4 @@
-package dicom
+package query
 
 import (
 	"fmt"
@@ -7,9 +7,10 @@ import (
 
 	"github.com/gobwas/glob"
 	"github.com/suyashkumar/dicom/dicomtag"
+	"github.com/suyashkumar/dicom/element"
 )
 
-func querySequence(elem *Element, f *Element) (match bool, err error) {
+func querySequence(elem *element.Element, f *element.Element) (match bool, err error) {
 	// TODO(saito) Implement!
 	return true, nil
 }
@@ -22,7 +23,7 @@ func matchString(pattern string, value string) (bool, error) {
 	return g.Match(value), nil
 }
 
-func queryElement(elem *Element, f *Element) (match bool, err error) {
+func queryElement(elem *element.Element, f *element.Element) (match bool, err error) {
 	if isEmptyQuery(f) {
 		// Universal match
 		return true, nil
@@ -104,7 +105,7 @@ func queryElement(elem *Element, f *Element) (match bool, err error) {
 	return false, nil
 }
 
-func isEmptyQuery(f *Element) bool {
+func isEmptyQuery(f *element.Element) bool {
 	// Check if the glob pattern is a sequence of '*'s.
 	// "*" is the same as an empty query. P3.4, C2.2.2.4.
 	isUniversalGlob := func(s string) bool {
@@ -146,7 +147,7 @@ func isEmptyQuery(f *Element) bool {
 // query value), and the element for f.Tag doesn't exist, the function returns
 // <true, nil, nil>. If "f" is malformed, the function returns <false, nil,
 // error reason>.
-func Query(ds *DataSet, f *Element) (match bool, matchedElem *Element, err error) {
+func Query(ds *element.DataSet, f *element.Element) (match bool, matchedElem *element.Element, err error) {
 	if len(f.Value) > 1 {
 		// A filter can't contain multiple values. P3.4, C.2.2.2.1
 		return false, nil, fmt.Errorf("Multiple values found in filter '%v'", f)

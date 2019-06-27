@@ -16,7 +16,7 @@ So far, improvements that have made on top of [go-dicom](https://github.com/gill
 - [x] General refactors to the [go-dicom](https://github.com/gillesdemey/go-dicom) code (though there's more work to be done here) for maintainability an readability. 
 
 ## Usage
-To use this in your golang project, simply import our pacakge `github.com/suyashkumar/dicom` and then you can use our `Parser` for your parsing needs:
+To use this in your golang project, import `github.com/suyashkumar/dicom` and then you can use `dicom.Parser` for your parsing needs:
 ```go 
 p, err := dicom.NewParserFromFile("myfile.dcm", nil)
 opts := dicom.ParseOptions{DropPixelData: true}
@@ -28,12 +28,20 @@ dataset, err := p.Parse(opts) // parse whole dicom
 More details about the package can be found in the [godoc](https://godoc.org/github.com/suyashkumar/dicom)
 
 ## CLI Tool
-A CLI tool that uses this package to parse imagery and metadata out of DICOMs is provided in the `dicomutil` package. 
+A CLI tool that uses this package to parse imagery and metadata out of DICOMs is provided in the `dicomutil` package. All dicom tags present are printed to STDOUT by default. 
+
+### Installation
+You can download the prebuilt binaries from the [releases tab](https://github.com/suyashkumar/dicom/releases), or use the following to download the binary at the command line:
+
+```sh
+wget -qO- "https://bin.suyash.io/suyashkumar/dicom" | tar xvz
+```
+(This attempts to infer your OS and 301 redirects `wget` to the latest github release asset for your system).
 ### Usage
 ```
-dicomutil --extract-images myfile.dcm
+dicomutil --extract-images-stream myfile.dcm
 ```
-Note: for some dicoms (with native pixel data) no automatic intensity scaling is applied yet (this is coming). You can apply this in your image viewer if needed. 
+Note: for some dicoms (with native pixel data) no automatic intensity scaling is applied yet (this is coming). You can apply this in your image viewer if needed (in Preview on mac, go to Tools->Adjust Color). 
 ### Docker build
 To build the tool for all platforms (Mac, Windows, Linux) from source using docker, execute the following in the cloned repo:
 ```bash

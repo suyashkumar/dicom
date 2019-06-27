@@ -239,7 +239,7 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 
 				// Construct frame
 				f := frame.Frame{
-					IsEncapsulated: true,
+					Encapsulated: true,
 					EncapsulatedData: frame.EncapsulatedFrame{
 						Data: chunk,
 					},
@@ -560,7 +560,7 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *element.DataSet, frameChan
 	for frameIdx := 0; frameIdx < nFrames; frameIdx++ {
 		// Init current frame
 		currentFrame := frame.Frame{
-			IsEncapsulated: false,
+			Encapsulated: false,
 			NativeData: frame.NativeFrame{
 				BitsPerSample: bitsAllocated,
 				Rows:          int(rows.MustGetUInt16()),

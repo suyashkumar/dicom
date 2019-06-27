@@ -15,7 +15,7 @@ var ErrorFrameTypeNotPresent = errors.New("The frame type you requested is not p
 type CommonFrame interface {
 	// GetImage gets this frame as an image.Image. Beware that the underlying frame may perform
 	// some default rendering and conversions. Operate on the raw NativeFrame or EncapsulatedFrame
-	// if you need to do some custom rendering work.
+	// if you need to do some custom rendering work or want the data from the dicom.
 	GetImage() (image.Image, error)
 	// Encapsulated indicates if the underlying Frame is an EncapsulatedFrame
 	IsEncapsulated() bool

@@ -322,7 +322,7 @@ type PixelDataInfo struct {
 func (data PixelDataInfo) String() string {
 	s := fmt.Sprintf("image{offsets: %v, frames: [", data.Offsets)
 	for i := 0; i < len(data.Frames); i++ {
-		if data.Frames[i].IsEncapsulated {
+		if data.Frames[i].Encapsulated {
 			csum := sha256.Sum256(data.Frames[i].EncapsulatedData.Data)
 			s += fmt.Sprintf("%decoder:{size:%decoder, csum:%v, encapsulated:true}, ",
 				i, len(data.Frames[i].EncapsulatedData.Data),

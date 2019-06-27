@@ -3,12 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image/jpeg"
 	"io/ioutil"
 	"log"
-
-	"image"
-	"image/color"
-	"image/jpeg"
 	"math"
 	"os"
 	"sync"
@@ -122,7 +119,7 @@ func writeStreamingFrames(frameChan chan *frame.Frame, doneWG *sync.WaitGroup) {
 }
 
 func generateImage(fr *frame.Frame, frameIndex int, wg *sync.WaitGroup) {
-	if fr.IsEncapsulated {
+	if fr.Encapsulated {
 		go generateEncapsulatedImage(fr.EncapsulatedData, frameIndex, wg)
 	} else {
 		go generateNativeImage(fr.NativeData, frameIndex, wg)
@@ -138,10 +135,11 @@ func generateEncapsulatedImage(frame frame.EncapsulatedFrame, frameIndex int, wg
 
 func generateNativeImage(fr frame.NativeFrame, frameIndex int, wg *sync.WaitGroup) {
 	defer wg.Done()
-	i := image.NewGray16(image.Rect(0, 0, fr.Cols, fr.Rows))
-	for j := 0; j < len(fr.Data); j++ {
-		i.SetGray16(j%fr.Cols, j/fr.Rows, color.Gray16{Y: uint16(fr.Data[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
+	i, err := fr.GetImage()
+	if err != nil {
+		log.Fatal("Error while getting NativeFrame image")
 	}
+
 	name := fmt.Sprintf("image_%d.jpg", frameIndex)
 	f, err := os.Create(name)
 	if err != nil {

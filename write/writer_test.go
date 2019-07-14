@@ -96,7 +96,7 @@ func TestNewElement(t *testing.T) {
 	elem, err := element.NewElement(dicomtag.TriggerSamplePosition, uint32(10), uint32(11))
 	require.NoError(t, err)
 	require.Equal(t, elem.Tag, dicomtag.TriggerSamplePosition)
-	require.Truef(t, reflect.DeepEqual(elem.MustGetUint32s(), []uint32{10, 11}),
+	require.Truef(t, reflect.DeepEqual(elem.MustGetInts(), []int64{10, 11}),
 		"Elem: %+v", elem)
 	// Pass a wrong value type.
 	elem, err = element.NewElement(dicomtag.TriggerSamplePosition, "foo")

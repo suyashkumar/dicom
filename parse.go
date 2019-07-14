@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -9,8 +10,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"bufio"
 
 	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/suyashkumar/dicom/dicomlog"
@@ -455,9 +454,9 @@ func (p *parser) parseFileHeader() []*element.Element {
 	if metaElem.Tag != dicomtag.FileMetaInformationGroupLength {
 		p.decoder.SetErrorf("MetaElementGroupLength not found; insteadfound %s", metaElem.Tag.String())
 	}
-	metaLength, err := metaElem.GetUInt32()
+	metaLength, err := metaElem.GetInt()
 	if err != nil {
-		p.decoder.SetErrorf("Failed to read uint32 in MetaElementGroupLength: %v", err)
+		p.decoder.SetErrorf("Failed to read int64 in MetaElementGroupLength: %v", err)
 		return nil
 	}
 	if p.decoder.Len() <= 0 {
@@ -467,7 +466,7 @@ func (p *parser) parseFileHeader() []*element.Element {
 	metaElems := []*element.Element{metaElem}
 
 	// Read meta tags
-	p.decoder.PushLimit(int64(metaLength))
+	p.decoder.PushLimit(metaLength)
 	defer p.decoder.PopLimit()
 	for p.decoder.Len() > 0 {
 		elem := p.ParseNext(ParseOptions{})
@@ -541,17 +540,18 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *element.DataSet, frameChan
 		dicomlog.Vprintf(1, "ERROR finding bits allocated.")
 		return nil, 0, err
 	}
-	bitsAllocated := int(b.MustGetUInt16())
+	bitsAllocated := int(b.MustGetInt())
 
 	s, err := parsedData.FindElementByTag(dicomtag.SamplesPerPixel)
 	if err != nil {
 		dicomlog.Vprintf(1, "ERROR finding samples per pixel")
+		return nil, 0, err
 	}
-	samplesPerPixel := int(s.MustGetUInt16())
+	samplesPerPixel := int(s.MustGetInt())
 
-	pixelsPerFrame := int(rows.MustGetUInt16()) * int(cols.MustGetUInt16())
+	pixelsPerFrame := int(rows.MustGetInt()) * int(cols.MustGetInt())
 
-	dicomlog.Vprintf(1, "Image size: %decoder x %decoder", rows.MustGetUInt16(), cols.MustGetUInt16())
+	dicomlog.Vprintf(1, "Image size: %decoder x %decoder", rows.MustGetInt(), cols.MustGetInt())
 	dicomlog.Vprintf(1, "Pixels Per Frame: %decoder", pixelsPerFrame)
 	dicomlog.Vprintf(1, "Number of frames %decoder", nFrames)
 
@@ -563,8 +563,8 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *element.DataSet, frameChan
 			Encapsulated: false,
 			NativeData: frame.NativeFrame{
 				BitsPerSample: bitsAllocated,
-				Rows:          int(rows.MustGetUInt16()),
-				Cols:          int(cols.MustGetUInt16()),
+				Rows:          int(rows.MustGetInt()),
+				Cols:          int(cols.MustGetInt()),
 				Data:          make([][]int, int(pixelsPerFrame)),
 			},
 		}

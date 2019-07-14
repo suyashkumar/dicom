@@ -3,11 +3,9 @@ package element
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/binary"
 	"fmt"
 	"strings"
 
-	"github.com/suyashkumar/dicom/dicomio"
 	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/frame"
 )
@@ -140,48 +138,67 @@ func MustNewElement(tag dicomtag.Tag, values ...interface{}) *Element {
 	return elem
 }
 
-// GetUInt32 gets a uint32 value from an element.  It returns an error if the
-// element contains zero or >1 values, or the value is not a uint32.
-func (e *Element) GetUInt32() (uint32, error) {
-	if len(e.Value) != 1 {
-		return 0, fmt.Errorf("Found %decoder value(s) in getuint32 (expect 1): %v", len(e.Value), e)
+// intToInt64 takes a form of int and returns it as an int64
+func intToInt64(i interface{}) (int64, error) {
+	switch val := i.(type) {
+	case int8:
+		return int64(val), nil
+	case int16:
+		return int64(val), nil
+	case int32:
+		return int64(val), nil
+	case uint8:
+		return int64(val), nil
+	case uint16:
+		return int64(val), nil
+	case uint32:
+		return int64(val), nil
 	}
-	v, ok := e.Value[0].(uint32)
-	if !ok {
-		return 0, fmt.Errorf("Uint32 value not found in %v", e)
-	}
-	return v, nil
+
+	return 0, fmt.Errorf("unexpected value type, expected a form of int")
 }
 
-// MustGetUInt32 is similar to GetUInt32, but panics on error.
-func (e *Element) MustGetUInt32() uint32 {
-	v, err := e.GetUInt32()
+// GetInt retrieves some type of embedded int value (uint32, int16, etc) as an int64
+func (e *Element) GetInt() (int64, error) {
+	if len(e.Value) != 1 {
+		return 0, fmt.Errorf("found %d value(s) in GetInt (expected 1)", len(e.Value))
+	}
+
+	return intToInt64(e.Value[0])
+
+}
+
+// GetInts returns a slice of int like values stored in the element.
+func (e *Element) GetInts() ([]int64, error) {
+	values := make([]int64, len(e.Value))
+
+	for idx, v := range e.Value {
+		i, err := intToInt64(v)
+		if err != nil {
+			return []int64{}, err
+		}
+		values[idx] = i
+	}
+
+	return values, nil
+}
+
+// MustGetInt retrieves some type of embedded int value as an int64. Panics if unable to do so.
+func (e *Element) MustGetInt() int64 {
+	i, err := e.GetInt()
+	if err != nil {
+		panic("Unable to get int in call to MustGetInt. Error: " + err.Error())
+	}
+	return i
+}
+
+// MustGetInts returns a slice of int like values stored in the element. Panics if unable to do so.
+func (e *Element) MustGetInts() []int64 {
+	vals, err := e.GetInts()
 	if err != nil {
 		panic(err)
 	}
-	return v
-}
-
-// GetUInt16 gets a uint16 value from an element.  It returns an error if the
-// element contains zero or >1 values, or the value is not a uint16.
-func (e *Element) GetUInt16() (uint16, error) {
-	if len(e.Value) != 1 {
-		return 0, fmt.Errorf("Found %decoder value(s) in getuint16 (expect 1): %v", len(e.Value), e)
-	}
-	v, ok := e.Value[0].(uint16)
-	if !ok {
-		return 0, fmt.Errorf("Uint16 value not found in %v", e)
-	}
-	return v, nil
-}
-
-// MustGetUInt16 is similar to GetUInt16, but panics on error.
-func (e *Element) MustGetUInt16() uint16 {
-	v, err := e.GetUInt16()
-	if err != nil {
-		panic(err)
-	}
-	return v
+	return vals
 }
 
 // GetString gets a string value from an element.  It returns an error if the
@@ -198,7 +215,6 @@ func (e *Element) GetString() (string, error) {
 }
 
 // MustGetString is similar to GetString(), but panics on error.
-//
 // TODO(saito): Add other variants of MustGet<type>.
 func (e *Element) MustGetString() string {
 	v, err := e.GetString()
@@ -208,7 +224,7 @@ func (e *Element) MustGetString() string {
 	return v
 }
 
-// GetStrings returns the list of strings stored in the elment. Returns an error
+// GetStrings returns the list of strings stored in the element. Returns an error
 // if the VR of e.Tag is not a string.
 func (e *Element) GetStrings() ([]string, error) {
 	values := make([]string, 0, len(e.Value))
@@ -225,52 +241,6 @@ func (e *Element) GetStrings() ([]string, error) {
 // MustGetStrings is similar to GetStrings, but crashes the process on error.
 func (e *Element) MustGetStrings() []string {
 	values, err := e.GetStrings()
-	if err != nil {
-		panic(err)
-	}
-	return values
-}
-
-// GetUint32s returns the list of uint32 values stored in the elment. Returns an
-// error if the VR of e.Tag is not a uint32.
-func (e *Element) GetUint32s() ([]uint32, error) {
-	values := make([]uint32, 0, len(e.Value))
-	for _, v := range e.Value {
-		v, ok := v.(uint32)
-		if !ok {
-			return nil, fmt.Errorf("uint32 value not found in %v", e.String())
-		}
-		values = append(values, v)
-	}
-	return values, nil
-}
-
-// MustGetUint32s is similar to GetUint32s, but crashes the process on error.
-func (e *Element) MustGetUint32s() []uint32 {
-	values, err := e.GetUint32s()
-	if err != nil {
-		panic(err)
-	}
-	return values
-}
-
-// GetUint16s returns the list of uint16 values stored in the elment. Returns an
-// error if the VR of e.Tag is not a uint16.
-func (e *Element) GetUint16s() ([]uint16, error) {
-	values := make([]uint16, 0, len(e.Value))
-	for _, v := range e.Value {
-		v, ok := v.(uint16)
-		if !ok {
-			return nil, fmt.Errorf("uint16 value not found in %v", e.String())
-		}
-		values = append(values, v)
-	}
-	return values, nil
-}
-
-// MustGetUint16s is similar to GetUint16s, but crashes the process on error.
-func (e *Element) MustGetUint16s() []uint16 {
-	values, err := e.GetUint16s()
 	if err != nil {
 		panic(err)
 	}
@@ -366,38 +336,4 @@ func FindByTag(elems []*Element, tag dicomtag.Tag) (*Element, error) {
 		}
 	}
 	return nil, fmt.Errorf("%s: element not found", dicomtag.DebugString(tag))
-}
-
-// DataSet represents contents of one DICOM file.
-// TODO(suyashkumar): consider putting this in another package
-type DataSet struct {
-	// Elements in the file, in order of appearance.
-	//
-	// Note: unlike pydicom, Elements also contains meta elements (those
-	// with Tag.Group==2).
-	Elements []*Element
-}
-
-// FindByName finds an element from the dataset given the element name,
-// such as "PatientName".
-func (f *DataSet) FindElementByName(name string) (*Element, error) {
-	return FindByName(f.Elements, name)
-}
-
-// FindByTag finds an element from the dataset given its tag, such as
-// Tag{0x0010, 0x0010}.
-func (f *DataSet) FindElementByTag(tag dicomtag.Tag) (*Element, error) {
-	return FindByTag(f.Elements, tag)
-}
-
-func (ds *DataSet) TransferSyntax() (bo binary.ByteOrder, implicit dicomio.IsImplicitVR, err error) {
-	elem, err := ds.FindElementByTag(dicomtag.TransferSyntaxUID)
-	if err != nil {
-		return nil, dicomio.UnknownVR, err
-	}
-	transferSyntaxUID, err := elem.GetString()
-	if err != nil {
-		return nil, dicomio.UnknownVR, err
-	}
-	return dicomio.ParseTransferSyntaxUID(transferSyntaxUID)
 }

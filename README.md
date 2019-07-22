@@ -31,12 +31,12 @@ More details about the package can be found in the [godoc](https://godoc.org/git
 A CLI tool that uses this package to parse imagery and metadata out of DICOMs is provided in the `dicomutil` package. All dicom tags present are printed to STDOUT by default. 
 
 ### Installation
-You can download the prebuilt binaries from the [releases tab](https://github.com/suyashkumar/dicom/releases), or use the following to download the binary at the command line:
+You can download the prebuilt binaries from the [releases tab](https://github.com/suyashkumar/dicom/releases), or use the following to download the binary at the command line using my [getbin tool](https://github.com/suyashkumar/getbin):
 
 ```sh
-wget -qO- "https://bin.suyash.io/suyashkumar/dicom" | tar xvz
+wget -qO- "https://getbin.io/suyashkumar/dicom" | tar xvz
 ```
-(This attempts to infer your OS and 301 redirects `wget` to the latest github release asset for your system).
+(This attempts to infer your OS and 301 redirects `wget` to the latest github release asset for your system. Downloads come from GitHub releases).
 ### Usage
 ```
 dicomutil --extract-images-stream myfile.dcm

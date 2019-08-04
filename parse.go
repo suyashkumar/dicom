@@ -124,7 +124,7 @@ func (p *parser) Parse(options ParseOptions) (*element.DataSet, error) {
 		startLen := p.decoder.Len()
 		elem := p.ParseNext(options)
 		if p.decoder.Len() >= startLen { // Avoid silent infinite looping.
-			panic(fmt.Sprintf("ReadElement failed to consume data: %decoder %decoder: %v", startLen, p.decoder.Len(), p.decoder.Error()))
+			panic(fmt.Sprintf("ReadElement failed to consume data: %d %d: %v", startLen, p.decoder.Len(), p.decoder.Error()))
 		}
 		if elem == element.EndOfData {
 			// element is a pixel data and was dropped by options
@@ -554,9 +554,9 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *element.DataSet, frameChan
 
 	pixelsPerFrame := int(rows.MustGetInt()) * int(cols.MustGetInt())
 
-	dicomlog.Vprintf(1, "Image size: %decoder x %decoder", rows.MustGetInt(), cols.MustGetInt())
-	dicomlog.Vprintf(1, "Pixels Per Frame: %decoder", pixelsPerFrame)
-	dicomlog.Vprintf(1, "Number of frames %decoder", nFrames)
+	dicomlog.Vprintf(1, "Image size: %d x %d", rows.MustGetInt(), cols.MustGetInt())
+	dicomlog.Vprintf(1, "Pixels Per Frame: %d", pixelsPerFrame)
+	dicomlog.Vprintf(1, "Number of frames %d", nFrames)
 
 	// Parse the pixels:
 	image.Frames = make([]frame.Frame, nFrames)

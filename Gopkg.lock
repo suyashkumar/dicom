@@ -29,6 +29,15 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/pquerna/ffjson"
+  packages = [
+    "fflib/v1",
+    "fflib/v1/internal"
+  ]
+  revision = "e517b90714f7c0eabe6d2e570a5886ae077d6db6"
+
+[[projects]]
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
@@ -64,6 +73,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8205646c23f9c80149b091366875231f45345464050551531bacf1842c8a48c2"
+  inputs-digest = "5c28693378e1fdfbdc8e48663f20f5be1d124c2aa4e646b0e33c30aedd266a34"
   solver-name = "gps-cdcl"
   solver-version = 1

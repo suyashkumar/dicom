@@ -18,7 +18,8 @@ jobs:
 
     - name: Get dependencies
       run: | 
-            go get github.com/golang/dep/cmd/dep
+            mkdir $GOPATH/bin
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
 
     - name: Build

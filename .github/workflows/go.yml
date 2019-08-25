@@ -35,7 +35,8 @@ jobs:
             export GOBIN=$GOPATH/bin
             export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
             export PATH=$PATH:/home/runner/go/bin
-            cd $REPO_PATH; ls; pwd; make
+            cd $REPO_PATH
+            make
    
     - name: Test
       run: |
@@ -43,5 +44,6 @@ jobs:
             export GOBIN=$GOPATH/bin 
             export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
             export PATH=$PATH:/home/runner/go/bin
-            cd $REPO_PATH; make test
+            cd $REPO_PATH
+            make test
 

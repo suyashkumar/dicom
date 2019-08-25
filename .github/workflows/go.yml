@@ -34,8 +34,14 @@ jobs:
             export GOPATH=$HOME/go
             export GOBIN=$GOPATH/bin
             export REPO_PATH=$GOPATH/src/github.com/$GITUHB_REPOSITORY
+            export PATH=$PATH:/home/runner/go/bin
             cd $REPO_PATH; ls; pwd; make
    
     - name: Test
-      run: cd $REPO_PATH; make test
+      run: |
+            export GOPATH=$HOME/go
+            export GOBIN=$GOPATH/bin
+            export REPO_PATH=$GOPATH/src/github.com/$GITUHB_REPOSITORY
+            export PATH=$PATH:/home/runner/go/bin
+            cd $REPO_PATH; make test
 

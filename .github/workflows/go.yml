@@ -1,5 +1,5 @@
-name: Go
-on: [push]
+name: suyashkumar/dicom build
+on: [push, pull_request]
 jobs:
 
   build:

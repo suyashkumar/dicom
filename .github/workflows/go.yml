@@ -23,6 +23,7 @@ jobs:
             export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
             mkdir -p $GOBIN 
             export PATH=$PATH:/home/runner/go/bin
+            mkdir -p $REPO_PATH
             mv $(pwd)/* $REPO_PATH
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             cd $REPO_PATH 

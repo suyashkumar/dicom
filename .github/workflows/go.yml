@@ -18,9 +18,15 @@ jobs:
 
     - name: Get dependencies
       run: | 
-            mkdir -p /home/runner/go/bin
+            export GOPATH=$HOME/go
+            export GOBIN=$GOPATH/bin
+            export REPO_PATH=$GOPATH/src/github.com/$GITUHB_REPOSITORY
+            mkdir -p $GOBIN 
             export PATH=$PATH:/home/runner/go/bin
+            mkdir -p $REPO_PATH 
+            mv $(pwd)/* $REPO_PATH 
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            cd $REPO_PATH 
             dep ensure
 
     - name: Build

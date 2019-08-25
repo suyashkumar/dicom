@@ -27,5 +27,5 @@ jobs:
       run: make
    
     - name: Test
-    - run: make test
+      run: make test
 

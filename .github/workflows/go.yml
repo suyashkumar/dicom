@@ -30,8 +30,8 @@ jobs:
             dep ensure
 
     - name: Build
-      run: make
+      run: cd $REPO_PATH; make
    
     - name: Test
-      run: make test
+      run: cd $REPO_PATH; make test
 

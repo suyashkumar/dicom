@@ -13,10 +13,8 @@ jobs:
         go-version: 1.12
       id: go
 
-    - name: Check out code into the Go module directory
+    - name: Check out code 
       uses: actions/checkout@v1
-      with:
-        path: /home/runner/go/src/github.com/suyashkumar/dicom
 
     - name: Get dependencies
       run: | 
@@ -25,6 +23,7 @@ jobs:
             export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
             mkdir -p $GOBIN 
             export PATH=$PATH:/home/runner/go/bin
+            mv $(pwd)/* $REPO_PATH
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             cd $REPO_PATH 
             dep ensure

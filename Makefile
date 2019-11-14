@@ -2,7 +2,7 @@ BINARY = dicomutil
 
 .PHONY: build
 build:
-	dep ensure
+	go mod download
 	$(MAKE) test
 	go build -o build/${BINARY} ./cmd/dicomutil
 
@@ -21,7 +21,7 @@ run:
 
 .PHONY: release
 release:
-	dep ensure
+	go mod download
 	$(MAKE) test
 	GOOS=linux GOARCH=amd64 go build -o build/${BINARY}-linux-amd64 ./cmd/dicomutil;
 	GOOS=darwin GOARCH=amd64 go build -o build/${BINARY}-darwin-amd64 ./cmd/dicomutil;

@@ -24,10 +24,10 @@ jobs:
             mkdir -p $GOBIN 
             export PATH=$PATH:/home/runner/go/bin
             mkdir -p $REPO_PATH
-            mv $(pwd)/* $REPO_PATH
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            mv $(pwd)/* $REPO_PATH 
             cd $REPO_PATH 
-            dep ensure
+            go mod download
+
 
     - name: Build
       run: |

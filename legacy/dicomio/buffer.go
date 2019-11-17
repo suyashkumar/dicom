@@ -367,7 +367,7 @@ func (d *Decoder) Finish() error {
 	return nil
 }
 
-// Read implements the io.Reader interface.
+// Read implements the dicomio.Reader interface.
 func (d *Decoder) Read(p []byte) (int, error) {
 	desired := d.Len()
 	if desired == 0 {

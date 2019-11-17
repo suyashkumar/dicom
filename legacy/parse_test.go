@@ -1,4 +1,4 @@
-package dicom_test
+package legacy_test
 
 import (
 	"log"

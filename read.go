@@ -1,13 +1,19 @@
 package dicom
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/suyashkumar/dicom/legacy/element"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
+
+var ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
+var ErrorUnsupportedVR = errors.New("unsupported VR")
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {
 	group, gerr := r.ReadUInt16()
@@ -29,8 +35,8 @@ func readVR(r dicomio.Reader, isImplicit bool, t tag.Tag) (string, error) {
 		return tag.UNKNOWN, nil
 	}
 
-	// Explicit Transfer Syntax:
-	return r.ReadString()
+	// Explicit Transfer Syntax, read 2 byte VR:
+	return r.ReadString(2)
 
 }
 
@@ -72,26 +78,60 @@ func readRawValue(r dicomio.Reader, vl uint32) ([]byte, error) {
 	return r.ReadN(vl)
 }
 
-func readValue(r dicomio.Reader, vr string, vl uint32, isImplicit bool) (Value, bool) {
+func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool) (Value, error) {
 	// TODO: implement
+	vrkind := tag.GetVRKind(t, vr)
+	switch vrkind {
+	case tag.VRBytes:
+		return readBytes(r, t, vr, vl)
+	case tag.VRString:
+		return readString(r, t, vr, vl)
+
+	}
+
+	return nil, fmt.Errorf("unsure how to parse this VR")
+}
+
+func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	// TODO: add special handling of PixelData
+	if vr == "OB" {
+		data := make([]byte, vl)
+		_, err := r.Read(data)
+		return &BytesValue{value: data}, err
+	} else if vr == "OW" {
+		// OW -> stream of 16 bit words
+		if vl%2 != 0 {
+			return nil, ErrorOWRequiresEvenVL
+		}
+		data := make([]byte, vl)
+		buf := bytes.NewBuffer(data)
+		numWords := int(vl / 2)
+		for i := 0; i < numWords; i++ {
+			word, err := r.ReadUInt16()
+			if err != nil {
+				return nil, err
+			}
+			// TODO: support bytes.BigEndian byte ordering
+			err = binary.Write(buf, binary.LittleEndian, word)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &BytesValue{value: buf.Bytes()}, nil
+	}
+
+	return nil, ErrorUnsupportedVR
+}
+
+func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	str, err := r.ReadString(vl)
+	// String may have '\0' suffix if its length is odd.
+	str = strings.Trim(str, " \000")
+
+	// Split multiple strings
+	strs := strings.Split(str, "\\")
+
+	return &StringsValue{value: strs}, err
 }
 
 func readElement() {}
-
-func readRawItem(r dicomio.Reader) ([]byte, error) {
-	t, err := readTag(r)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	vr, err := readVR(r, false, *t)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	vl, err := readVL(r, false, *t, vr)
-	if err != nil {
-		return []byte{}, err
-	}
-
-}

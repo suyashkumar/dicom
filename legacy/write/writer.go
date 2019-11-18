@@ -8,11 +8,11 @@ import (
 
 	"bytes"
 
-	"github.com/suyashkumar/dicom/constants"
-	"github.com/suyashkumar/dicom/dicomio"
-	"github.com/suyashkumar/dicom/dicomlog"
-	"github.com/suyashkumar/dicom/dicomtag"
-	"github.com/suyashkumar/dicom/element"
+	"github.com/suyashkumar/dicom/legacy/constants"
+	"github.com/suyashkumar/dicom/legacy/dicomio"
+	"github.com/suyashkumar/dicom/legacy/dicomlog"
+	"github.com/suyashkumar/dicom/legacy/dicomtag"
+	"github.com/suyashkumar/dicom/legacy/element"
 )
 
 // FileHeader produces a DICOM file header. metaElems[] is be a list of

@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/suyashkumar/dicom"
-	"github.com/suyashkumar/dicom/dicomtag"
-	"github.com/suyashkumar/dicom/dicomuid"
-	"github.com/suyashkumar/dicom/element"
-	"github.com/suyashkumar/dicom/write"
+	dicom "github.com/suyashkumar/dicom/legacy"
+	"github.com/suyashkumar/dicom/legacy/dicomtag"
+	"github.com/suyashkumar/dicom/legacy/dicomuid"
+	"github.com/suyashkumar/dicom/legacy/element"
+	"github.com/suyashkumar/dicom/legacy/write"
 )
 
 func mustReadFile(path string, options dicom.ParseOptions) *element.DataSet {

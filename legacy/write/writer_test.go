@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/suyashkumar/dicom"
-	"github.com/suyashkumar/dicom/dicomio"
-	"github.com/suyashkumar/dicom/dicomtag"
 	"github.com/suyashkumar/dicom/dicomuid"
-	"github.com/suyashkumar/dicom/element"
+	"github.com/suyashkumar/dicom/legacy/dicomio"
+	"github.com/suyashkumar/dicom/legacy/dicomtag"
+	"github.com/suyashkumar/dicom/legacy/element"
 	"github.com/suyashkumar/dicom/write"
 )
 

@@ -51,7 +51,7 @@ func testWriteFile(t *testing.T, dcmPath, transferSyntaxUID string) {
 			data.Elements[i] = newElem
 		}
 	}
-	err = write.DataSet(out, data)
+	err = write.DataSet(out, data, write.Options{})
 	require.NoError(t, err)
 	data2 := mustReadFile(dstPath, dicom.ParseOptions{})
 

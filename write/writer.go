@@ -1,12 +1,11 @@
 package write
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
-
-	"bytes"
 
 	"github.com/suyashkumar/dicom/legacy/constants"
 	"github.com/suyashkumar/dicom/legacy/dicomio"

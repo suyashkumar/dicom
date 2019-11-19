@@ -22,13 +22,13 @@ func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.Is
 	values = append(values, string("FooHah"))
 	write.Element(e, &element.Element{
 		Tag:   dicomtag.Tag{0x0018, 0x9755},
-		Value: values})
+		Value: values}, write.Options{})
 	values = nil
 	values = append(values, uint32(1234))
 	values = append(values, uint32(2345))
 	write.Element(e, &element.Element{
 		Tag:   dicomtag.Tag{0x0020, 0x9057},
-		Value: values})
+		Value: values}, write.Options{})
 	data := e.Bytes()
 	// Read them back.
 	d := dicomio.NewBytesDecoder(data, bo, implicit)
@@ -71,7 +71,7 @@ func TestReadWriteFileHeader(t *testing.T) {
 			element.MustNewElement(dicomtag.TransferSyntaxUID, dicomuid.ImplicitVRLittleEndian),
 			element.MustNewElement(dicomtag.MediaStorageSOPClassUID, "1.2.840.10008.5.1.4.1.1.1.2"),
 			element.MustNewElement(dicomtag.MediaStorageSOPInstanceUID, "1.2.3.4.5.6.7"),
-		})
+		}, write.Options{})
 	bytes := e.Bytes()
 	d := dicomio.NewBytesDecoder(bytes, binary.LittleEndian, dicomio.ImplicitVR)
 	p, err := dicom.NewParserFromDecoder(d, nil)

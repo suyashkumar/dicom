@@ -7,12 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/dicomuid"
+	dicom "github.com/suyashkumar/dicom/legacy"
 	"github.com/suyashkumar/dicom/legacy/dicomio"
 	"github.com/suyashkumar/dicom/legacy/dicomtag"
 	"github.com/suyashkumar/dicom/legacy/element"
-	"github.com/suyashkumar/dicom/write"
+	"github.com/suyashkumar/dicom/legacy/write"
 )
 
 func testWriteDataElement(t *testing.T, bo binary.ByteOrder, implicit dicomio.IsImplicitVR) {

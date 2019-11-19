@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	GROUP_ItemSeq = 0xFFFE
-	UNKNOWN       = "UN"
+	GROUP_ItemSeq            = 0xFFFE
+	UNKNOWN                  = "UN"
+	VLUndefinedLength uint32 = 0xffffffff
 )
 
 // Tag is a <group, element> tuple that identifies an element type in a DICOM

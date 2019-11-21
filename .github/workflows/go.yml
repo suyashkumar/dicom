@@ -36,7 +36,7 @@ jobs:
             export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
             export PATH=$PATH:/home/runner/go/bin
             cd $REPO_PATH
-            make
+            go build ./...
    
     - name: Test
       run: |
@@ -45,5 +45,5 @@ jobs:
             export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
             export PATH=$PATH:/home/runner/go/bin
             cd $REPO_PATH
-            make test
+            go test ./...
 

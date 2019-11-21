@@ -18,8 +18,8 @@ import (
 // Option is the type used for options for writing DICOM elements
 type Option func(o *optSet)
 
-// OptSkipVRVerification disables VR verification when encoding elements
-var OptSkipVRVerification Option = func(o *optSet) {
+// SkipVRVerification disables VR verification when encoding elements
+var SkipVRVerification Option = func(o *optSet) {
 	o.skipVRVerification = true
 }
 

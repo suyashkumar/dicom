@@ -115,7 +115,7 @@ func TestOptions(t *testing.T) {
 		},
 		VR: "SS",
 	}
-	write.Element(e, elem, write.OptSkipVRVerification)
+	write.Element(e, elem, write.SkipVRVerification)
 	err := e.Error()
 	require.NoError(t, err)
 

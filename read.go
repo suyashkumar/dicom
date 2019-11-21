@@ -158,6 +158,8 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 		val, err := r.ReadUInt32()
 		return &IntsValue{value: []int{int(val)}}, err
 	}
+
+	return nil, errors.New("could not parse integer type correctly")
 }
 
 func readElement() {}

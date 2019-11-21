@@ -6,7 +6,9 @@
   </p>
 </p>
 
-This is a (hard-ish) fork of work I did at [gradienthealth](https://github.com/gradienthealth/dicom) which built on top of [go-dicom](https://github.com/gillesdemey/go-dicom)--a golang DICOM image parsing library and command line tool. We have been working on this package with the goal of building a full-featured and high-performance dicom parser in Golang with new features and improvements. I will continue to add some (potentially API breaking) improvements on my repository fork here.
+This is a (hard-ish) fork of work I did at [gradienthealth](https://github.com/gradienthealth/dicom) which built on top of [go-dicom](https://github.com/gillesdemey/go-dicom)--a golang DICOM image parsing library and command line tool. We have been working on this package with the goal of building a full-featured and high-performance dicom parser in Golang with major new features and improvements. I will continue to add some (potentially API breaking) improvements on my repository fork here, and have added many such improvements (and general maintenance) to date.
+
+:eyes: Note: there is a fairly significant rewrite and refactor I am exploring that's in progress at branch [s/1.0-rewrite](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite), which further cleans up the API, rewrites critical sections of the code, improves performance, and more. 
 
 So far, improvements that have made on top of [go-dicom](https://github.com/gillesdemey/go-dicom) include: 
 - [x] parsing and extracting multi-frame DICOM imagery (both encapsulated and native pixel data)

@@ -35,6 +35,7 @@ type ValueType int
 const (
 	Strings ValueType = iota
 	Bytes
+	Ints
 )
 
 // Begin definitions of Values:
@@ -48,7 +49,7 @@ func (b *BytesValue) isElementValue()       {}
 func (b *BytesValue) ValueType() ValueType  { return Bytes }
 func (b *BytesValue) GetValue() interface{} { return b.value }
 
-// StringsValue represents a value of []byte.
+// StringsValue represents a value of []string.
 type StringsValue struct {
 	value []string
 }
@@ -56,3 +57,12 @@ type StringsValue struct {
 func (s *StringsValue) isElementValue()       {}
 func (s *StringsValue) ValueType() ValueType  { return Strings }
 func (s *StringsValue) GetValue() interface{} { return s.value }
+
+// IntsValue represents a value of []int.
+type IntsValue struct {
+	value []int
+}
+
+func (s *IntsValue) isElementValue()       {}
+func (s *IntsValue) ValueType() ValueType  { return Ints }
+func (s *IntsValue) GetValue() interface{} { return s.value }

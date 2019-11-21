@@ -85,6 +85,10 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readBytes(r, t, vr, vl)
 	case tag.VRString:
 		return readString(r, t, vr, vl)
+	case tag.VRDate:
+		return readDate(r, t, vr, vl)
+	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List:
+		return readInt(r, t, vr, vl)
 
 	}
 
@@ -131,6 +135,29 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 	strs := strings.Split(str, "\\")
 
 	return &StringsValue{value: strs}, err
+}
+
+func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	rawDate, err := r.ReadString(vl)
+	if err != nil {
+		return nil, err
+	}
+	date := strings.Trim(rawDate, " \000")
+
+	return &StringsValue{value: []string{date}}, nil
+
+}
+
+func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	// TODO: add other integer types here
+	switch vr {
+	case "US":
+		val, err := r.ReadUInt16()
+		return &IntsValue{value: []int{int(val)}}, err
+	case "UL":
+		val, err := r.ReadUInt32()
+		return &IntsValue{value: []int{int(val)}}, err
+	}
 }
 
 func readElement() {}

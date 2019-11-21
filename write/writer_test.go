@@ -102,3 +102,24 @@ func TestNewElement(t *testing.T) {
 	elem, err = element.NewElement(dicomtag.TriggerSamplePosition, "foo")
 	require.Error(t, err)
 }
+
+func TestOptions(t *testing.T) {
+	e := dicomio.NewBytesEncoder(binary.LittleEndian, dicomio.ExplicitVR)
+	elem := &element.Element{
+		Tag: dicomtag.Tag{
+			0x0028,
+			0x0120,
+		},
+		Value: []interface{}{
+			int16(-2000),
+		},
+		VR: "SS",
+	}
+	write.Element(e, elem, write.SkipVRVerification)
+	err := e.Error()
+	require.NoError(t, err)
+
+	write.Element(e, elem)
+	err = e.Error()
+	require.Error(t, err)
+}

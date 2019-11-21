@@ -5,9 +5,8 @@
 package mock_dicomio
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
 // MockReader is a mock of Reader interface
@@ -91,6 +90,36 @@ func (m *MockReader) ReadUInt32() (uint32, error) {
 func (mr *MockReaderMockRecorder) ReadUInt32() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadUInt32", reflect.TypeOf((*MockReader)(nil).ReadUInt32))
+}
+
+// ReadInt16 mocks base method
+func (m *MockReader) ReadInt16() (int16, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadInt16")
+	ret0, _ := ret[0].(int16)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadInt16 indicates an expected call of ReadInt16
+func (mr *MockReaderMockRecorder) ReadInt16() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadInt16", reflect.TypeOf((*MockReader)(nil).ReadInt16))
+}
+
+// ReadInt32 mocks base method
+func (m *MockReader) ReadInt32() (int32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadInt32")
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadInt32 indicates an expected call of ReadInt32
+func (mr *MockReaderMockRecorder) ReadInt32() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadInt32", reflect.TypeOf((*MockReader)(nil).ReadInt32))
 }
 
 // ReadString mocks base method

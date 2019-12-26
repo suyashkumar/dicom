@@ -18,6 +18,7 @@ type Element struct {
 	ValueRepresentation    tag.VRKind
 	RawValueRepresentation string
 	ValueLength            uint32
+	UndefinedLength        bool
 	Value                  Value
 }
 

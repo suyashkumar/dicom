@@ -2,8 +2,11 @@ package dicomio
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 )
+
+var ErrorLimitReached = errors.New("buffer limit reached")
 
 type Reader interface {
 	io.Reader
@@ -14,6 +17,8 @@ type Reader interface {
 	ReadInt32() (int32, error)
 	ReadString(n uint32) (string, error)
 	Skip(n uint) error
+	PushLimit(n uint)
+	PopLimit()
 }
 
 type reader struct {

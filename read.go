@@ -13,6 +13,7 @@ import (
 
 var ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
 var ErrorUnsupportedVR = errors.New("unsupported VR")
+var ErrorReadingMagicWord = errors.New("error reading the DICM magic word")
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {
 	group, gerr := r.ReadUInt16()
@@ -79,6 +80,7 @@ func readRawValue(r dicomio.Reader, vl uint32) ([]byte, error) {
 
 func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool) (Value, error) {
 	// TODO: implement
+	// TODO: consolidate VR enums and strings
 	vrkind := tag.GetVRKind(t, vr)
 	switch vrkind {
 	case tag.VRBytes:
@@ -150,6 +152,7 @@ func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) 
 
 func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add other integer types here
+	// TODO: use enum values for VR
 	switch vr {
 	case "US":
 		val, err := r.ReadUInt16()
@@ -157,9 +160,120 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	case "UL":
 		val, err := r.ReadUInt32()
 		return &IntsValue{value: []int{int(val)}}, err
+	case "SL":
+		val, err := r.ReadInt32()
+		return &IntsValue{value: []int{int(val)}}, err
+	case "SS":
+		val, err := r.ReadInt16()
+		return &IntsValue{value: []int{int(val)}}, err
+	default:
+		return &IntsValue{}, ErrorUnsupportedVR // TODO: consider a better error
 	}
 
-	return nil, errors.New("could not parse integer type correctly")
 }
 
-func readElement() {}
+func readHeaderAndMetadata(r dicomio.Reader) ([]*Element, error) {
+	// Assume Little Endian Explicit VR Transfer Syntax
+	err := r.Skip(128) // Skip Preamble
+	if err != nil {
+		return []*Element{}, err // consider returning a more descriptive error
+	}
+
+	// Check for the magic word:
+	if magic, err := r.ReadString(4); err != nil || magic != "DICM" {
+		return []*Element{}, ErrorReadingMagicWord
+	}
+
+	// (0002,0000) MetaElementGroupLength
+	metaElement, err := readElement(r)
+
+	if err != nil {
+		return []*Element{}, err
+	}
+
+	if metaElement.Tag != tag.FileMetaInformationGroupLength {
+		return []*Element{}, err
+	}
+
+	metaElements := []*Element{metaElement}
+
+	lim, ok := metaElement.Value.(*IntsValue)
+	if !ok {
+		return []*Element{}, errors.New("Issue parsing metaelementgrouplength value")
+	}
+
+	// Read the metadata elements
+	r.PushLimit(uint(lim.value[0]))
+	defer r.PopLimit()
+
+	elem, readErr := readElement(r)
+	for readErr == nil {
+		metaElements = append(metaElements, elem)
+		elem, readErr = readElement(r)
+	}
+
+	if readErr != dicomio.ErrorLimitReached {
+		return metaElements, readErr
+	}
+
+	return metaElements, nil
+}
+
+func readElement(r dicomio.Reader) (*Element, error) {
+	currTag, err := readTag(r)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: add options to stop at tag, drop pixel data, etc here.
+	// TODO: support other TransferSyntaxes (other than little endian explicit)
+
+	vr, err := readVR(r, false, *currTag)
+	vl, err := readVL(r, false, *currTag, vr)
+
+	val, err := readValue(r, *currTag, vr, vl, false)
+
+	return &Element{Tag: *currTag, RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
+
+}
+
+func readDICOM(r dicomio.Reader) ([]*Element, error) {
+	dataSet, err := readHeaderAndMetadata(r)
+	if err != nil {
+		return []*Element{}, err
+	}
+	// TODO: set different transfer syntax here if needed in future, now that we have read metadata elements
+
+	// Read all DICOM elements:
+	elem, readErr := readElement(r)
+	for readErr == nil {
+		if elem.ValueRepresentation == tag.VRSequence {
+			if elem.UndefinedLength {
+				for {
+					subElem, err := readElement(r)
+					if err != nil {
+						break
+					}
+					if subElem.Tag == tag.SequenceDelimitationItem {
+						break
+					}
+
+					if subElem.Tag == tag.Item {
+						//TODO: Parse Items
+
+					} else {
+						//TODO: validation error?
+						return []*Element{}, nil
+					}
+					dataSet = append(dataSet, subElem)
+				}
+			} else {
+				// TODO: SQ implementation with defined VL
+				return dataSet, errors.New("SQ with defined VL not implemented yet")
+			}
+		}
+		dataSet = append(dataSet, elem)
+		elem, readErr = readElement(r)
+	}
+
+	return dataSet, nil
+}

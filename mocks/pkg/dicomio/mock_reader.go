@@ -150,3 +150,27 @@ func (mr *MockReaderMockRecorder) Skip(n interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Skip", reflect.TypeOf((*MockReader)(nil).Skip), n)
 }
+
+// PushLimit mocks base method
+func (m *MockReader) PushLimit(n uint) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "PushLimit", n)
+}
+
+// PushLimit indicates an expected call of PushLimit
+func (mr *MockReaderMockRecorder) PushLimit(n interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PushLimit", reflect.TypeOf((*MockReader)(nil).PushLimit), n)
+}
+
+// PopLimit mocks base method
+func (m *MockReader) PopLimit() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "PopLimit")
+}
+
+// PopLimit indicates an expected call of PopLimit
+func (mr *MockReaderMockRecorder) PopLimit() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopLimit", reflect.TypeOf((*MockReader)(nil).PopLimit))
+}

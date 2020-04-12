@@ -80,6 +80,7 @@ func readRawValue(r dicomio.Reader, vl uint32) ([]byte, error) {
 func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool) (Value, error) {
 	// TODO: implement
 	vrkind := tag.GetVRKind(t, vr)
+	// TODO: if we keep consistent function signature, consider a static map of VR to func?
 	switch vrkind {
 	case tag.VRBytes:
 		return readBytes(r, t, vr, vl)
@@ -89,10 +90,39 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readDate(r, t, vr, vl)
 	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List:
 		return readInt(r, t, vr, vl)
-
+	case tag.VRSequence:
+		return readSequence(r, t, vr, vl)
 	}
 
 	return nil, fmt.Errorf("unsure how to parse this VR")
+}
+
+func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	var subElements ElementPtrsValue
+
+	if vl == tag.VLUndefinedLength {
+		for {
+			subElement, err := readElement(r)
+			if err != nil {
+				// Stop reading due to error
+				return nil, err
+			}
+			if subElement.Tag == tag.SequenceDelimitationItem {
+				// Stop reading
+				break
+			}
+			if subElement.Tag != tag.Item {
+				// This is an error, should be an Item!
+				// TODO: use error var
+				return nil, fmt.Errorf("non item found in sequence")
+			}
+			subElements.value = append(subElements.value, subElement)
+		}
+	} else {
+		// TODO: implement
+	}
+
+	return &subElements, nil
 }
 
 func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
@@ -162,4 +192,26 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	return nil, errors.New("could not parse integer type correctly")
 }
 
-func readElement() {}
+// readElement reads the next element. If the next element is a sequence element,
+// it may result in a collection of Elements.
+func readElement(r dicomio.Reader) (*Element, error) {
+	t, err := readTag(r)
+	if err != nil {
+		return nil, err
+	}
+
+	vr, err := readVR(r, false, *t)
+	if err != nil {
+		return nil, err
+	}
+
+	vl, err := readVL(r, false, *t, vr)
+	if err != nil {
+		return nil, err
+	}
+
+	val, err := readValue(r, *t, vr, vl, false)
+
+	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), ValueLength: vl, Value: val}, nil
+
+}

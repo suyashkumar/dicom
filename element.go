@@ -36,6 +36,7 @@ const (
 	Strings ValueType = iota
 	Bytes
 	Ints
+	ElementPtrs
 )
 
 // Begin definitions of Values:
@@ -66,3 +67,12 @@ type IntsValue struct {
 func (s *IntsValue) isElementValue()       {}
 func (s *IntsValue) ValueType() ValueType  { return Ints }
 func (s *IntsValue) GetValue() interface{} { return s.value }
+
+// ElementPtrsValue represents a slice of pointers to other Elements (in the case of sequences)
+type ElementPtrsValue struct {
+	value []*Element
+}
+
+func (e *ElementPtrsValue) isElementValue()       {}
+func (e *ElementPtrsValue) ValueType() ValueType  { return ElementPtrs }
+func (e *ElementPtrsValue) GetValue() interface{} { return e.value }

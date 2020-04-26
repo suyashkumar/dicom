@@ -26,7 +26,7 @@ type Value interface {
 	// implement "oneof" in Go
 	isElementValue()
 	ValueType() ValueType
-	GetValue() interface{}
+	GetValue() interface{} // TODO: rename to Get to read cleaner
 }
 
 type ValueType int

@@ -1,6 +1,8 @@
 package dicom
 
 import (
+	"fmt"
+
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
@@ -21,12 +23,17 @@ type Element struct {
 	Value                  Value
 }
 
+func (e *Element) String() string {
+	return fmt.Sprintf("Tag:%s\nVR:%s\nValue:%s\n\n", e.Tag.String(), e.ValueRepresentation.String(), e.Value.String())
+}
+
 type Value interface {
 	// All types that can be a "Value" for an element will implement this empty method, similar to how protocol buffers
 	// implement "oneof" in Go
 	isElementValue()
 	ValueType() ValueType
 	GetValue() interface{} // TODO: rename to Get to read cleaner
+	String() string
 }
 
 type ValueType int
@@ -49,6 +56,9 @@ type BytesValue struct {
 func (b *BytesValue) isElementValue()       {}
 func (b *BytesValue) ValueType() ValueType  { return Bytes }
 func (b *BytesValue) GetValue() interface{} { return b.value }
+func (b *BytesValue) String() string {
+	return fmt.Sprintf("%v", b.value)
+}
 
 // StringsValue represents a value of []string.
 type StringsValue struct {
@@ -58,6 +68,9 @@ type StringsValue struct {
 func (s *StringsValue) isElementValue()       {}
 func (s *StringsValue) ValueType() ValueType  { return Strings }
 func (s *StringsValue) GetValue() interface{} { return s.value }
+func (s *StringsValue) String() string {
+	return fmt.Sprintf("%v", s.value)
+}
 
 // IntsValue represents a value of []int.
 type IntsValue struct {
@@ -67,6 +80,9 @@ type IntsValue struct {
 func (s *IntsValue) isElementValue()       {}
 func (s *IntsValue) ValueType() ValueType  { return Ints }
 func (s *IntsValue) GetValue() interface{} { return s.value }
+func (s *IntsValue) String() string {
+	return fmt.Sprintf("%v", s.value)
+}
 
 // ElementPtrsValue represents a slice of pointers to other Elements (in the case of sequences)
 type ElementPtrsValue struct {
@@ -76,3 +92,7 @@ type ElementPtrsValue struct {
 func (e *ElementPtrsValue) isElementValue()       {}
 func (e *ElementPtrsValue) ValueType() ValueType  { return ElementPtrs }
 func (e *ElementPtrsValue) GetValue() interface{} { return e.value }
+func (e *ElementPtrsValue) String() string {
+	// TODO: consider adding more sophisticated formatting
+	return ""
+}

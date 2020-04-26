@@ -12,17 +12,29 @@ var (
 	ErrorInsufficientBytesLeft = errors.New("not enough bytes left until buffer limit to complete this operation")
 )
 
+// Reader provides common functionality for reading underlying DICOM data.
 type Reader interface {
 	io.Reader
+	// ReadUInt16 reads a uint16 from the underlying reader
 	ReadUInt16() (uint16, error)
+	// ReadUInt32 reads a uint32 from the underlying reader
 	ReadUInt32() (uint32, error)
+	// ReadInt16 reads a int16 from the underlying reader
 	ReadInt16() (int16, error)
+	// ReadInt32 reads a int32 from the underlying reader
 	ReadInt32() (int32, error)
+	// ReadString reads an n byte string from the underlying reader
 	ReadString(n uint32) (string, error)
+	// Skip skips the reader ahead by n bytes
 	Skip(n int64) error
+	// PushLimit sets a read limit of n bytes from the current position of the reader. Once the limit is reached,
+	// IsLimitExhausted will return true, and other attempts to read data from dicomio.Reader will return io.EOF.
 	PushLimit(n int64) error
+	// PopLimit removes the most recent limit set, and restores the limit before that one.
 	PopLimit()
+	// IsLimitExhausted indicates whether or not we have read up to the currently set limit position.
 	IsLimitExhausted() bool
+	// BytesLeftUntilLimit returns the number of bytes remaining until we reach the currently set limit posiiton.
 	BytesLeftUntilLimit() int64
 }
 
@@ -47,7 +59,6 @@ func (r *reader) BytesLeftUntilLimit() int64 {
 	return r.limit - r.bytesRead
 }
 
-// Read
 func (r *reader) Read(p []byte) (int, error) {
 	// Check if we've hit the limit
 	if r.BytesLeftUntilLimit() <= 0 {
@@ -69,7 +80,6 @@ func (r *reader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// TODO: Implement the rest of these interface functions
 func (r *reader) ReadUInt16() (uint16, error) {
 	var out uint16
 	err := binary.Read(r, r.bo, &out)
@@ -127,6 +137,7 @@ func (r *reader) PopLimit() {
 		// didn't read all the way to the limit, so skip over what's left.
 		_ = r.Skip(r.limit - r.bytesRead)
 	}
+	// TODO: return an error if trying to Pop the last limit off the slice
 	last := len(r.limitStack) - 1
 	r.limit = r.limitStack[last]
 	r.limitStack = r.limitStack[:last]

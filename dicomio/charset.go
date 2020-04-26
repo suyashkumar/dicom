@@ -41,7 +41,7 @@ const (
 // Mapping of DICOM charset name to golang encoding/htmlindex name.  "" means
 // 7bit ascii.
 var htmlEncodingNames = map[string]string{
-	'ISO_IR 6':        "iso-8859-1",
+	"ISO_IR 6":        "iso-8859-1",
 	"ISO 2022 IR 6":   "iso-8859-1",
 	"ISO_IR 13":       "shift_jis",
 	"ISO 2022 IR 13":  "shift_jis",

@@ -2,8 +2,13 @@ package dicomio
 
 import (
 	"encoding/binary"
-	"fmt"
+	"errors"
 	"io"
+	"io/ioutil"
+)
+
+var (
+	ErrorInsufficientBytesLeft = errors.New("not enough bytes left until buffer limit to complete this operation")
 )
 
 type Reader interface {
@@ -13,7 +18,7 @@ type Reader interface {
 	ReadInt16() (int16, error)
 	ReadInt32() (int32, error)
 	ReadString(n uint32) (string, error)
-	Skip(n uint) error
+	Skip(n int64) error
 	PushLimit(n int64)
 	PopLimit()
 	IsLimitExhausted() bool
@@ -93,34 +98,15 @@ func (r *reader) ReadString(n uint32) (string, error) {
 	// TODO: add support for different coding systems
 	return string(data), err
 }
-func (r *reader) Skip(n uint) error {
-	if r.BytesLeftUntilLimit() < int64(n) {
+func (r *reader) Skip(n int64) error {
+	if r.BytesLeftUntilLimit() < n {
 		// not enough left to skip
-		fmt.Println("SKIP ERR")
-		return nil
-	}
-	skipChunkSize := 1 << 16
-	if int(n) < skipChunkSize {
-		skipChunkSize = int(n)
+		return ErrorInsufficientBytesLeft
 	}
 
-	junk := make([]byte, skipChunkSize)
-	remaining := int(n)
+	_, err := io.CopyN(ioutil.Discard, r, n)
 
-	for remaining > 0 {
-		tmpLength := len(junk)
-		if remaining < tmpLength {
-			tmpLength = remaining
-		}
-		tmpBuf := junk[:tmpLength]
-		n, err := r.Read(tmpBuf)
-		if err != nil {
-			return err
-		}
-		remaining -= n
-	}
-
-	return nil
+	return err
 }
 
 // PushLimit creates a limit n bytes from the current position
@@ -137,7 +123,7 @@ func (r *reader) PushLimit(n int64) {
 func (r *reader) PopLimit() {
 	if r.bytesRead < r.limit {
 		// didn't read all the way to the limit, so skip over what's left.
-		_ = r.Skip(uint(r.limit - r.bytesRead))
+		_ = r.Skip(r.limit - r.bytesRead)
 	}
 	last := len(r.limitStack) - 1
 	r.limit = r.limitStack[last]

@@ -94,5 +94,5 @@ func (e *ElementPtrsValue) ValueType() ValueType  { return ElementPtrs }
 func (e *ElementPtrsValue) GetValue() interface{} { return e.value }
 func (e *ElementPtrsValue) String() string {
 	// TODO: consider adding more sophisticated formatting
-	return fmt.Sprintf("%+v", e.value)
+	return ""
 }

@@ -2,21 +2,22 @@ package dicomio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
 type Reader interface {
 	io.Reader
-	ReadN(n uint32) ([]byte, error)
 	ReadUInt16() (uint16, error)
 	ReadUInt32() (uint32, error)
 	ReadInt16() (int16, error)
 	ReadInt32() (int32, error)
 	ReadString(n uint32) (string, error)
 	Skip(n uint) error
-	PushLimit(n int)
+	PushLimit(n int64)
 	PopLimit()
 	IsLimitExhausted() bool
+	BytesLeftUntilLimit() int64
 }
 
 type reader struct {
@@ -36,23 +37,117 @@ func NewReader(in io.Reader, bo binary.ByteOrder, limit int64) (Reader, error) {
 	}, nil
 }
 
-// TODO: Implement the rest of these interface functions
-func (r *reader) ReadN(n uint32) ([]byte, error) {
-	return nil, nil
+func (r *reader) BytesLeftUntilLimit() int64 {
+	return r.limit - r.bytesRead
 }
 
+// Read
+func (r *reader) Read(p []byte) (int, error) {
+	//fmt.Println("bytes left", r.BytesLeftUntilLimit())
+	//fmt.Println("bytes asked", len(p))
+	// Check if we've hit the limit
+	if r.BytesLeftUntilLimit() <= 0 {
+		if len(p) == 0 {
+			return 0, nil
+		}
+		fmt.Println("bytes left", r.BytesLeftUntilLimit())
+		fmt.Println("bytes asked", len(p))
+		return 0, io.EOF
+	}
+
+	// If asking for more than we have left, just return whatever we've got left
+	// TODO: return a special kind of error if this situation occurs to inform the caller
+	if int64(len(p)) > r.BytesLeftUntilLimit() {
+		p = p[:r.limit]
+	}
+	n, err := r.in.Read(p)
+	if n >= 0 {
+		r.bytesRead += int64(n)
+	}
+	return n, err
+}
+
+// TODO: Implement the rest of these interface functions
 func (r *reader) ReadUInt16() (uint16, error) {
 	var out uint16
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
 
-func (r *reader) ReadUInt32() (uint32, error)         { return 0, nil }
-func (r *reader) ReadInt16() (int16, error)           { return 0, nil }
-func (r *reader) ReadInt32() (int32, error)           { return 0, nil }
-func (r *reader) ReadString(n uint32) (string, error) { return "", nil }
-func (r *reader) Skip(n uint) error                   { return nil }
-func (r *reader) Read(p []byte) (n int, err error)    { return r.in.Read(p) }
-func (r *reader) PushLimit(n int)                     {}
-func (r *reader) PopLimit()                           {}
-func (r *reader) IsLimitExhausted() bool              { return false }
+func (r *reader) ReadUInt32() (uint32, error) {
+	var out uint32
+	err := binary.Read(r, r.bo, &out)
+	return out, err
+}
+
+func (r *reader) ReadInt16() (int16, error) {
+	var out int16
+	err := binary.Read(r, r.bo, &out)
+	return out, err
+}
+
+func (r *reader) ReadInt32() (int32, error) {
+	var out int32
+	err := binary.Read(r, r.bo, &out)
+	return out, err
+}
+func (r *reader) ReadString(n uint32) (string, error) {
+	data := make([]byte, n)
+	_, err := r.Read(data)
+	// TODO: add support for different coding systems
+	return string(data), err
+}
+func (r *reader) Skip(n uint) error {
+	if r.BytesLeftUntilLimit() < int64(n) {
+		// not enough left to skip
+		fmt.Println("SKIP ERR")
+		return nil
+	}
+	skipChunkSize := 1 << 16
+	if int(n) < skipChunkSize {
+		skipChunkSize = int(n)
+	}
+
+	junk := make([]byte, skipChunkSize)
+	remaining := int(n)
+
+	for remaining > 0 {
+		tmpLength := len(junk)
+		if remaining < tmpLength {
+			tmpLength = remaining
+		}
+		tmpBuf := junk[:tmpLength]
+		n, err := r.Read(tmpBuf)
+		if err != nil {
+			return err
+		}
+		remaining -= n
+	}
+
+	return nil
+}
+
+// PushLimit creates a limit n bytes from the current position
+func (r *reader) PushLimit(n int64) {
+	newLimit := r.bytesRead + n
+	if newLimit > r.limit {
+		// error
+	}
+
+	// Add current limit to the stack
+	r.limitStack = append(r.limitStack, r.limit)
+	r.limit = newLimit
+}
+func (r *reader) PopLimit() {
+	if r.bytesRead < r.limit {
+		// didn't read all the way to the limit, so skip over what's left.
+		_ = r.Skip(uint(r.limit - r.bytesRead))
+	}
+	last := len(r.limitStack) - 1
+	r.limit = r.limitStack[last]
+	r.limitStack = r.limitStack[:last]
+}
+
+func (r *reader) IsLimitExhausted() bool {
+	return r.BytesLeftUntilLimit() <= 0
+}

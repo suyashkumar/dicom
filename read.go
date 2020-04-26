@@ -28,7 +28,7 @@ func readTag(r dicomio.Reader) (*tag.Tag, error) {
 // TODO: Parsed VR should be an enum. Will require refactors of tag pkg.
 func readVR(r dicomio.Reader, isImplicit bool, t tag.Tag) (string, error) {
 	if isImplicit {
-		if entry, err := tag.Find(t); err != nil {
+		if entry, err := tag.Find(t); err == nil {
 			return entry.VR, nil
 		}
 		return tag.UNKNOWN, nil

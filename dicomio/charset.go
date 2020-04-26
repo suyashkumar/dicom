@@ -94,7 +94,7 @@ func ParseSpecificCharacterSet(encodingNames []string) (CodingSystem, error) {
 		dicomlog.Vprintf(2, "dicom.ParseSpecificCharacterSet: Using coding system %s", name)
 		if htmlName, ok := htmlEncodingNames[name]; !ok {
 			// TODO(saito) Support more encodings.
-			return CodingSystem{}, fmt.Errorf("dicom.ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", encodingNames[0])
+			return CodingSystem{}, fmt.Errorf("dicom.ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", name)
 		} else {
 			if htmlName != "" {
 				d, err := htmlindex.Get(htmlName)

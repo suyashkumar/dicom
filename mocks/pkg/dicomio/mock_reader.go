@@ -123,7 +123,7 @@ func (mr *MockReaderMockRecorder) ReadString(n interface{}) *gomock.Call {
 }
 
 // Skip mocks base method
-func (m *MockReader) Skip(n uint) error {
+func (m *MockReader) Skip(n int64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Skip", n)
 	ret0, _ := ret[0].(error)

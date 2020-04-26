@@ -28,7 +28,7 @@ func readTag(r dicomio.Reader) (*tag.Tag, error) {
 // TODO: Parsed VR should be an enum. Will require refactors of tag pkg.
 func readVR(r dicomio.Reader, isImplicit bool, t tag.Tag) (string, error) {
 	if isImplicit {
-		if entry, err := tag.Find(t); err != nil {
+		if entry, err := tag.Find(t); err == nil {
 			return entry.VR, nil
 		}
 		return tag.UNKNOWN, nil
@@ -60,7 +60,7 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 		}
 		return vl, nil
 	default:
-		vl16, err := r.ReadUInt32()
+		vl16, err := r.ReadUInt16()
 		if err != nil {
 			return 0, err
 		}
@@ -71,10 +71,6 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 		}
 		return vl, nil
 	}
-}
-
-func readRawValue(r dicomio.Reader, vl uint32) ([]byte, error) {
-	return r.ReadN(vl)
 }
 
 func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool) (Value, error) {
@@ -92,6 +88,8 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readInt(r, t, vr, vl)
 	case tag.VRSequence:
 		return readSequence(r, t, vr, vl)
+	default:
+		return readString(r, t, vr, vl)
 	}
 
 	return nil, fmt.Errorf("unsure how to parse this VR")
@@ -120,7 +118,10 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 		}
 	} else {
 		// Sequence of elements for a total of VL bytes
-		r.PushLimit(int(vl))
+		err := r.PushLimit(int64(vl))
+		if err != nil {
+			return nil, err
+		}
 		for !r.IsLimitExhausted() {
 			subElem, err := readElement(r)
 			if err != nil {

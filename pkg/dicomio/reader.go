@@ -2,8 +2,13 @@ package dicomio
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
+)
+
+var (
+	ErrorBytesNotAvailable = errors.New("asked for more bytes than available in this reader (based on current limit)")
 )
 
 type Reader interface {
@@ -93,7 +98,7 @@ func (r *reader) ReadInt32() (int32, error) {
 }
 func (r *reader) ReadString(n uint32) (string, error) {
 	data := make([]byte, n)
-	_, err := r.Read(data)
+	_, err := io.ReadFull(r, data)
 	// TODO: add support for different coding systems
 	return string(data), err
 }

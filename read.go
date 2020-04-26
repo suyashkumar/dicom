@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 
@@ -303,8 +304,7 @@ func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 	}
 	log.Println("VL ", vl)
 	data := make([]byte, vl)
-	n, err := r.Read(data)
-	log.Println("bytes read", n)
+	_, err = io.ReadFull(r, data)
 	if err != nil {
 		log.Println(err)
 		return nil, false, err

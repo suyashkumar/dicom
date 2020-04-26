@@ -119,7 +119,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 			subElements.value = append(subElements.value, subElement)
 		}
 	} else {
-		// TODO: implement
+		// TODO: implement. Needs support for pushing byte limits to dicomio.Reader
 	}
 
 	return &subElements, nil

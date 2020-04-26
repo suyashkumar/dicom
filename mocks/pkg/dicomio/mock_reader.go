@@ -47,21 +47,6 @@ func (mr *MockReaderMockRecorder) Read(p interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockReader)(nil).Read), p)
 }
 
-// ReadN mocks base method
-func (m *MockReader) ReadN(n uint32) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReadN", n)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ReadN indicates an expected call of ReadN
-func (mr *MockReaderMockRecorder) ReadN(n interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadN", reflect.TypeOf((*MockReader)(nil).ReadN), n)
-}
-
 // ReadUInt16 mocks base method
 func (m *MockReader) ReadUInt16() (uint16, error) {
 	m.ctrl.T.Helper()
@@ -138,7 +123,7 @@ func (mr *MockReaderMockRecorder) ReadString(n interface{}) *gomock.Call {
 }
 
 // Skip mocks base method
-func (m *MockReader) Skip(n uint) error {
+func (m *MockReader) Skip(n int64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Skip", n)
 	ret0, _ := ret[0].(error)
@@ -152,9 +137,11 @@ func (mr *MockReaderMockRecorder) Skip(n interface{}) *gomock.Call {
 }
 
 // PushLimit mocks base method
-func (m *MockReader) PushLimit(n int) {
+func (m *MockReader) PushLimit(n int64) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "PushLimit", n)
+	ret := m.ctrl.Call(m, "PushLimit", n)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // PushLimit indicates an expected call of PushLimit
@@ -187,4 +174,18 @@ func (m *MockReader) IsLimitExhausted() bool {
 func (mr *MockReaderMockRecorder) IsLimitExhausted() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLimitExhausted", reflect.TypeOf((*MockReader)(nil).IsLimitExhausted))
+}
+
+// BytesLeftUntilLimit mocks base method
+func (m *MockReader) BytesLeftUntilLimit() int64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BytesLeftUntilLimit")
+	ret0, _ := ret[0].(int64)
+	return ret0
+}
+
+// BytesLeftUntilLimit indicates an expected call of BytesLeftUntilLimit
+func (mr *MockReaderMockRecorder) BytesLeftUntilLimit() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BytesLeftUntilLimit", reflect.TypeOf((*MockReader)(nil).BytesLeftUntilLimit))
 }

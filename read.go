@@ -281,7 +281,7 @@ func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 	}
 	if *t == tag.SequenceDelimitationItem {
 		if vl != 0 {
-			log.Printf("SequenceDelimitationItem's VL != 0: %s", vl)
+			log.Printf("SequenceDelimitationItem's VL != 0: %d", vl)
 		}
 		return nil, true, nil
 	}

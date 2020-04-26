@@ -87,7 +87,10 @@ func (p *parser) readHeader() ([]*Element, error) {
 	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
 
 	// Read the metadata elements
-	p.reader.PushLimit(int64(metaLen))
+	err = p.reader.PushLimit(int64(metaLen))
+	if err != nil {
+		return nil, err
+	}
 	defer p.reader.PopLimit()
 	for !p.reader.IsLimitExhausted() {
 		elem, err := readElement(p.reader)

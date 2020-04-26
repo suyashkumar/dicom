@@ -118,7 +118,10 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 		}
 	} else {
 		// Sequence of elements for a total of VL bytes
-		r.PushLimit(int64(vl))
+		err := r.PushLimit(int64(vl))
+		if err != nil {
+			return nil, err
+		}
 		for !r.IsLimitExhausted() {
 			subElem, err := readElement(r)
 			if err != nil {

@@ -3,6 +3,7 @@ package dicomio
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 )
@@ -19,7 +20,7 @@ type Reader interface {
 	ReadInt32() (int32, error)
 	ReadString(n uint32) (string, error)
 	Skip(n int64) error
-	PushLimit(n int64)
+	PushLimit(n int64) error
 	PopLimit()
 	IsLimitExhausted() bool
 	BytesLeftUntilLimit() int64
@@ -110,15 +111,16 @@ func (r *reader) Skip(n int64) error {
 }
 
 // PushLimit creates a limit n bytes from the current position
-func (r *reader) PushLimit(n int64) {
+func (r *reader) PushLimit(n int64) error {
 	newLimit := r.bytesRead + n
 	if newLimit > r.limit {
-		// error
+		return fmt.Errorf("new limit exceeds current limit of buffer, new limit: %d, limit: %d", newLimit, r.limit)
 	}
 
 	// Add current limit to the stack
 	r.limitStack = append(r.limitStack, r.limit)
 	r.limit = newLimit
+	return nil
 }
 func (r *reader) PopLimit() {
 	if r.bytesRead < r.limit {

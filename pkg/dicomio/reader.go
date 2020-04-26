@@ -2,13 +2,8 @@ package dicomio
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
-)
-
-var (
-	ErrorBytesNotAvailable = errors.New("asked for more bytes than available in this reader (based on current limit)")
 )
 
 type Reader interface {
@@ -48,22 +43,18 @@ func (r *reader) BytesLeftUntilLimit() int64 {
 
 // Read
 func (r *reader) Read(p []byte) (int, error) {
-	//fmt.Println("bytes left", r.BytesLeftUntilLimit())
-	//fmt.Println("bytes asked", len(p))
 	// Check if we've hit the limit
 	if r.BytesLeftUntilLimit() <= 0 {
 		if len(p) == 0 {
 			return 0, nil
 		}
-		fmt.Println("bytes left", r.BytesLeftUntilLimit())
-		fmt.Println("bytes asked", len(p))
 		return 0, io.EOF
 	}
 
 	// If asking for more than we have left, just return whatever we've got left
 	// TODO: return a special kind of error if this situation occurs to inform the caller
 	if int64(len(p)) > r.BytesLeftUntilLimit() {
-		p = p[:r.limit]
+		p = p[:r.BytesLeftUntilLimit()]
 	}
 	n, err := r.in.Read(p)
 	if n >= 0 {

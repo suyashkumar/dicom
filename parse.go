@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 	"os"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -49,7 +50,7 @@ func NewParser(in io.Reader, bytesToRead int64) (Parser, error) {
 
 	p.dataset = Dataset{Elements: elems}
 
-	return nil, nil
+	return &p, nil
 }
 
 func NewParserFromBytes(data []byte) (Parser, error) {
@@ -61,6 +62,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 	// Must read as LittleEndian explicit VR
 	err := p.reader.Skip(128) // skip preamble
 	if err != nil {
+		log.Println("skip er")
 		return nil, err
 	}
 
@@ -72,6 +74,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
 	maybeMetaLen, err := readElement(p.reader)
 	if err != nil {
+		log.Println("read element err")
 		return nil, err
 	}
 
@@ -79,27 +82,32 @@ func (p *parser) readHeader() ([]*Element, error) {
 		return nil, ErrorMetaElementGroupLength
 	}
 
-	metaLen := maybeMetaLen.Value.GetValue().(IntsValue).value[0]
+	metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
 
 	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
 
 	// Read the metadata elements
-	p.reader.PushLimit(metaLen)
+	err = p.reader.PushLimit(int64(metaLen))
+	if err != nil {
+		return nil, err
+	}
 	defer p.reader.PopLimit()
 	for !p.reader.IsLimitExhausted() {
 		elem, err := readElement(p.reader)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
+			log.Println("read element err")
+
 			return nil, err
 		}
+		log.Printf("Metadata Element: %s\n", elem)
 		metaElems = append(metaElems, elem)
 	}
-
 	return metaElems, nil
 }
 
 func (p *parser) Parse() (Dataset, error) {
-	for p.reader.IsLimitExhausted() {
+	for !p.reader.IsLimitExhausted() {
 		// TODO: avoid silent looping
 		elem, err := readElement(p.reader)
 		if err != nil {
@@ -113,5 +121,5 @@ func (p *parser) Parse() (Dataset, error) {
 		p.dataset.Elements = append(p.dataset.Elements, elem)
 	}
 
-	return Dataset{}, nil
+	return p.dataset, nil
 }

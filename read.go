@@ -119,7 +119,17 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 			subElements.value = append(subElements.value, subElement)
 		}
 	} else {
-		// TODO: implement. Needs support for pushing byte limits to dicomio.Reader
+		// Sequence of elements for a total of VL bytes
+		r.PushLimit(int(vl))
+		for !r.IsLimitExhausted() {
+			subElem, err := readElement(r)
+			if err != nil {
+				// TODO: option to ignore errors parsing subelements?
+				return nil, err
+			}
+			subElements.value = append(subElements.value, subElem)
+		}
+		r.PopLimit()
 	}
 
 	return &subElements, nil

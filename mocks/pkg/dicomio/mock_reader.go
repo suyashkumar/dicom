@@ -137,9 +137,11 @@ func (mr *MockReaderMockRecorder) Skip(n interface{}) *gomock.Call {
 }
 
 // PushLimit mocks base method
-func (m *MockReader) PushLimit(n int64) {
+func (m *MockReader) PushLimit(n int64) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "PushLimit", n)
+	ret := m.ctrl.Call(m, "PushLimit", n)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // PushLimit indicates an expected call of PushLimit

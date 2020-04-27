@@ -268,14 +268,13 @@ func readElement(r dicomio.Reader) (*Element, error) {
 
 }
 
-// Read an Item object as raw bytes, w/o parsing them into DataElement. Used to
-// parse pixel data.
+// Read an Item object as raw bytes, useful when parsing encapsulated PixelData
 func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 	t, err := readTag(r)
 	// Item is always encoded implicit. PS3.6 7.5
 	vr, err := readVR(r, true, *t)
 	vl, err := readVL(r, true, *t, vr)
-	//log.Println("VL ", vl)
+
 	if err != nil {
 		return nil, true, err
 	}

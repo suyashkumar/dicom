@@ -3,6 +3,7 @@ package dicom
 import (
 	"fmt"
 
+	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
@@ -44,6 +45,7 @@ const (
 	Bytes
 	Ints
 	ElementPtrs
+	PixelData
 )
 
 // Begin definitions of Values:
@@ -93,6 +95,25 @@ func (e *ElementPtrsValue) isElementValue()       {}
 func (e *ElementPtrsValue) ValueType() ValueType  { return ElementPtrs }
 func (e *ElementPtrsValue) GetValue() interface{} { return e.value }
 func (e *ElementPtrsValue) String() string {
+	// TODO: consider adding more sophisticated formatting
+	return ""
+}
+
+type PixelDataInfo struct {
+	Frames         []frame.Frame // Frames
+	IsEncapsulated bool
+	Offsets        []uint32 // BasicOffsetTable
+}
+
+// PixelDataValue represents DICOM PixelData
+type PixelDataValue struct {
+	PixelDataInfo
+}
+
+func (e *PixelDataValue) isElementValue()       {}
+func (e *PixelDataValue) ValueType() ValueType  { return PixelData }
+func (e *PixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
+func (e *PixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return ""
 }

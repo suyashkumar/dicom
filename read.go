@@ -5,9 +5,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"strings"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
+	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
@@ -88,11 +91,49 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readInt(r, t, vr, vl)
 	case tag.VRSequence:
 		return readSequence(r, t, vr, vl)
+	case tag.VRPixelData:
+		return readPixelData(r, t, vr, vl)
 	default:
 		return readString(r, t, vr, vl)
 	}
 
 	return nil, fmt.Errorf("unsure how to parse this VR")
+}
+
+func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	if vl == tag.VLUndefinedLength {
+		var image PixelDataInfo
+		image.IsEncapsulated = true
+		// The first Item in PixelData is the basic offset table. Skip this for now.
+		// TODO: use basic offset table
+		_, _, err := readRawItem(r)
+		if err != nil {
+			return nil, err
+		}
+
+		for !r.IsLimitExhausted() {
+			data, endOfItems, err := readRawItem(r)
+			if err != nil {
+				break
+			}
+
+			if endOfItems {
+				break
+			}
+			log.Println(len(data))
+
+			f := frame.Frame{
+				Encapsulated: true,
+				EncapsulatedData: frame.EncapsulatedFrame{
+					Data: data,
+				},
+			}
+
+			image.Frames = append(image.Frames, f)
+		}
+		return &PixelDataValue{PixelDataInfo: image}, nil
+	}
+	return nil, nil
 }
 
 func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
@@ -225,4 +266,41 @@ func readElement(r dicomio.Reader) (*Element, error) {
 
 	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), ValueLength: vl, Value: val}, nil
 
+}
+
+// Read an Item object as raw bytes, useful when parsing encapsulated PixelData
+func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
+	t, err := readTag(r)
+	// Item is always encoded implicit. PS3.6 7.5
+	vr, err := readVR(r, true, *t)
+	vl, err := readVL(r, true, *t, vr)
+
+	if err != nil {
+		return nil, true, err
+	}
+	if *t == tag.SequenceDelimitationItem {
+		if vl != 0 {
+			log.Printf("SequenceDelimitationItem's VL != 0: %d", vl)
+		}
+		return nil, true, nil
+	}
+	if *t != tag.Item {
+		log.Printf("Expect Item in pixeldata but found tag %s", tag.DebugString(*t))
+		return nil, false, nil
+	}
+	if vl == tag.VLUndefinedLength {
+		log.Println("Expect defined-length item in pixeldata")
+		return nil, false, nil
+	}
+	if vr != "NA" {
+		return nil, true, fmt.Errorf("readRawItem: expected VR=NA, got VR=%s", vr)
+	}
+
+	data := make([]byte, vl)
+	_, err = io.ReadFull(r, data)
+	if err != nil {
+		log.Println(err)
+		return nil, false, err
+	}
+	return data, false, nil
 }

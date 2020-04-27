@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -38,6 +39,12 @@ func main() {
 				log.Println(elem.Tag)
 				log.Println(elem.ValueLength)
 				log.Println(elem.Value)
+			} else {
+				imageInfo := elem.Value.GetValue().(dicom.PixelDataInfo)
+				err := ioutil.WriteFile("image_00.jpg", imageInfo.Frames[0].EncapsulatedData.Data, 0644)
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
 	}

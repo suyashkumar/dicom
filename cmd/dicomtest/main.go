@@ -1,7 +1,9 @@
+// Really basic sanity check program
 package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -21,19 +23,27 @@ func main() {
 	if len(*filepath) > 0 {
 		log.Println("start")
 		f, err := os.Open(*filepath)
+		defer f.Close()
+		if err != nil {
+			log.Println("err")
+			return
+		}
 		info, err := f.Stat()
 		if err != nil {
 			log.Println("err reading", err)
+			return
 		}
 		p, err := dicom.NewParser(f, info.Size())
 		if err != nil {
 			log.Println("err creating parser", err)
+			return
 		}
 		ds, err := p.Parse()
 		if err != nil {
 			log.Println("err parsing", err)
+			return
 		}
-		log.Println(len(ds.Elements))
+
 		for _, elem := range ds.Elements {
 			if elem.Tag != tag.PixelData {
 				log.Println(elem.Tag)
@@ -41,9 +51,12 @@ func main() {
 				log.Println(elem.Value)
 			} else {
 				imageInfo := elem.Value.GetValue().(dicom.PixelDataInfo)
-				err := ioutil.WriteFile("image_00.jpg", imageInfo.Frames[0].EncapsulatedData.Data, 0644)
-				if err != nil {
-					log.Println(err)
+				for i, frame := range imageInfo.Frames {
+					err := ioutil.WriteFile(fmt.Sprintf("image_%d.jpg", i), frame.EncapsulatedData.Data,
+						0644)
+					if err != nil {
+						log.Println(err)
+					}
 				}
 			}
 		}

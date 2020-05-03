@@ -147,7 +147,6 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 	if vl == tag.VLUndefinedLength {
 		for {
 			subElement, err := readElement(r)
-			// log.Println("read subelement (undeflen) with tag ", subElement.Tag)
 			if err != nil {
 				// Stop reading due to error
 				log.Println("error reading subitem, ", err)
@@ -174,7 +173,6 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 		}
 		for !r.IsLimitExhausted() {
 			subElement, err := readElement(r)
-			log.Println("read subelement with tag ", subElement.Tag)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, err
@@ -222,7 +220,6 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 		}
 	}
 
-	log.Println("Sequence Item", sequenceItem)
 	return &sequenceItem, nil
 }
 

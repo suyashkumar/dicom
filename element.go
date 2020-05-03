@@ -44,7 +44,6 @@ const (
 	Strings ValueType = iota
 	Bytes
 	Ints
-	ElementPtrs
 	PixelData
 	SequenceItem
 	Sequences

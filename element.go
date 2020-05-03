@@ -44,8 +44,9 @@ const (
 	Strings ValueType = iota
 	Bytes
 	Ints
-	ElementPtrs
 	PixelData
+	SequenceItem
+	Sequences
 )
 
 // Begin definitions of Values:
@@ -86,17 +87,29 @@ func (s *IntsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
 
-// ElementPtrsValue represents a slice of pointers to other Elements (in the case of sequences)
-type ElementPtrsValue struct {
-	value []*Element
+type SequenceItemValue struct {
+	elements []*Element
 }
 
-func (e *ElementPtrsValue) isElementValue()       {}
-func (e *ElementPtrsValue) ValueType() ValueType  { return ElementPtrs }
-func (e *ElementPtrsValue) GetValue() interface{} { return e.value }
-func (e *ElementPtrsValue) String() string {
+func (s *SequenceItemValue) isElementValue()       {}
+func (s *SequenceItemValue) ValueType() ValueType  { return SequenceItem }
+func (s *SequenceItemValue) GetValue() interface{} { return s.elements }
+func (s *SequenceItemValue) String() string {
 	// TODO: consider adding more sophisticated formatting
-	return ""
+	return fmt.Sprintf("%+v", s.elements)
+}
+
+// SequencesValue represents a set of items in a DICOM sequence.
+type SequencesValue struct {
+	value []*SequenceItemValue
+}
+
+func (s *SequencesValue) isElementValue()       {}
+func (s *SequencesValue) ValueType() ValueType  { return Sequences }
+func (s *SequencesValue) GetValue() interface{} { return s.value }
+func (s *SequencesValue) String() string {
+	// TODO: consider adding more sophisticated formatting
+	return fmt.Sprintf("%+v", s.value)
 }
 
 type PixelDataInfo struct {

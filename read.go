@@ -91,6 +91,8 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readInt(r, t, vr, vl)
 	case tag.VRSequence:
 		return readSequence(r, t, vr, vl)
+	case tag.VRItem:
+		return readSequenceItem(r, t, vr, vl)
 	case tag.VRPixelData:
 		return readPixelData(r, t, vr, vl)
 	default:
@@ -136,26 +138,33 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, er
 	return nil, nil
 }
 
+// readSequence reads a sequence element (VR = SQ) that contains a subset of Items. Each item contains
+// a set of Elements.
+// See http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.2.html#table_7.5-1
 func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
-	var subElements ElementPtrsValue
+	var sequences SequencesValue
 
 	if vl == tag.VLUndefinedLength {
 		for {
 			subElement, err := readElement(r)
+			// log.Println("read subelement (undeflen) with tag ", subElement.Tag)
 			if err != nil {
 				// Stop reading due to error
+				log.Println("error reading subitem, ", err)
 				return nil, err
 			}
 			if subElement.Tag == tag.SequenceDelimitationItem {
 				// Stop reading
 				break
 			}
-			if subElement.Tag != tag.Item {
+			if subElement.Tag != tag.Item || subElement.Value.ValueType() != SequenceItem {
 				// This is an error, should be an Item!
 				// TODO: use error var
 				return nil, fmt.Errorf("non item found in sequence")
 			}
-			subElements.value = append(subElements.value, subElement)
+
+			// Append the Item element's dataset of elements to this Sequence's SequencesValue.
+			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
 		}
 	} else {
 		// Sequence of elements for a total of VL bytes
@@ -164,17 +173,57 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 			return nil, err
 		}
 		for !r.IsLimitExhausted() {
-			subElem, err := readElement(r)
+			subElement, err := readElement(r)
+			log.Println("read subelement with tag ", subElement.Tag)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, err
 			}
-			subElements.value = append(subElements.value, subElem)
+
+			// Append the Item element's dataset of elements to this Sequence's SequencesValue.
+			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
 		}
 		r.PopLimit()
 	}
 
-	return &subElements, nil
+	return &sequences, nil
+}
+
+// readSequenceItem reads an item component of a sequence dicom element and returns an Element
+// with a SequenceItem value.
+func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	var sequenceItem SequenceItemValue
+
+	if vl == tag.VLUndefinedLength {
+		for {
+			subElem, err := readElement(r)
+			if err != nil {
+				return nil, err
+			}
+			if subElem.Tag == tag.ItemDelimitationItem {
+				break
+			}
+
+			sequenceItem.elements = append(sequenceItem.elements, subElem)
+		}
+	} else {
+		err := r.PushLimit(int64(vl))
+		if err != nil {
+			return nil, err
+		}
+
+		for !r.IsLimitExhausted() {
+			subElem, err := readElement(r)
+			if err != nil {
+				return nil, err
+			}
+
+			sequenceItem.elements = append(sequenceItem.elements, subElem)
+		}
+	}
+
+	log.Println("Sequence Item", sequenceItem)
+	return &sequenceItem, nil
 }
 
 func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
@@ -239,6 +288,12 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	case "UL":
 		val, err := r.ReadUInt32()
 		return &IntsValue{value: []int{int(val)}}, err
+	case "SL":
+		val, err := r.ReadInt32()
+		return &IntsValue{value: []int{int(val)}}, err
+	case "SS":
+		val, err := r.ReadInt16()
+		return &IntsValue{value: []int{int(val)}}, err
 	}
 
 	return nil, errors.New("could not parse integer type correctly")
@@ -263,6 +318,10 @@ func readElement(r dicomio.Reader) (*Element, error) {
 	}
 
 	val, err := readValue(r, *t, vr, vl, false)
+	if err != nil {
+		log.Println("error reading value ", err)
+		return nil, err
+	}
 
 	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), ValueLength: vl, Value: val}, nil
 

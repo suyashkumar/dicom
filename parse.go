@@ -115,6 +115,8 @@ func (p *parser) Parse() (Dataset, error) {
 			return Dataset{}, err
 		}
 
+		log.Println("Read tag: ", elem.Tag)
+
 		// TODO: if we encounter a dicomtag.SpecificCharacterSet, update the reader to accommodate
 		// TODO: add dicom options to only keep track of certain tags
 

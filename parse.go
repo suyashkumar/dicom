@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -32,11 +33,12 @@ type Parser interface {
 
 // parser implements Parser
 type parser struct {
-	decoder        *dicomio.Decoder
-	parsedElements *element.DataSet
-	op             ParseOptions
-	frameChannel   chan *frame.Frame
-	file           *os.File // may be populated if coming from file
+	decoder                *dicomio.Decoder
+	parsedElements         *element.DataSet
+	op                     ParseOptions
+	frameChannel           chan *frame.Frame
+	file                   *os.File // may be populated if coming from file
+	currentSequenceDataset *element.DataSet
 }
 
 // NewParser initializes and returns a new Parser
@@ -166,6 +168,8 @@ func (p *parser) Parse(options ParseOptions) (*element.DataSet, error) {
 
 func (p *parser) ParseNext(options ParseOptions) *element.Element {
 	tag := readTag(p.decoder)
+	log.Println("Len remaining", p.decoder.Len())
+	log.Println("Reading Tag ", tag)
 	if tag == dicomtag.PixelData && options.DropPixelData {
 		return element.EndOfData
 	}
@@ -189,6 +193,7 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 		vr, vl = readExplicit(p.decoder, tag)
 	}
 	var data []interface{}
+	log.Println("VR", vr, "VL", vl)
 
 	elem := &element.Element{
 		Tag:             tag,
@@ -264,7 +269,15 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 				return nil // TODO(suyash) investigate error handling in this library
 			}
 
-			image, _, err := readNativeFrames(p.decoder, p.parsedElements, p.frameChannel)
+			datasetToUse := p.parsedElements
+
+			if p.currentSequenceDataset != nil {
+				datasetToUse = p.currentSequenceDataset
+				log.Println("Using item dataset")
+				log.Println(datasetToUse)
+			}
+
+			image, _, err := readNativeFrames(p.decoder, datasetToUse, p.frameChannel)
 
 			if err != nil {
 				p.decoder.SetError(err)
@@ -278,6 +291,10 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 		// Note: when reading subitems inside sequence or item, we ignore
 		// DropPixelData and other shortcircuiting options. If we honored them, we'decoder
 		// be unable to read the rest of the file.
+
+		// TODO: refactor to avoid temporarily storing two copies
+		oldDataset := p.currentSequenceDataset
+		p.currentSequenceDataset = &element.DataSet{}
 		if vl == element.VLUndefinedLength {
 			// Format:
 			//  Sequence := ItemSet* SequenceDelimitationItem
@@ -314,9 +331,12 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 					break
 				}
 				data = append(data, item)
+				p.currentSequenceDataset.Elements = append(p.currentSequenceDataset.Elements, item)
 			}
 			p.decoder.PopLimit()
 		}
+		// Restore oldDataset if any:
+		p.currentSequenceDataset = oldDataset
 	} else if tag == dicomtag.Item { // Item (component of SQ)
 		if vl == element.VLUndefinedLength {
 			// Format: Item Any* ItemDelimitationItem
@@ -330,6 +350,7 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 					break
 				}
 				data = append(data, subelem)
+				p.currentSequenceDataset.Elements = append(p.currentSequenceDataset.Elements, subelem)
 			}
 		} else {
 			// Sequence of arbitary elements, for the  total of "vl" bytes.
@@ -341,6 +362,7 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 					break
 				}
 				data = append(data, subelem)
+				p.currentSequenceDataset.Elements = append(p.currentSequenceDataset.Elements, subelem)
 			}
 			p.decoder.PopLimit()
 		}

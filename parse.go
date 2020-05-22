@@ -68,10 +68,12 @@ func NewParserFromFile(path string, frameChannel chan *frame.Frame) (Parser, err
 	}
 	st, err := file.Stat()
 	if err != nil {
+		file.Close()
 		return nil, err
 	}
 	p, err := NewParser(file, st.Size(), frameChannel)
 	if err != nil {
+		file.Close()
 		return nil, err
 	}
 	p.(*parser).file = file

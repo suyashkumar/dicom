@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -163,13 +162,15 @@ func (p *parser) Parse(options ParseOptions) (*element.DataSet, error) {
 		}
 
 	}
+	if p.frameChannel != nil {
+		close(p.frameChannel)
+	}
 	return p.parsedElements, p.decoder.Error()
 }
 
 func (p *parser) ParseNext(options ParseOptions) *element.Element {
 	tag := readTag(p.decoder)
-	log.Println("Len remaining", p.decoder.Len())
-	log.Println("Reading Tag ", tag)
+
 	if tag == dicomtag.PixelData && options.DropPixelData {
 		return element.EndOfData
 	}
@@ -193,7 +194,6 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 		vr, vl = readExplicit(p.decoder, tag)
 	}
 	var data []interface{}
-	log.Println("VR", vr, "VL", vl)
 
 	elem := &element.Element{
 		Tag:             tag,
@@ -257,9 +257,7 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 					p.frameChannel <- &f // write frame to channel
 				}
 			}
-			if p.frameChannel != nil {
-				close(p.frameChannel)
-			}
+
 			data = append(data, image)
 		} else {
 			// Assume we're reading NativeData data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
@@ -271,10 +269,8 @@ func (p *parser) ParseNext(options ParseOptions) *element.Element {
 
 			datasetToUse := p.parsedElements
 
-			if p.currentSequenceDataset != nil {
+			if p.currentSequenceDataset != nil && len(p.currentSequenceDataset.Elements) > 0 {
 				datasetToUse = p.currentSequenceDataset
-				log.Println("Using item dataset")
-				log.Println(datasetToUse)
 			}
 
 			image, _, err := readNativeFrames(p.decoder, datasetToUse, p.frameChannel)
@@ -608,10 +604,6 @@ func readNativeFrames(d *dicomio.Decoder, parsedData *element.DataSet, frameChan
 		if frameChan != nil {
 			frameChan <- &currentFrame // write the current frame to the frameChan
 		}
-	}
-
-	if frameChan != nil {
-		close(frameChan) // close frameChan if it exists
 	}
 
 	bytesRead = (bitsAllocated / 8) * samplesPerPixel * pixelsPerFrame * nFrames

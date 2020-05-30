@@ -384,7 +384,14 @@ func Element(e *dicomio.Encoder, elem *element.Element, opts ...Option) {
 			}
 			sube.WriteString(s)
 			if len(s)%2 == 1 {
-				sube.WriteByte(0)
+				switch vr {
+				// Values with VRs constructed of character strings, except in the case of the VR UI, shall be padded with SPACE characters
+				// per http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+				case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
+					sube.WriteString(" ")
+				default:
+					sube.WriteByte(0)
+				}
 			}
 		}
 		if sube.Error() != nil {

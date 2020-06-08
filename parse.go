@@ -32,11 +32,13 @@ type Parser interface {
 
 // parser implements Parser
 type parser struct {
-	decoder                *dicomio.Decoder
-	parsedElements         *element.DataSet
-	op                     ParseOptions
-	frameChannel           chan *frame.Frame
-	file                   *os.File // may be populated if coming from file
+	decoder        *dicomio.Decoder
+	parsedElements *element.DataSet
+	op             ParseOptions
+	frameChannel   chan *frame.Frame
+	file           *os.File // may be populated if this parser is coming from a file
+	// currentSequenceDataset is populated with Elements read so far in a SQ DICOM sequence (or is nil if not currently
+	// reading a sequence).
 	currentSequenceDataset *element.DataSet
 }
 

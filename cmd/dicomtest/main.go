@@ -4,7 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"image/jpeg"
 	"log"
 	"os"
 
@@ -51,9 +51,18 @@ func main() {
 				log.Println(elem.Value)
 			} else {
 				imageInfo := elem.Value.GetValue().(dicom.PixelDataInfo)
-				for i, frame := range imageInfo.Frames {
-					err := ioutil.WriteFile(fmt.Sprintf("image_%d.jpg", i), frame.EncapsulatedData.Data,
-						0644)
+				for idx, f := range imageInfo.Frames {
+					i, err := f.GetImage()
+					if err != nil {
+						log.Fatal("Error while getting image")
+					}
+
+					name := fmt.Sprintf("image_%d.jpg", idx)
+					f, err := os.Create(name)
+					if err != nil {
+						fmt.Printf("Error while creating file: %s", err.Error())
+					}
+					err = jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
 					if err != nil {
 						log.Println(err)
 					}

@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/pkg/tag"
@@ -44,30 +45,45 @@ func main() {
 			return
 		}
 
-		for _, elem := range ds.Elements {
+		for z, elem := range ds.Elements {
 			if elem.Tag != tag.PixelData {
 				log.Println(elem.Tag)
 				log.Println(elem.ValueLength)
 				log.Println(elem.Value)
-			} else {
-				imageInfo := elem.Value.GetValue().(dicom.PixelDataInfo)
-				for idx, f := range imageInfo.Frames {
-					i, err := f.GetImage()
-					if err != nil {
-						log.Fatal("Error while getting image")
-					}
-
-					name := fmt.Sprintf("image_%d.jpg", idx)
-					f, err := os.Create(name)
-					if err != nil {
-						fmt.Printf("Error while creating file: %s", err.Error())
-					}
-					err = jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
-					if err != nil {
-						log.Println(err)
+				// TODO: remove image icon hack after implementing flat iterator
+				if elem.Tag == tag.IconImageSequence {
+					for _, item := range elem.Value.GetValue().([]*dicom.SequenceItemValue) {
+						for _, subElem := range item.GetValue().([]*dicom.Element) {
+							if subElem.Tag == tag.PixelData {
+								writePixelDataElement(subElem, strconv.Itoa(z))
+							}
+						}
 					}
 				}
+			} else {
+				writePixelDataElement(elem, strconv.Itoa(z))
 			}
+
+		}
+	}
+}
+
+func writePixelDataElement(e *dicom.Element, id string) {
+	imageInfo := e.Value.GetValue().(dicom.PixelDataInfo)
+	for idx, f := range imageInfo.Frames {
+		i, err := f.GetImage()
+		if err != nil {
+			log.Fatal("Error while getting image")
+		}
+
+		name := fmt.Sprintf("image_%d_%s.jpg", idx, id)
+		f, err := os.Create(name)
+		if err != nil {
+			fmt.Printf("Error while creating file: %s", err.Error())
+		}
+		err = jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
+		if err != nil {
+			log.Println(err)
 		}
 	}
 }

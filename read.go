@@ -144,6 +144,7 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 	}
 
 	i, _, err := readNativeFrames(r, d, nil)
+	log.Println("Dataset Size: ", len(d.Elements))
 
 	if err != nil {
 		return nil, err
@@ -300,6 +301,8 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 	// TODO: deduplicate with sequenceItem above
 	var seqElements Dataset
 
+	log.Println("readSequenceItem TOP LOOP")
+
 	if vl == tag.VLUndefinedLength {
 		for {
 			subElem, err := readElement(r, &seqElements)
@@ -390,22 +393,44 @@ func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) 
 
 func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add other integer types here
-	switch vr {
-	case "US":
-		val, err := r.ReadUInt16()
-		return &IntsValue{value: []int{int(val)}}, err
-	case "UL":
-		val, err := r.ReadUInt32()
-		return &IntsValue{value: []int{int(val)}}, err
-	case "SL":
-		val, err := r.ReadInt32()
-		return &IntsValue{value: []int{int(val)}}, err
-	case "SS":
-		val, err := r.ReadInt16()
-		return &IntsValue{value: []int{int(val)}}, err
+	err := r.PushLimit(int64(vl))
+	retVal := &IntsValue{value: make([]int, 0, vl/2)}
+	for !r.IsLimitExhausted() {
+		switch vr {
+		case "US":
+			val, err := r.ReadUInt16()
+			if err != nil {
+				return nil, err
+			}
+			retVal.value = append(retVal.value, int(val))
+			break
+		case "UL":
+			val, err := r.ReadUInt32()
+			if err != nil {
+				return nil, err
+			}
+			retVal.value = append(retVal.value, int(val))
+			break
+		case "SL":
+			val, err := r.ReadInt32()
+			if err != nil {
+				return nil, err
+			}
+			retVal.value = append(retVal.value, int(val))
+			break
+		case "SS":
+			val, err := r.ReadInt16()
+			if err != nil {
+				return nil, err
+			}
+			retVal.value = append(retVal.value, int(val))
+			break
+		default:
+			return nil, errors.New("unable to parse integer type")
+		}
 	}
-
-	return nil, errors.New("could not parse integer type correctly")
+	r.PopLimit()
+	return retVal, err
 }
 
 // readElement reads the next element. If the next element is a sequence element,
@@ -429,6 +454,8 @@ func readElement(r dicomio.Reader, d *Dataset) (*Element, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("readElement: vr, vl", vr, vl)
 
 	val, err := readValue(r, *t, vr, vl, false, d)
 	if err != nil {

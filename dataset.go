@@ -22,14 +22,3 @@ func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
 	}
 	return nil, ErrorElementNotFound
 }
-
-/*
-type FlatDatasetIterator struct {
-	ElementsPtr *[]*Element
-}
-
-// Next returns the next element when iterating through the flattened dataset (which means even recursively
-func (f FlatDatasetIterator) Next() (*Element, error) {
-
-}
-*/

@@ -445,19 +445,19 @@ func readElement(r dicomio.Reader, d *Dataset) (*Element, error) {
 	}
 	log.Println("readElement: readTag: ", t)
 
-	vr, err := readVR(r, false, *t)
+	vr, err := readVR(r, r.IsImplicit(), *t)
 	if err != nil {
 		return nil, err
 	}
 
-	vl, err := readVL(r, false, *t, vr)
+	vl, err := readVL(r, r.IsImplicit(), *t, vr)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Println("readElement: vr, vl", vr, vl)
 
-	val, err := readValue(r, *t, vr, vl, false, d)
+	val, err := readValue(r, *t, vr, vl, r.IsImplicit(), d)
 	if err != nil {
 		log.Println("error reading value ", err)
 		return nil, err

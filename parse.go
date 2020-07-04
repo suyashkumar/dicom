@@ -72,7 +72,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 	}
 
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := readElement(p.reader)
+	maybeMetaLen, err := readElement(p.reader, nil)
 	if err != nil {
 		log.Println("read element err")
 		return nil, err
@@ -93,7 +93,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 	}
 	defer p.reader.PopLimit()
 	for !p.reader.IsLimitExhausted() {
-		elem, err := readElement(p.reader)
+		elem, err := readElement(p.reader, nil)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
 			log.Println("read element err")
@@ -109,7 +109,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 func (p *parser) Parse() (Dataset, error) {
 	for !p.reader.IsLimitExhausted() {
 		// TODO: avoid silent looping
-		elem, err := readElement(p.reader)
+		elem, err := readElement(p.reader, &p.dataset)
 		if err != nil {
 			// TODO: tolerate some kinds of errors and continue parsing
 			return Dataset{}, err

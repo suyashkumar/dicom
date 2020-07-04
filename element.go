@@ -130,3 +130,15 @@ func (e *PixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return ""
 }
+
+func MustGetInt(v Value) int {
+	return v.GetValue().([]int)[0]
+}
+
+func MustGetInts(v Value) []int {
+	return v.GetValue().([]int)
+}
+
+func MustGetString(v Value) string {
+	return v.GetValue().([]string)[0]
+}

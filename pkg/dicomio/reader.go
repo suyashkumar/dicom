@@ -15,6 +15,8 @@ var (
 // Reader provides common functionality for reading underlying DICOM data.
 type Reader interface {
 	io.Reader
+	// ReadUInt8 reads a uint16 from the underlying reader
+	ReadUInt8() (uint8, error)
 	// ReadUInt16 reads a uint16 from the underlying reader
 	ReadUInt16() (uint16, error)
 	// ReadUInt32 reads a uint32 from the underlying reader
@@ -78,6 +80,12 @@ func (r *reader) Read(p []byte) (int, error) {
 		r.bytesRead += int64(n)
 	}
 	return n, err
+}
+
+func (r *reader) ReadUInt8() (uint8, error) {
+	var out uint8
+	err := binary.Read(r, r.bo, &out)
+	return out, err
 }
 
 func (r *reader) ReadUInt16() (uint16, error) {

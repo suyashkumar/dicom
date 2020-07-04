@@ -47,6 +47,21 @@ func (mr *MockReaderMockRecorder) Read(p interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockReader)(nil).Read), p)
 }
 
+// ReadUInt8 mocks base method
+func (m *MockReader) ReadUInt8() (uint8, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadUInt8")
+	ret0, _ := ret[0].(uint8)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadUInt8 indicates an expected call of ReadUInt8
+func (mr *MockReaderMockRecorder) ReadUInt8() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadUInt8", reflect.TypeOf((*MockReader)(nil).ReadUInt8))
+}
+
 // ReadUInt16 mocks base method
 func (m *MockReader) ReadUInt16() (uint16, error) {
 	m.ctrl.T.Helper()

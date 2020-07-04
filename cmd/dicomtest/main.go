@@ -85,5 +85,9 @@ func writePixelDataElement(e *dicom.Element, id string) {
 		if err != nil {
 			log.Println(err)
 		}
+		if err = f.Close(); err != nil {
+			log.Println("ERROR: unable to properly close file: ", f.Name())
+		}
+
 	}
 }

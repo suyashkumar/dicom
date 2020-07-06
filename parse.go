@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/suyashkumar/dicom/pkg/charset"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/tag"
 	"github.com/suyashkumar/dicom/pkg/uid"
@@ -130,10 +131,21 @@ func (p *parser) Parse() (Dataset, error) {
 
 		log.Println("Read tag: ", elem.Tag)
 
-		// TODO: if we encounter a dicomtag.SpecificCharacterSet, update the reader to accommodate
 		// TODO: add dicom options to only keep track of certain tags
 
+		if elem.Tag == tag.SpecificCharacterSet {
+			encodingNames := MustGetStrings(elem.Value)
+			cs, err := charset.ParseSpecificCharacterSet(encodingNames)
+			if err != nil {
+				// unable to parse character set, hard error
+				// TODO: add option continue, even if unable to parse
+				return p.dataset, err
+			}
+			p.reader.SetCodingSystem(cs)
+		}
+
 		p.dataset.Elements = append(p.dataset.Elements, elem)
+
 	}
 
 	return p.dataset, nil

@@ -6,14 +6,14 @@ import (
 	"fmt"
 )
 
-type UIDType string
+type Type string
 
 const (
-	TypeSOPClass                  UIDType = "SOP Class"
-	TypeTransferSyntax            UIDType = "Transfer Syntax"
-	TypeWellKnownFrameOfReference UIDType = "Well-known frame of reference"
-	TypeWellKnownSOPInstance      UIDType = "Well-known SOP instance"
-	TypeCodingScheme              UIDType = "Coding Scheme"
+	TypeSOPClass                  Type = "SOP Class"
+	TypeTransferSyntax            Type = "Transfer Syntax"
+	TypeWellKnownFrameOfReference Type = "Well-known frame of reference"
+	TypeWellKnownSOPInstance      Type = "Well-known SOP instance"
+	TypeCodingScheme              Type = "Coding Scheme"
 )
 
 // Commonly used UID constants.
@@ -35,15 +35,16 @@ var (
 	DeflatedExplicitVRLittleEndian = standardUID("1.2.840.10008.1.2.1.99")
 )
 
-type UIDInfo struct {
-	UID    string  // "1.2.840.10008.x.y.z"
-	Name   string  // The UID string, e.g.,"1.2.840.10008.1.2.1".
-	Type   UIDType // "SOP Class", "Transfer Syntax", etc.
-	Part   string  // Not used.
-	Status string  // "" if active. "Retired", if netired.
+// Info holds detailed information about a DICOM UID
+type Info struct {
+	UID    string // "1.2.840.10008.x.y.z"
+	Name   string // The UID string, e.g.,"1.2.840.10008.1.2.1".
+	Type   Type   // "SOP Class", "Transfer Syntax", etc.
+	Part   string // Not used.
+	Status string // "" if active. "Retired", if retired.
 }
 
-var uidMap = map[string]UIDInfo{
+var uidMap = map[string]Info{
 	"1.2.840.10008.1.1":                {"1.2.840.10008.1.1", "Verification SOP Class", TypeSOPClass, "", ""},
 	"1.2.840.10008.1.2":                {"1.2.840.10008.1.2", "Implicit VR Little Endian", TypeTransferSyntax, "Default Transfer Syntax for DICOM", ""},
 	"1.2.840.10008.1.2.1":              {"1.2.840.10008.1.2.1", "Explicit VR Little Endian", TypeTransferSyntax, "", ""},
@@ -449,18 +450,18 @@ func standardUID(uid string) string {
 	return MustLookup(uid).UID
 }
 
-// Find information about the given uid (string starting with 1.2.840).  Returns
+// Lookup finds information about the given uid (string starting with 1.2.840).  Returns
 // an error unless uid is the one defined in the DICOM standard, P3.6.
-func Lookup(uid string) (UIDInfo, error) {
+func Lookup(uid string) (Info, error) {
 	e, ok := uidMap[uid]
 	if !ok {
-		return UIDInfo{}, fmt.Errorf("UID '%s' not found in dictionary", uid)
+		return Info{}, fmt.Errorf("UID '%s' not found in dictionary", uid)
 	}
 	return e, nil
 }
 
-// Similar to LookupUID, but crashes the process on error.
-func MustLookup(uid string) UIDInfo {
+// MustLookup is similar to LookupUID, but crashes the process on error.
+func MustLookup(uid string) Info {
 	e, err := Lookup(uid)
 	if err != nil {
 		panic(err)
@@ -468,7 +469,7 @@ func MustLookup(uid string) UIDInfo {
 	return e
 }
 
-// UidString returns a human-readable diagnostic string for a DICOM UID.
+// UIDString returns a human-readable diagnostic string for a DICOM UID.
 func UIDString(uid string) string {
 	e, ok := uidMap[uid]
 	if !ok {

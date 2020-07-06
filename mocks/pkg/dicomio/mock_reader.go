@@ -5,6 +5,7 @@
 package mock_dicomio
 
 import (
+	binary "encoding/binary"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )
@@ -203,4 +204,30 @@ func (m *MockReader) BytesLeftUntilLimit() int64 {
 func (mr *MockReaderMockRecorder) BytesLeftUntilLimit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BytesLeftUntilLimit", reflect.TypeOf((*MockReader)(nil).BytesLeftUntilLimit))
+}
+
+// SetTransferSyntax mocks base method
+func (m *MockReader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetTransferSyntax", bo, implicit)
+}
+
+// SetTransferSyntax indicates an expected call of SetTransferSyntax
+func (mr *MockReaderMockRecorder) SetTransferSyntax(bo, implicit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTransferSyntax", reflect.TypeOf((*MockReader)(nil).SetTransferSyntax), bo, implicit)
+}
+
+// IsImplicit mocks base method
+func (m *MockReader) IsImplicit() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsImplicit")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsImplicit indicates an expected call of IsImplicit
+func (mr *MockReaderMockRecorder) IsImplicit() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsImplicit", reflect.TypeOf((*MockReader)(nil).IsImplicit))
 }

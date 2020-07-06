@@ -10,6 +10,7 @@ import (
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
 const (
@@ -107,6 +108,18 @@ func (p *parser) readHeader() ([]*Element, error) {
 }
 
 func (p *parser) Parse() (Dataset, error) {
+	// Determine and set the transfer syntax based on the metadata elements parsed so far.
+	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
+	if err != nil {
+		// proceed with a default?
+		log.Println("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
+	}
+	bo, implicit, err := uid.ParseTransferSyntaxUID(MustGetString(ts.Value))
+	if err != nil {
+		// proceed with a default?
+		log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")
+	}
+	p.reader.SetTransferSyntax(bo, implicit)
 	for !p.reader.IsLimitExhausted() {
 		// TODO: avoid silent looping
 		elem, err := readElement(p.reader, &p.dataset)

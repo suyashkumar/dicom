@@ -36,13 +36,18 @@ type Reader interface {
 	PopLimit()
 	// IsLimitExhausted indicates whether or not we have read up to the currently set limit position.
 	IsLimitExhausted() bool
-	// BytesLeftUntilLimit returns the number of bytes remaining until we reach the currently set limit posiiton.
+	// BytesLeftUntilLimit returns the number of bytes remaining until we reach the currently set limit positon.
 	BytesLeftUntilLimit() int64
+	// SetTransferSyntax sets the byte order and whether the current transfer syntax is implicit or not
+	SetTransferSyntax(bo binary.ByteOrder, implicit bool)
+	// IsImplicit returns if the currently set transfer syntax on this Reader is implicit or not.
+	IsImplicit() bool
 }
 
 type reader struct {
 	in         io.Reader
 	bo         binary.ByteOrder
+	implicit   bool
 	limit      int64
 	bytesRead  int64
 	limitStack []int64
@@ -154,3 +159,10 @@ func (r *reader) PopLimit() {
 func (r *reader) IsLimitExhausted() bool {
 	return r.BytesLeftUntilLimit() <= 0
 }
+
+func (r *reader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
+	r.bo = bo
+	r.implicit = implicit
+}
+
+func (r *reader) IsImplicit() bool { return r.implicit }

@@ -40,6 +40,7 @@ type parser struct {
 	// currentSequenceDataset is populated with Elements read so far in a SQ DICOM sequence (or is nil if not currently
 	// reading a sequence).
 	currentSequenceDataset *element.DataSet
+	force		bool
 }
 
 // NewParser initializes and returns a new Parser
@@ -467,8 +468,12 @@ func (p *parser) parseFileHeader() []*element.Element {
 
 	// check for magic word
 	if s := p.decoder.ReadString(4); s != "DICM" {
-		p.decoder.SetError(errors.New("Keyword 'DICM' not found in the header"))
-		return nil
+		if p.force {
+			dicomlog.Vprintf(1, "WARNING Keyword 'DICM' not found in the header. Force enabled, therefore continuing...")
+		} else {
+			p.decoder.SetError(errors.New("Keyword 'DICM' not found in the header. Set the 'force' parser flag to anyway"))
+			return nil
+		}
 	}
 
 	// (0002,0000) MetaElementGroupLength

@@ -50,12 +50,29 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 		decoder:      buffer,
 		frameChannel: frameChannel,
 	}
-
 	metaElems := p.parseFileHeader()
 	if p.decoder.Error() != nil {
 		return nil, p.decoder.Error()
 	}
 	p.parsedElements = &element.DataSet{Elements: metaElems}
+
+	return &p, nil
+}
+
+// NewParser initializes and returns a new Parser with the 'DICM' keyword check overriden 
+func NewParserForce(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (Parser, error) {
+	buffer := dicomio.NewDecoder(bufio.NewReader(in), bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
+	p := parser{
+		decoder:      buffer,
+		frameChannel: frameChannel,
+		force:        true,
+	}
+	metaElems := p.parseFileHeader()
+	if p.decoder.Error() != nil {
+		return nil, p.decoder.Error()
+	}
+	p.parsedElements = &element.DataSet{Elements: metaElems}
+
 	return &p, nil
 }
 
@@ -76,6 +93,26 @@ func NewParserFromFile(path string, frameChannel chan *frame.Frame) (Parser, err
 		return nil, err
 	}
 	p, err := NewParser(file, st.Size(), frameChannel)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	p.(*parser).file = file
+	return p, err
+}
+
+// NewParserFromFile initializes and returns a new dicom Parser from a file path with the force parameter as true
+func NewParserFromFileForce(path string, frameChannel chan *frame.Frame) (Parser, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	st, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	p, err := NewParserForce(file, st.Size(), frameChannel)
 	if err != nil {
 		file.Close()
 		return nil, err

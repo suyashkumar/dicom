@@ -51,7 +51,7 @@ func main() {
 		frameChannel := make(chan *frame.Frame, FrameBufferSize)
 		p, err := dicom.NewParserFromFile(path, frameChannel)
 		if err != nil {
-			log.Panic("error creating parser", err)
+			log.Panic("error creating parser: ", err)
 		}
 
 		// Go process frames published to frameChannel
@@ -62,7 +62,7 @@ func main() {
 		// Begin parsing
 		parsedData, err = p.Parse(dicom.ParseOptions{})
 		if err != nil {
-			log.Panic("error parsing", err)
+			log.Panic("error parsing: ", err)
 		}
 
 		// Wait for all frames to be streamed and processed
@@ -72,7 +72,7 @@ func main() {
 		// Non-streaming parsing:
 		p, err := dicom.NewParserFromFile(path, nil)
 		if err != nil {
-			log.Panic("error creating new parser", err)
+			log.Panic("error creating new parser: ", err)
 		}
 		parsedData, err = p.Parse(dicom.ParseOptions{DropPixelData: !*extractImages})
 		if parsedData == nil || err != nil {

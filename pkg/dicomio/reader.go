@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	"github.com/suyashkumar/dicom/pkg/charset"
+	"golang.org/x/text/encoding"
 )
 
 var (
@@ -25,7 +28,8 @@ type Reader interface {
 	ReadInt16() (int16, error)
 	// ReadInt32 reads a int32 from the underlying reader
 	ReadInt32() (int32, error)
-	// ReadString reads an n byte string from the underlying reader
+	// ReadString reads an n byte string from the underlying reader. Uses the charset.CodingSystem encoding.
+	// Decoders to read the string, if set.
 	ReadString(n uint32) (string, error)
 	// Skip skips the reader ahead by n bytes
 	Skip(n int64) error
@@ -42,6 +46,8 @@ type Reader interface {
 	SetTransferSyntax(bo binary.ByteOrder, implicit bool)
 	// IsImplicit returns if the currently set transfer syntax on this Reader is implicit or not.
 	IsImplicit() bool
+	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString is called.
+	SetCodingSystem(cs charset.CodingSystem)
 }
 
 type reader struct {
@@ -51,6 +57,9 @@ type reader struct {
 	limit      int64
 	bytesRead  int64
 	limitStack []int64
+	// cs represents the CodingSystem to use when reading the string. If a particular encoding.
+	// Decoder within this CodingSystem is nil, assume ASCII
+	cs charset.CodingSystem
 }
 
 func NewReader(in io.Reader, bo binary.ByteOrder, limit int64) (Reader, error) {
@@ -116,11 +125,29 @@ func (r *reader) ReadInt32() (int32, error) {
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
+
+func internalReadString(data []byte, d *encoding.Decoder) (string, error) {
+	if len(data) == 0 {
+		return "", nil
+	}
+	if d == nil {
+		// Assume ASCII
+		return string(data), nil
+	}
+	bytes, err := d.Bytes(data)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
 func (r *reader) ReadString(n uint32) (string, error) {
 	data := make([]byte, n)
 	_, err := io.ReadFull(r, data)
-	// TODO: add support for different coding systems
-	return string(data), err
+	if err != nil {
+		return "", err
+	}
+	return internalReadString(data, r.cs.Ideographic)
 }
 func (r *reader) Skip(n int64) error {
 	if r.BytesLeftUntilLimit() < n {
@@ -166,3 +193,7 @@ func (r *reader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
 }
 
 func (r *reader) IsImplicit() bool { return r.implicit }
+
+func (r *reader) SetCodingSystem(cs charset.CodingSystem) {
+	r.cs = cs
+}

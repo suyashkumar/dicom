@@ -142,3 +142,7 @@ func MustGetInts(v Value) []int {
 func MustGetString(v Value) string {
 	return v.GetValue().([]string)[0]
 }
+
+func MustGetStrings(v Value) []string {
+	return v.GetValue().([]string)
+}

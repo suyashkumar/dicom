@@ -7,6 +7,7 @@ package mock_dicomio
 import (
 	binary "encoding/binary"
 	gomock "github.com/golang/mock/gomock"
+	charset "github.com/suyashkumar/dicom/pkg/charset"
 	reflect "reflect"
 )
 
@@ -230,4 +231,16 @@ func (m *MockReader) IsImplicit() bool {
 func (mr *MockReaderMockRecorder) IsImplicit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsImplicit", reflect.TypeOf((*MockReader)(nil).IsImplicit))
+}
+
+// SetCodingSystem mocks base method
+func (m *MockReader) SetCodingSystem(cs charset.CodingSystem) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetCodingSystem", cs)
+}
+
+// SetCodingSystem indicates an expected call of SetCodingSystem
+func (mr *MockReaderMockRecorder) SetCodingSystem(cs interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCodingSystem", reflect.TypeOf((*MockReader)(nil).SetCodingSystem), cs)
 }

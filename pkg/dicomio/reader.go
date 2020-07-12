@@ -132,7 +132,6 @@ func internalReadString(data []byte, d *encoding.Decoder) (string, error) {
 	}
 	if d == nil {
 		// Assume ASCII
-		// TODO(saito) check that string is 7-bit clean.
 		return string(data), nil
 	}
 	bytes, err := d.Bytes(data)

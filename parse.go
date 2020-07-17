@@ -10,6 +10,7 @@ import (
 
 	"github.com/suyashkumar/dicom/pkg/charset"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
+	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 	"github.com/suyashkumar/dicom/pkg/uid"
 )
@@ -32,17 +33,19 @@ type parser struct {
 	reader  dicomio.Reader
 	dataset Dataset
 	// file is optional, might be populated if reading from an underlying file
-	file *os.File
+	file         *os.File
+	frameChannel chan *frame.Frame
 }
 
-func NewParser(in io.Reader, bytesToRead int64) (Parser, error) {
+func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (Parser, error) {
 	reader, err := dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead)
 	if err != nil {
 		return nil, err
 	}
 
 	p := parser{
-		reader: reader,
+		reader:       reader,
+		frameChannel: frameChannel,
 	}
 
 	elems, err := p.readHeader()
@@ -53,10 +56,6 @@ func NewParser(in io.Reader, bytesToRead int64) (Parser, error) {
 	p.dataset = Dataset{Elements: elems}
 
 	return &p, nil
-}
-
-func NewParserFromBytes(data []byte) (Parser, error) {
-	return nil, nil
 }
 
 // readHeader reads the DICOM magic header and group two metadata elements.
@@ -74,7 +73,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 	}
 
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := readElement(p.reader, nil)
+	maybeMetaLen, err := readElement(p.reader, nil, nil)
 	if err != nil {
 		log.Println("read element err")
 		return nil, err
@@ -95,7 +94,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 	}
 	defer p.reader.PopLimit()
 	for !p.reader.IsLimitExhausted() {
-		elem, err := readElement(p.reader, nil)
+		elem, err := readElement(p.reader, nil, nil)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
 			log.Println("read element err")
@@ -123,7 +122,7 @@ func (p *parser) Parse() (Dataset, error) {
 	p.reader.SetTransferSyntax(bo, implicit)
 	for !p.reader.IsLimitExhausted() {
 		// TODO: avoid silent looping
-		elem, err := readElement(p.reader, &p.dataset)
+		elem, err := readElement(p.reader, &p.dataset, p.frameChannel)
 		if err != nil {
 			// TODO: tolerate some kinds of errors and continue parsing
 			return Dataset{}, err
@@ -148,5 +147,8 @@ func (p *parser) Parse() (Dataset, error) {
 
 	}
 
+	if p.frameChannel != nil {
+		close(p.frameChannel)
+	}
 	return p.dataset, nil
 }

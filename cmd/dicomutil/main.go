@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/pkg/element"
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
@@ -41,7 +42,7 @@ func main() {
 			return
 		}
 
-		var ds *dicom.Dataset
+		var ds *element.Dataset
 		if *extractImagesStream {
 			ds = parseWithStreaming(f, info.Size())
 		} else {
@@ -65,8 +66,8 @@ func main() {
 			log.Println(elem.Value)
 			// TODO: remove image icon hack after implementing flat iterator
 			if elem.Tag == tag.IconImageSequence {
-				for _, item := range elem.Value.GetValue().([]*dicom.SequenceItemValue) {
-					for _, subElem := range item.GetValue().([]*dicom.Element) {
+				for _, item := range elem.Value.GetValue().([]*element.SequenceItemValue) {
+					for _, subElem := range item.GetValue().([]*element.Element) {
 						if subElem.Tag == tag.PixelData {
 							writePixelDataElement(subElem, "icon")
 						}
@@ -78,7 +79,7 @@ func main() {
 	}
 }
 
-func parseWithStreaming(in io.Reader, size int64) *dicom.Dataset {
+func parseWithStreaming(in io.Reader, size int64) *element.Dataset {
 	fc := make(chan *frame.Frame, FrameBufferSize)
 	p, err := dicom.NewParser(in, size, fc)
 	if err != nil {
@@ -136,8 +137,8 @@ func generateImage(fr *frame.Frame, frameIndex int, wg *sync.WaitGroup) {
 	}
 }
 
-func writePixelDataElement(e *dicom.Element, id string) {
-	imageInfo := e.Value.GetValue().(dicom.PixelDataInfo)
+func writePixelDataElement(e *element.Element, id string) {
+	imageInfo := e.Value.GetValue().(element.PixelDataInfo)
 	for idx, f := range imageInfo.Frames {
 		generateImage(&f, idx, nil)
 	}

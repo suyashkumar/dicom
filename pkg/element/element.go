@@ -1,4 +1,4 @@
-package dicom
+package element
 
 import (
 	"fmt"
@@ -51,65 +51,65 @@ const (
 
 // Begin definitions of Values:
 
-// BytesValue represents a value of []byte.
+// BytesValue represents a Value of []byte.
 type BytesValue struct {
-	value []byte
+	Value []byte
 }
 
 func (b *BytesValue) isElementValue()       {}
 func (b *BytesValue) ValueType() ValueType  { return Bytes }
-func (b *BytesValue) GetValue() interface{} { return b.value }
+func (b *BytesValue) GetValue() interface{} { return b.Value }
 func (b *BytesValue) String() string {
-	return fmt.Sprintf("%v", b.value)
+	return fmt.Sprintf("%v", b.Value)
 }
 
-// StringsValue represents a value of []string.
+// StringsValue represents a Value of []string.
 type StringsValue struct {
-	value []string
+	Value []string
 }
 
 func (s *StringsValue) isElementValue()       {}
 func (s *StringsValue) ValueType() ValueType  { return Strings }
-func (s *StringsValue) GetValue() interface{} { return s.value }
+func (s *StringsValue) GetValue() interface{} { return s.Value }
 func (s *StringsValue) String() string {
-	return fmt.Sprintf("%v", s.value)
+	return fmt.Sprintf("%v", s.Value)
 }
 
-// IntsValue represents a value of []int.
+// IntsValue represents a Value of []int.
 type IntsValue struct {
-	value []int
+	Value []int
 }
 
 func (s *IntsValue) isElementValue()       {}
 func (s *IntsValue) ValueType() ValueType  { return Ints }
-func (s *IntsValue) GetValue() interface{} { return s.value }
+func (s *IntsValue) GetValue() interface{} { return s.Value }
 func (s *IntsValue) String() string {
-	return fmt.Sprintf("%v", s.value)
+	return fmt.Sprintf("%v", s.Value)
 }
 
 type SequenceItemValue struct {
-	elements []*Element
+	Elements []*Element
 }
 
 func (s *SequenceItemValue) isElementValue()       {}
 func (s *SequenceItemValue) ValueType() ValueType  { return SequenceItem }
-func (s *SequenceItemValue) GetValue() interface{} { return s.elements }
+func (s *SequenceItemValue) GetValue() interface{} { return s.Elements }
 func (s *SequenceItemValue) String() string {
 	// TODO: consider adding more sophisticated formatting
-	return fmt.Sprintf("%+v", s.elements)
+	return fmt.Sprintf("%+v", s.Elements)
 }
 
 // SequencesValue represents a set of items in a DICOM sequence.
 type SequencesValue struct {
-	value []*SequenceItemValue
+	Value []*SequenceItemValue
 }
 
 func (s *SequencesValue) isElementValue()       {}
 func (s *SequencesValue) ValueType() ValueType  { return Sequences }
-func (s *SequencesValue) GetValue() interface{} { return s.value }
+func (s *SequencesValue) GetValue() interface{} { return s.Value }
 func (s *SequencesValue) String() string {
 	// TODO: consider adding more sophisticated formatting
-	return fmt.Sprintf("%+v", s.value)
+	return fmt.Sprintf("%+v", s.Value)
 }
 
 type PixelDataInfo struct {

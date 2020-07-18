@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
+	"github.com/suyashkumar/dicom/pkg/element"
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
@@ -77,7 +78,7 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 	}
 }
 
-func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool, d *Dataset, fc chan<- *frame.Frame) (Value, error) {
+func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool, d *element.Dataset, fc chan<- *frame.Frame) (element.Value, error) {
 	// TODO: implement
 	vrkind := tag.GetVRKind(t, vr)
 	// TODO: if we keep consistent function signature, consider a static map of VR to func?
@@ -103,10 +104,10 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 	return nil, fmt.Errorf("unsure how to parse this VR")
 }
 
-func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,
+func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *element.Dataset, fc chan<- *frame.Frame) (element.Value,
 	error) {
 	if vl == tag.VLUndefinedLength {
-		var image PixelDataInfo
+		var image element.PixelDataInfo
 		image.IsEncapsulated = true
 		// The first Item in PixelData is the basic offset table. Skip this for now.
 		// TODO: use basic offset table
@@ -138,7 +139,7 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 
 			image.Frames = append(image.Frames, f)
 		}
-		return &PixelDataValue{PixelDataInfo: image}, nil
+		return &element.PixelDataValue{PixelDataInfo: image}, nil
 	}
 
 	// Assume we're reading NativeData data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
@@ -155,15 +156,15 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 	}
 
 	// TODO: avoid this copy
-	return &PixelDataValue{PixelDataInfo: *i}, nil
+	return &element.PixelDataValue{PixelDataInfo: *i}, nil
 
 }
 
 // readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
-func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Frame) (pixelData *PixelDataInfo,
+func readNativeFrames(d dicomio.Reader, parsedData *element.Dataset, fc chan<- *frame.Frame) (pixelData *element.PixelDataInfo,
 	bytesRead int, err error) {
-	image := PixelDataInfo{
+	image := element.PixelDataInfo{
 		IsEncapsulated: false,
 	}
 
@@ -182,7 +183,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	nFrames := 0
 	if err == nil {
 		// No error, so parse number of frames
-		nFrames, err = strconv.Atoi(MustGetString(nof.Value)) // odd that number of frames is encoded as a string...
+		nFrames, err = strconv.Atoi(element.MustGetString(nof.Value)) // odd that number of frames is encoded as a string...
 		if err != nil {
 			return nil, 0, err
 		}
@@ -195,15 +196,15 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	if err != nil {
 		return nil, 0, err
 	}
-	bitsAllocated := MustGetInt(b.Value)
+	bitsAllocated := element.MustGetInt(b.Value)
 
 	s, err := parsedData.FindElementByTag(tag.SamplesPerPixel)
 	if err != nil {
 		return nil, 0, err
 	}
-	samplesPerPixel := MustGetInt(s.Value)
+	samplesPerPixel := element.MustGetInt(s.Value)
 
-	pixelsPerFrame := MustGetInt(rows.Value) * MustGetInt(cols.Value)
+	pixelsPerFrame := element.MustGetInt(rows.Value) * element.MustGetInt(cols.Value)
 
 	// Parse the pixels:
 	image.Frames = make([]frame.Frame, nFrames)
@@ -213,8 +214,8 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 			Encapsulated: false,
 			NativeData: frame.NativeFrame{
 				BitsPerSample: bitsAllocated,
-				Rows:          MustGetInt(rows.Value),
-				Cols:          MustGetInt(cols.Value),
+				Rows:          element.MustGetInt(rows.Value),
+				Cols:          element.MustGetInt(cols.Value),
 				Data:          make([][]int, int(pixelsPerFrame)),
 			},
 		}
@@ -251,8 +252,8 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 // readSequence reads a sequence element (VR = SQ) that contains a subset of Items. Each item contains
 // a set of Elements.
 // See http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.2.html#table_7.5-1
-func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
-	var sequences SequencesValue
+func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (element.Value, error) {
+	var sequences element.SequencesValue
 
 	if vl == tag.VLUndefinedLength {
 		for {
@@ -266,14 +267,14 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 				// Stop reading
 				break
 			}
-			if subElement.Tag != tag.Item || subElement.Value.ValueType() != SequenceItem {
+			if subElement.Tag != tag.Item || subElement.Value.ValueType() != element.SequenceItem {
 				// This is an error, should be an Item!
 				// TODO: use error var
 				return nil, fmt.Errorf("non item found in sequence")
 			}
 
 			// Append the Item element's dataset of elements to this Sequence's SequencesValue.
-			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
+			sequences.Value = append(sequences.Value, subElement.Value.(*element.SequenceItemValue))
 		}
 	} else {
 		// Sequence of elements for a total of VL bytes
@@ -289,7 +290,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 			}
 
 			// Append the Item element's dataset of elements to this Sequence's SequencesValue.
-			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
+			sequences.Value = append(sequences.Value, subElement.Value.(*element.SequenceItemValue))
 		}
 		r.PopLimit()
 	}
@@ -299,12 +300,12 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 
 // readSequenceItem reads an item component of a sequence dicom element and returns an Element
 // with a SequenceItem value.
-func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
-	var sequenceItem SequenceItemValue
+func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (element.Value, error) {
+	var sequenceItem element.SequenceItemValue
 
 	// seqElements holds items read so far.
 	// TODO: deduplicate with sequenceItem above
-	var seqElements Dataset
+	var seqElements element.Dataset
 
 	log.Println("readSequenceItem TOP LOOP")
 
@@ -319,7 +320,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 			}
 			log.Println("readSequenceItem: tag: ", subElem.Tag)
 
-			sequenceItem.elements = append(sequenceItem.elements, subElem)
+			sequenceItem.Elements = append(sequenceItem.Elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
 		}
 	} else {
@@ -335,7 +336,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 			}
 			log.Println("readSequenceItem: tag: ", subElem.Tag)
 
-			sequenceItem.elements = append(sequenceItem.elements, subElem)
+			sequenceItem.Elements = append(sequenceItem.Elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
 		}
 	}
@@ -343,12 +344,12 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 	return &sequenceItem, nil
 }
 
-func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (element.Value, error) {
 	// TODO: add special handling of PixelData
 	if vr == "OB" {
 		data := make([]byte, vl)
 		_, err := r.Read(data)
-		return &BytesValue{value: data}, err
+		return &element.BytesValue{Value: data}, err
 	} else if vr == "OW" {
 		// OW -> stream of 16 bit words
 		if vl%2 != 0 {
@@ -368,13 +369,13 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 				return nil, err
 			}
 		}
-		return &BytesValue{value: buf.Bytes()}, nil
+		return &element.BytesValue{Value: buf.Bytes()}, nil
 	}
 
 	return nil, ErrorUnsupportedVR
 }
 
-func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (element.Value, error) {
 	str, err := r.ReadString(vl)
 	// String may have '\0' suffix if its length is odd.
 	str = strings.Trim(str, " \000")
@@ -382,24 +383,24 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 	// Split multiple strings
 	strs := strings.Split(str, "\\")
 
-	return &StringsValue{value: strs}, err
+	return &element.StringsValue{Value: strs}, err
 }
 
-func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (element.Value, error) {
 	rawDate, err := r.ReadString(vl)
 	if err != nil {
 		return nil, err
 	}
 	date := strings.Trim(rawDate, " \000")
 
-	return &StringsValue{value: []string{date}}, nil
+	return &element.StringsValue{Value: []string{date}}, nil
 
 }
 
-func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (element.Value, error) {
 	// TODO: add other integer types here
 	err := r.PushLimit(int64(vl))
-	retVal := &IntsValue{value: make([]int, 0, vl/2)}
+	retVal := &element.IntsValue{Value: make([]int, 0, vl/2)}
 	for !r.IsLimitExhausted() {
 		switch vr {
 		case "US":
@@ -407,28 +408,28 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			retVal.value = append(retVal.value, int(val))
+			retVal.Value = append(retVal.Value, int(val))
 			break
 		case "UL":
 			val, err := r.ReadUInt32()
 			if err != nil {
 				return nil, err
 			}
-			retVal.value = append(retVal.value, int(val))
+			retVal.Value = append(retVal.Value, int(val))
 			break
 		case "SL":
 			val, err := r.ReadInt32()
 			if err != nil {
 				return nil, err
 			}
-			retVal.value = append(retVal.value, int(val))
+			retVal.Value = append(retVal.Value, int(val))
 			break
 		case "SS":
 			val, err := r.ReadInt16()
 			if err != nil {
 				return nil, err
 			}
-			retVal.value = append(retVal.value, int(val))
+			retVal.Value = append(retVal.Value, int(val))
 			break
 		default:
 			return nil, errors.New("unable to parse integer type")
@@ -443,7 +444,7 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 // elements read so far, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.
-func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
+func readElement(r dicomio.Reader, d *element.Dataset, fc chan<- *frame.Frame) (*element.Element, error) {
 	t, err := readTag(r)
 	if err != nil {
 		return nil, err
@@ -468,7 +469,7 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 		return nil, err
 	}
 
-	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), ValueLength: vl, Value: val}, nil
+	return &element.Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), ValueLength: vl, Value: val}, nil
 
 }
 

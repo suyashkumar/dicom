@@ -1,4 +1,8 @@
 // Package dicom provides tools to read and work with DICOM binary files.
+//
+// The Parser is able to parse DICOM data into
+// an element.Dataset, which is a collection of element.Element(s) that represent information inside the DICOM. See the
+// godoc for the element package to learn more about how to work with element.Element entities.
 package dicom
 
 import (

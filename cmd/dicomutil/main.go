@@ -64,14 +64,12 @@ func main() {
 			}
 			fmt.Println(string(j))
 		} else {
+			fmt.Print(ds)
 
 			for _, elem := range ds.Elements {
 				if elem.Tag == tag.PixelData && !*extractImagesStream {
 					writePixelDataElement(elem, "")
 				}
-				log.Println(elem.Tag)
-				log.Println(elem.ValueLength)
-				log.Println(elem.Value)
 				// TODO: remove image icon hack after implementing flat iterator
 				if elem.Tag == tag.IconImageSequence {
 					for _, item := range elem.Value.GetValue().([]*dicom.SequenceItemValue) {

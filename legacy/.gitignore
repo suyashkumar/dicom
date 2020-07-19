@@ -1,9 +1,0 @@
-# binary
-dicom
-
-*.DS_Store
-*.sublime-*
-
-.idea
-build
-vendor

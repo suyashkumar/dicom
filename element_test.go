@@ -31,3 +31,26 @@ func TestElement_MarshalJSON_NestedElements(t *testing.T) {
 		t.Errorf("json.Marshal(%v) produced incorrect output. want: %s, got:%s", seqElement, want, string(j))
 	}
 }
+
+func TestElement_String(t *testing.T) {
+	e := &Element{
+		Tag:                    tag.Rows,
+		ValueRepresentation:    tag.VRInt32List,
+		RawValueRepresentation: "US",
+		Value: &IntsValue{
+			value: []int{100},
+		},
+	}
+	want := "[\n" +
+		"  Tag: (0028,0010)\n" +
+		"  VR: VRInt32List\n" +
+		"  VR Raw: US\n" +
+		"  VL: 0\n" +
+		"  Value: [100]\n" +
+		"]\n\n"
+	got := e.String()
+	if want != got {
+		t.Errorf("String(%v) unexpected diff. want:\n%s got:\n%s ", e, want, got)
+	}
+
+}

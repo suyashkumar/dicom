@@ -17,7 +17,11 @@ type Element struct {
 }
 
 func (e *Element) String() string {
-	return fmt.Sprintf("Tag:%s\nVR:%s\nValue:%s\n\n", e.Tag.String(), e.ValueRepresentation.String(), e.Value.String())
+	return fmt.Sprintf("[\n  Tag: %s\n  VR: %s\n  VR Raw: %s\n  VL: %d\n  Value: %s\n]\n\n", e.Tag.String(),
+		e.ValueRepresentation.String(),
+		e.RawValueRepresentation,
+		e.ValueLength,
+		e.Value.String())
 }
 
 type Value interface {

@@ -101,7 +101,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 
 			return nil, err
 		}
-		log.Printf("Metadata Element: %s\n", elem)
+		// log.Printf("Metadata Element: %s\n", elem)
 		metaElems = append(metaElems, elem)
 	}
 	return metaElems, nil
@@ -128,7 +128,7 @@ func (p *parser) Parse() (Dataset, error) {
 			return Dataset{}, err
 		}
 
-		log.Println("Read tag: ", elem.Tag)
+		// log.Println("Read tag: ", elem.Tag)
 
 		// TODO: add dicom options to only keep track of certain tags
 

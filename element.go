@@ -1,27 +1,19 @@
 package dicom
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
-type RawElement struct {
-	Tag                    tag.Tag
-	ValueRepresentation    tag.VRKind
-	RawValueRepresentation string
-	ValueLength            uint32
-	UndefinedLength        bool
-	Value                  []byte
-}
-
 type Element struct {
-	Tag                    tag.Tag
-	ValueRepresentation    tag.VRKind
-	RawValueRepresentation string
-	ValueLength            uint32
-	Value                  Value
+	Tag                    tag.Tag    `json:"tag"`
+	ValueRepresentation    tag.VRKind `json:"VR"`
+	RawValueRepresentation string     `json:"rawVR"`
+	ValueLength            uint32     `json:"valueLength"`
+	Value                  Value      `json:"value"`
 }
 
 func (e *Element) String() string {
@@ -35,6 +27,7 @@ type Value interface {
 	ValueType() ValueType
 	GetValue() interface{} // TODO: rename to Get to read cleaner
 	String() string
+	MarshalJSON() ([]byte, error)
 }
 
 type ValueType int
@@ -53,7 +46,7 @@ const (
 
 // BytesValue represents a value of []byte.
 type BytesValue struct {
-	value []byte
+	value []byte `json:"value"`
 }
 
 func (b *BytesValue) isElementValue()       {}
@@ -62,10 +55,13 @@ func (b *BytesValue) GetValue() interface{} { return b.value }
 func (b *BytesValue) String() string {
 	return fmt.Sprintf("%v", b.value)
 }
+func (b *BytesValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(b.value)
+}
 
 // StringsValue represents a value of []string.
 type StringsValue struct {
-	value []string
+	value []string `json:"value"`
 }
 
 func (s *StringsValue) isElementValue()       {}
@@ -74,10 +70,13 @@ func (s *StringsValue) GetValue() interface{} { return s.value }
 func (s *StringsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
+func (s *StringsValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.value)
+}
 
 // IntsValue represents a value of []int.
 type IntsValue struct {
-	value []int
+	value []int `json:"value"`
 }
 
 func (s *IntsValue) isElementValue()       {}
@@ -86,9 +85,12 @@ func (s *IntsValue) GetValue() interface{} { return s.value }
 func (s *IntsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
+func (s *IntsValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.value)
+}
 
 type SequenceItemValue struct {
-	elements []*Element
+	elements []*Element `json:"elements"`
 }
 
 func (s *SequenceItemValue) isElementValue()       {}
@@ -98,10 +100,13 @@ func (s *SequenceItemValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return fmt.Sprintf("%+v", s.elements)
 }
+func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.elements)
+}
 
 // SequencesValue represents a set of items in a DICOM sequence.
 type SequencesValue struct {
-	value []*SequenceItemValue
+	value []*SequenceItemValue `json:"sequenceItems"`
 }
 
 func (s *SequencesValue) isElementValue()       {}
@@ -111,11 +116,14 @@ func (s *SequencesValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return fmt.Sprintf("%+v", s.value)
 }
+func (s *SequencesValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.value)
+}
 
 type PixelDataInfo struct {
 	Frames         []frame.Frame // Frames
-	IsEncapsulated bool
-	Offsets        []uint32 // BasicOffsetTable
+	IsEncapsulated bool          `json:"isEncapsulated"`
+	Offsets        []uint32      // BasicOffsetTable
 }
 
 // PixelDataValue represents DICOM PixelData
@@ -129,6 +137,9 @@ func (e *PixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
 func (e *PixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return ""
+}
+func (s *PixelDataValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.PixelDataInfo)
 }
 
 func MustGetInt(v Value) int {

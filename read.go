@@ -306,8 +306,6 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 	// TODO: deduplicate with sequenceItem above
 	var seqElements Dataset
 
-	log.Println("readSequenceItem TOP LOOP")
-
 	if vl == tag.VLUndefinedLength {
 		for {
 			subElem, err := readElement(r, &seqElements, nil)
@@ -317,7 +315,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 			if subElem.Tag == tag.ItemDelimitationItem {
 				break
 			}
-			log.Println("readSequenceItem: tag: ", subElem.Tag)
+			// log.Println("readSequenceItem: tag: ", subElem.Tag)
 
 			sequenceItem.elements = append(sequenceItem.elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
@@ -333,7 +331,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 			if err != nil {
 				return nil, err
 			}
-			log.Println("readSequenceItem: tag: ", subElem.Tag)
+			// log.Println("readSequenceItem: tag: ", subElem.Tag)
 
 			sequenceItem.elements = append(sequenceItem.elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
@@ -448,7 +446,7 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 	if err != nil {
 		return nil, err
 	}
-	log.Println("readElement: readTag: ", t)
+	// log.Println("readElement: readTag: ", t)
 
 	vr, err := readVR(r, r.IsImplicit(), *t)
 	if err != nil {
@@ -460,7 +458,7 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 		return nil, err
 	}
 
-	log.Println("readElement: vr, vl", vr, vl)
+	// log.Println("readElement: vr, vl", vr, vl)
 
 	val, err := readValue(r, *t, vr, vl, r.IsImplicit(), d, fc)
 	if err != nil {
@@ -468,7 +466,7 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 		return nil, err
 	}
 
-	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), ValueLength: vl, Value: val}, nil
+	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
 
 }
 

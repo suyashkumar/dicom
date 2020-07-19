@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/suyashkumar/dicom"
@@ -66,9 +65,9 @@ func main() {
 			fmt.Println(string(j))
 		} else {
 
-			for z, elem := range ds.Elements {
+			for _, elem := range ds.Elements {
 				if elem.Tag == tag.PixelData && !*extractImagesStream {
-					writePixelDataElement(elem, strconv.Itoa(z))
+					writePixelDataElement(elem, "")
 				}
 				log.Println(elem.Tag)
 				log.Println(elem.ValueLength)
@@ -78,7 +77,7 @@ func main() {
 					for _, item := range elem.Value.GetValue().([]*dicom.SequenceItemValue) {
 						for _, subElem := range item.GetValue().([]*dicom.Element) {
 							if subElem.Tag == tag.PixelData {
-								writePixelDataElement(subElem, "icon")
+								writePixelDataElement(subElem, "_icon")
 							}
 						}
 					}
@@ -87,6 +86,7 @@ func main() {
 			}
 		}
 	}
+
 }
 
 func parseWithStreaming(in io.Reader, size int64) *dicom.Dataset {
@@ -117,19 +117,19 @@ func writeStreamingFrames(frameChan chan *frame.Frame, doneWG *sync.WaitGroup) {
 	for frame := range frameChan {
 		count++
 		wg.Add(1)
-		go generateImage(frame, count, &wg)
+		go generateImage(frame, count, "", &wg)
 	}
 	wg.Wait()
 	doneWG.Done()
 }
 
-func generateImage(fr *frame.Frame, frameIndex int, wg *sync.WaitGroup) {
+func generateImage(fr *frame.Frame, frameIndex int, frameSuffix string, wg *sync.WaitGroup) {
 	i, err := fr.GetImage()
 	if err != nil {
 		log.Fatal("Error while getting image")
 	}
 
-	name := fmt.Sprintf("image_%d.jpg", frameIndex)
+	name := fmt.Sprintf("image_%d%s.jpg", frameIndex, frameSuffix)
 	f, err := os.Create(name)
 	if err != nil {
 		fmt.Printf("Error while creating file: %s", err.Error())
@@ -147,9 +147,9 @@ func generateImage(fr *frame.Frame, frameIndex int, wg *sync.WaitGroup) {
 	}
 }
 
-func writePixelDataElement(e *dicom.Element, id string) {
+func writePixelDataElement(e *dicom.Element, suffix string) {
 	imageInfo := e.Value.GetValue().(dicom.PixelDataInfo)
 	for idx, f := range imageInfo.Frames {
-		generateImage(&f, idx, nil)
+		generateImage(&f, idx, suffix, nil)
 	}
 }

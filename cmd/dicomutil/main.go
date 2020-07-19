@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"image/jpeg"
@@ -19,6 +20,7 @@ import (
 var (
 	filepath            = flag.String("path", "", "path")
 	extractImagesStream = flag.Bool("extract-images-stream", false, "Extract images using frame streaming capability")
+	printJSON           = flag.Bool("json", false, "Print dataset as JSON")
 )
 
 // FrameBufferSize represents the size of the *Frame buffered channel for streaming calls
@@ -56,24 +58,33 @@ func main() {
 			ds = &data
 		}
 
-		for z, elem := range ds.Elements {
-			if elem.Tag == tag.PixelData && !*extractImagesStream {
-				writePixelDataElement(elem, strconv.Itoa(z))
+		if *printJSON {
+			j, err := json.MarshalIndent(ds, "", "  ")
+			if err != nil {
+				panic(err)
 			}
-			log.Println(elem.Tag)
-			log.Println(elem.ValueLength)
-			log.Println(elem.Value)
-			// TODO: remove image icon hack after implementing flat iterator
-			if elem.Tag == tag.IconImageSequence {
-				for _, item := range elem.Value.GetValue().([]*dicom.SequenceItemValue) {
-					for _, subElem := range item.GetValue().([]*dicom.Element) {
-						if subElem.Tag == tag.PixelData {
-							writePixelDataElement(subElem, "icon")
+			fmt.Println(string(j))
+		} else {
+
+			for z, elem := range ds.Elements {
+				if elem.Tag == tag.PixelData && !*extractImagesStream {
+					writePixelDataElement(elem, strconv.Itoa(z))
+				}
+				log.Println(elem.Tag)
+				log.Println(elem.ValueLength)
+				log.Println(elem.Value)
+				// TODO: remove image icon hack after implementing flat iterator
+				if elem.Tag == tag.IconImageSequence {
+					for _, item := range elem.Value.GetValue().([]*dicom.SequenceItemValue) {
+						for _, subElem := range item.GetValue().([]*dicom.Element) {
+							if subElem.Tag == tag.PixelData {
+								writePixelDataElement(subElem, "icon")
+							}
 						}
 					}
 				}
-			}
 
+			}
 		}
 	}
 }

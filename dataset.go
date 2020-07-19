@@ -9,7 +9,7 @@ import (
 var ErrorElementNotFound = errors.New("element not found")
 
 type Dataset struct {
-	Elements []*Element
+	Elements []*Element `json:"elements"`
 }
 
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.

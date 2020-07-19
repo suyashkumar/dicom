@@ -2,6 +2,8 @@ package dicom
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
@@ -50,10 +52,65 @@ func (d *Dataset) FlatIterator() <-chan *Element {
 func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 	for _, elem := range elems {
 		if elem.Value.ValueType() == Sequences {
+			elemChan <- elem
 			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
 				flatElementsIterator(seqItem.elements, elemChan)
 			}
+			continue
 		}
 		elemChan <- elem
 	}
+}
+
+// String returns a representation of this dataset as a string
+func (d *Dataset) String() string {
+	var b strings.Builder
+	for elem := range d.flatIteratorWithLevel() {
+		tabs := buildTabs(elem.l)
+		b.WriteString(fmt.Sprintf("%s[\n", tabs))
+		b.WriteString(fmt.Sprintf("%s  Tag: %s\n", tabs, elem.e.Tag))
+		b.WriteString(fmt.Sprintf("%s  VR: %s\n", tabs, elem.e.ValueRepresentation))
+		b.WriteString(fmt.Sprintf("%s  VR Raw: %s\n", tabs, elem.e.RawValueRepresentation))
+		b.WriteString(fmt.Sprintf("%s  VL: %d\n", tabs, elem.e.ValueLength))
+		b.WriteString(fmt.Sprintf("%s  Value: %d\n", tabs, elem.e.Value))
+		b.WriteString(fmt.Sprintf("%s]\n\n", tabs))
+	}
+	return b.String()
+}
+
+type elementWithLevel struct {
+	e *Element
+	// l represents the nesting level of the Element
+	l uint
+}
+
+func (d *Dataset) flatIteratorWithLevel() <-chan *elementWithLevel {
+	elemChan := make(chan *elementWithLevel)
+	go func() {
+		flatElementsIteratorWithLevel(d.Elements, 0, elemChan)
+		close(elemChan)
+	}()
+	return elemChan
+}
+
+func flatElementsIteratorWithLevel(elems []*Element, level uint, eWithLevelChan chan<- *elementWithLevel) {
+	for _, elem := range elems {
+		if elem.Value.ValueType() == Sequences {
+			eWithLevelChan <- &elementWithLevel{elem, level}
+			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
+				flatElementsIteratorWithLevel(seqItem.elements, level+1, eWithLevelChan)
+			}
+			continue
+		}
+		eWithLevelChan <- &elementWithLevel{elem, level}
+	}
+}
+
+func buildTabs(number uint) string {
+	var b strings.Builder
+	b.Grow(int(number))
+	for i := 0; i < int(number); i++ {
+		b.WriteString("\t")
+	}
+	return b.String()
 }

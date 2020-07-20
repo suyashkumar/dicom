@@ -447,7 +447,7 @@ func DataSetToFile(path string, ds *element.DataSet, opts ...Option) error {
 	if err != nil {
 		return err
 	}
-	if err := DataSet(out, ds); err != nil {
+	if err := DataSet(out, ds, opts...); err != nil {
 		out.Close()
 		return err
 	}

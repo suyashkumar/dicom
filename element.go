@@ -17,7 +17,13 @@ type Element struct {
 }
 
 func (e *Element) String() string {
-	return fmt.Sprintf("[\n  Tag: %s\n  VR: %s\n  VR Raw: %s\n  VL: %d\n  Value: %s\n]\n\n", e.Tag.String(),
+	var tagName string
+	if tagInfo, err := tag.Find(e.Tag); err == nil {
+		tagName = tagInfo.Name
+	}
+	return fmt.Sprintf("[\n  Tag: %s\n  Tag Name: %s\n  VR: %s\n  VR Raw: %s\n  VL: %d\n  Value: %s\n]\n\n",
+		e.Tag.String(),
+		tagName,
 		e.ValueRepresentation.String(),
 		e.RawValueRepresentation,
 		e.ValueLength,

@@ -65,10 +65,17 @@ func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 // String returns a representation of this dataset as a string
 func (d *Dataset) String() string {
 	var b strings.Builder
+	b.Grow(len(d.Elements) * 100) // Underestimate of the size of the final string in an attempt to limit buffer copying
 	for elem := range d.flatIteratorWithLevel() {
 		tabs := buildTabs(elem.l)
+		var tagName string
+		if tagInfo, err := tag.Find(elem.e.Tag); err == nil {
+			tagName = tagInfo.Name
+		}
+
 		b.WriteString(fmt.Sprintf("%s[\n", tabs))
 		b.WriteString(fmt.Sprintf("%s  Tag: %s\n", tabs, elem.e.Tag))
+		b.WriteString(fmt.Sprintf("%s  Tag Name: %s\n", tabs, tagName))
 		b.WriteString(fmt.Sprintf("%s  VR: %s\n", tabs, elem.e.ValueRepresentation))
 		b.WriteString(fmt.Sprintf("%s  VR Raw: %s\n", tabs, elem.e.RawValueRepresentation))
 		b.WriteString(fmt.Sprintf("%s  VL: %d\n", tabs, elem.e.ValueLength))

@@ -54,7 +54,7 @@ func TestDataset_FindElementByTag(t *testing.T) {
 
 func ExampleDataset_FlatIterator() {
 	nestedData := [][]*Element{
-		[]*Element{
+		{
 			{
 				Tag:                 tag.PatientName,
 				ValueRepresentation: tag.VRString,

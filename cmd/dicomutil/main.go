@@ -58,14 +58,18 @@ func main() {
 		}
 
 		if *printJSON {
+			log.Println("Printing DICOM dataset serialized as JSON to stdout")
 			j, err := json.MarshalIndent(ds, "", "  ")
 			if err != nil {
 				panic(err)
 			}
+
 			fmt.Println(string(j))
 		} else {
+			log.Println("Printing DICOM dataset parsed elements to stdout:")
 			fmt.Print(ds)
 
+			// In non-streaming frame mode, we need to find all PixelData elements and generate images.
 			for _, elem := range ds.Elements {
 				if elem.Tag == tag.PixelData && !*extractImagesStream {
 					writePixelDataElement(elem, "")

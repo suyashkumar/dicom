@@ -3,6 +3,7 @@ package dicom
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
@@ -44,58 +45,64 @@ type ValueType int
 
 // Possible ValueTypes
 const (
+	// Strings represents an underlying value of []string
 	Strings ValueType = iota
+	// Bytes represents an underlying value of []byte
 	Bytes
+	// Ints represents an underlying value of []int
 	Ints
+	// PixelData represents an underlying value of PixelDataInfo
 	PixelData
+	// SequenceItem represents an underlying value of []*Element
 	SequenceItem
+	// Sequences represents an underlying value of []SequenceItem
 	Sequences
 )
 
 // Begin definitions of Values:
 
-// BytesValue represents a value of []byte.
-type BytesValue struct {
+// bytesValue represents a value of []byte.
+type bytesValue struct {
 	value []byte `json:"value"`
 }
 
-func (b *BytesValue) isElementValue()       {}
-func (b *BytesValue) ValueType() ValueType  { return Bytes }
-func (b *BytesValue) GetValue() interface{} { return b.value }
-func (b *BytesValue) String() string {
+func (b *bytesValue) isElementValue()       {}
+func (b *bytesValue) ValueType() ValueType  { return Bytes }
+func (b *bytesValue) GetValue() interface{} { return b.value }
+func (b *bytesValue) String() string {
 	return fmt.Sprintf("%v", b.value)
 }
-func (b *BytesValue) MarshalJSON() ([]byte, error) {
+func (b *bytesValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(b.value)
 }
 
-// StringsValue represents a value of []string.
-type StringsValue struct {
+// stringsValue represents a value of []string.
+type stringsValue struct {
 	value []string `json:"value"`
 }
 
-func (s *StringsValue) isElementValue()       {}
-func (s *StringsValue) ValueType() ValueType  { return Strings }
-func (s *StringsValue) GetValue() interface{} { return s.value }
-func (s *StringsValue) String() string {
+func (s *stringsValue) isElementValue()       {}
+func (s *stringsValue) ValueType() ValueType  { return Strings }
+func (s *stringsValue) GetValue() interface{} { return s.value }
+func (s *stringsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
-func (s *StringsValue) MarshalJSON() ([]byte, error) {
+func (s *stringsValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
 
-// IntsValue represents a value of []int.
-type IntsValue struct {
+// intsValue represents a value of []int.
+type intsValue struct {
 	value []int `json:"value"`
 }
 
-func (s *IntsValue) isElementValue()       {}
-func (s *IntsValue) ValueType() ValueType  { return Ints }
-func (s *IntsValue) GetValue() interface{} { return s.value }
-func (s *IntsValue) String() string {
+func (s *intsValue) isElementValue()       {}
+func (s *intsValue) ValueType() ValueType  { return Ints }
+func (s *intsValue) GetValue() interface{} { return s.value }
+func (s *intsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
-func (s *IntsValue) MarshalJSON() ([]byte, error) {
+func (s *intsValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
 
@@ -114,19 +121,19 @@ func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.elements)
 }
 
-// SequencesValue represents a set of items in a DICOM sequence.
-type SequencesValue struct {
+// sequencesValue represents a set of items in a DICOM sequence.
+type sequencesValue struct {
 	value []*SequenceItemValue `json:"sequenceItems"`
 }
 
-func (s *SequencesValue) isElementValue()       {}
-func (s *SequencesValue) ValueType() ValueType  { return Sequences }
-func (s *SequencesValue) GetValue() interface{} { return s.value }
-func (s *SequencesValue) String() string {
+func (s *sequencesValue) isElementValue()       {}
+func (s *sequencesValue) ValueType() ValueType  { return Sequences }
+func (s *sequencesValue) GetValue() interface{} { return s.value }
+func (s *sequencesValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return fmt.Sprintf("%+v", s.value)
 }
-func (s *SequencesValue) MarshalJSON() ([]byte, error) {
+func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
 
@@ -136,34 +143,46 @@ type PixelDataInfo struct {
 	Offsets        []uint32      // BasicOffsetTable
 }
 
-// PixelDataValue represents DICOM PixelData
-type PixelDataValue struct {
+// pixelDataValue represents DICOM PixelData
+type pixelDataValue struct {
 	PixelDataInfo
 }
 
-func (e *PixelDataValue) isElementValue()       {}
-func (e *PixelDataValue) ValueType() ValueType  { return PixelData }
-func (e *PixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
-func (e *PixelDataValue) String() string {
+func (e *pixelDataValue) isElementValue()       {}
+func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
+func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
+func (e *pixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return ""
 }
-func (s *PixelDataValue) MarshalJSON() ([]byte, error) {
+func (s *pixelDataValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.PixelDataInfo)
 }
 
-func MustGetInt(v Value) int {
-	return v.GetValue().([]int)[0]
-}
-
 func MustGetInts(v Value) []int {
+	if v.ValueType() != Ints {
+		log.Panicf("MustGetInts expected ValueType of Ints, got: %v", v.ValueType())
+	}
 	return v.GetValue().([]int)
 }
 
-func MustGetString(v Value) string {
-	return v.GetValue().([]string)[0]
+func MustGetStrings(v Value) []string {
+	if v.ValueType() != Strings {
+		log.Panicf("MustGetStrings expected ValueType of Strings, got: %v", v.ValueType())
+	}
+	return v.GetValue().([]string)
 }
 
-func MustGetStrings(v Value) []string {
-	return v.GetValue().([]string)
+func MustGetBytes(v Value) []byte {
+	if v.ValueType() != Bytes {
+		log.Panicf("MustGetBytes expected ValueType of Bytes, got: %v", v.ValueType())
+	}
+	return v.GetValue().([]byte)
+}
+
+func MustGetPixelDataInfo(v Value) PixelDataInfo {
+	if v.ValueType() != PixelData {
+		log.Panicf("MustGetBytes expected ValueType of PixelData, got: %v", v.ValueType())
+	}
+	return v.GetValue().(PixelDataInfo)
 }

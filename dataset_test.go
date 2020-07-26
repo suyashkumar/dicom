@@ -16,7 +16,7 @@ func makeSequenceElement(tg tag.Tag, items [][]*Element) *Element {
 	return &Element{
 		Tag:                 tg,
 		ValueRepresentation: tag.VRSequence,
-		Value: &SequencesValue{
+		Value: &sequencesValue{
 			value: sequenceItems,
 		},
 	}
@@ -28,14 +28,14 @@ func TestDataset_FindElementByTag(t *testing.T) {
 			{
 				Tag:                 tag.Rows,
 				ValueRepresentation: tag.VRInt32List,
-				Value: &IntsValue{
+				Value: &intsValue{
 					value: []int{100},
 				},
 			},
 			{
 				Tag:                 tag.Columns,
 				ValueRepresentation: tag.VRInt32List,
-				Value: &IntsValue{
+				Value: &intsValue{
 					value: []int{200},
 				},
 			},
@@ -58,7 +58,7 @@ func ExampleDataset_FlatIterator() {
 			{
 				Tag:                 tag.PatientName,
 				ValueRepresentation: tag.VRString,
-				Value: &StringsValue{
+				Value: &stringsValue{
 					value: []string{"Bob"},
 				},
 			},
@@ -70,14 +70,14 @@ func ExampleDataset_FlatIterator() {
 			{
 				Tag:                 tag.Rows,
 				ValueRepresentation: tag.VRInt32List,
-				Value: &IntsValue{
+				Value: &intsValue{
 					value: []int{100},
 				},
 			},
 			{
 				Tag:                 tag.Columns,
 				ValueRepresentation: tag.VRInt32List,
-				Value: &IntsValue{
+				Value: &intsValue{
 					value: []int{200},
 				},
 			},

@@ -138,7 +138,7 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 
 			image.Frames = append(image.Frames, f)
 		}
-		return &PixelDataValue{PixelDataInfo: image}, nil
+		return &pixelDataValue{PixelDataInfo: image}, nil
 	}
 
 	// Assume we're reading NativeData data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
@@ -155,7 +155,7 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 	}
 
 	// TODO: avoid this copy
-	return &PixelDataValue{PixelDataInfo: *i}, nil
+	return &pixelDataValue{PixelDataInfo: *i}, nil
 
 }
 
@@ -182,7 +182,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	nFrames := 0
 	if err == nil {
 		// No error, so parse number of frames
-		nFrames, err = strconv.Atoi(MustGetString(nof.Value)) // odd that number of frames is encoded as a string...
+		nFrames, err = strconv.Atoi(MustGetStrings(nof.Value)[0]) // odd that number of frames is encoded as a string...
 		if err != nil {
 			return nil, 0, err
 		}
@@ -195,15 +195,15 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	if err != nil {
 		return nil, 0, err
 	}
-	bitsAllocated := MustGetInt(b.Value)
+	bitsAllocated := MustGetInts(b.Value)[0]
 
 	s, err := parsedData.FindElementByTag(tag.SamplesPerPixel)
 	if err != nil {
 		return nil, 0, err
 	}
-	samplesPerPixel := MustGetInt(s.Value)
+	samplesPerPixel := MustGetInts(s.Value)[0]
 
-	pixelsPerFrame := MustGetInt(rows.Value) * MustGetInt(cols.Value)
+	pixelsPerFrame := MustGetInts(rows.Value)[0] * MustGetInts(cols.Value)[0]
 
 	// Parse the pixels:
 	image.Frames = make([]frame.Frame, nFrames)
@@ -213,8 +213,8 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 			Encapsulated: false,
 			NativeData: frame.NativeFrame{
 				BitsPerSample: bitsAllocated,
-				Rows:          MustGetInt(rows.Value),
-				Cols:          MustGetInt(cols.Value),
+				Rows:          MustGetInts(rows.Value)[0],
+				Cols:          MustGetInts(cols.Value)[0],
 				Data:          make([][]int, int(pixelsPerFrame)),
 			},
 		}
@@ -252,7 +252,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 // a set of Elements.
 // See http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.2.html#table_7.5-1
 func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
-	var sequences SequencesValue
+	var sequences sequencesValue
 
 	if vl == tag.VLUndefinedLength {
 		for {
@@ -272,7 +272,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 				return nil, fmt.Errorf("non item found in sequence")
 			}
 
-			// Append the Item element's dataset of elements to this Sequence's SequencesValue.
+			// Append the Item element's dataset of elements to this Sequence's sequencesValue.
 			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
 		}
 	} else {
@@ -288,7 +288,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 				return nil, err
 			}
 
-			// Append the Item element's dataset of elements to this Sequence's SequencesValue.
+			// Append the Item element's dataset of elements to this Sequence's sequencesValue.
 			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
 		}
 		r.PopLimit()
@@ -346,7 +346,7 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 	if vr == "OB" {
 		data := make([]byte, vl)
 		_, err := r.Read(data)
-		return &BytesValue{value: data}, err
+		return &bytesValue{value: data}, err
 	} else if vr == "OW" {
 		// OW -> stream of 16 bit words
 		if vl%2 != 0 {
@@ -366,7 +366,7 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 				return nil, err
 			}
 		}
-		return &BytesValue{value: buf.Bytes()}, nil
+		return &bytesValue{value: buf.Bytes()}, nil
 	}
 
 	return nil, ErrorUnsupportedVR
@@ -380,7 +380,7 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 	// Split multiple strings
 	strs := strings.Split(str, "\\")
 
-	return &StringsValue{value: strs}, err
+	return &stringsValue{value: strs}, err
 }
 
 func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
@@ -390,14 +390,14 @@ func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) 
 	}
 	date := strings.Trim(rawDate, " \000")
 
-	return &StringsValue{value: []string{date}}, nil
+	return &stringsValue{value: []string{date}}, nil
 
 }
 
 func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add other integer types here
 	err := r.PushLimit(int64(vl))
-	retVal := &IntsValue{value: make([]int, 0, vl/2)}
+	retVal := &intsValue{value: make([]int, 0, vl/2)}
 	for !r.IsLimitExhausted() {
 		switch vr {
 		case "US":

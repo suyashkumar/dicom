@@ -13,7 +13,7 @@ func TestElement_MarshalJSON_NestedElements(t *testing.T) {
 			{
 				Tag:                 tag.PatientName,
 				ValueRepresentation: tag.VRString,
-				Value: &StringsValue{
+				Value: &stringsValue{
 					value: []string{"Bob"},
 				},
 			},
@@ -37,7 +37,7 @@ func TestElement_String(t *testing.T) {
 		Tag:                    tag.Rows,
 		ValueRepresentation:    tag.VRInt32List,
 		RawValueRepresentation: "US",
-		Value: &IntsValue{
+		Value: &intsValue{
 			value: []int{100},
 		},
 	}

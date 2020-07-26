@@ -114,7 +114,7 @@ func (p *parser) Parse() (Dataset, error) {
 		// proceed with a default?
 		log.Println("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
 	}
-	bo, implicit, err := uid.ParseTransferSyntaxUID(MustGetString(ts.Value))
+	bo, implicit, err := uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
 	if err != nil {
 		// proceed with a default?
 		log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")

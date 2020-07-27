@@ -43,13 +43,19 @@ type parser struct {
 	force		bool
 }
 
+func newParserInternal(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, force bool) parser {
+	buffer := dicomio.NewDecoder(bufio.NewReader(in), bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
+	p := parser{
+		decoder:      buffer,
+		frameChannel: frameChannel,
+		force: force,
+	}
+	return p
+}
+
 // NewParser initializes and returns a new Parser
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (Parser, error) {
-	buffer := dicomio.NewDecoder(bufio.NewReader(in), bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
-	p := parser{
-		decoder:      buffer,
-		frameChannel: frameChannel,
-	}
+	p := newParserInternal(in, bytesToRead, frameChannel, false)
 	metaElems := p.parseFileHeader()
 	if p.decoder.Error() != nil {
 		return nil, p.decoder.Error()
@@ -59,26 +65,11 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 	return &p, nil
 }
 
-// NewParserWithForcedRead initializes and returns a new Parser that will attempt to skip common sanity and conformance checks, like checking for the 'DICM' magic word in the header
-func NewParserWithForcedRead(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (Parser, error) {
-	buffer := dicomio.NewDecoder(bufio.NewReader(in), bytesToRead, binary.LittleEndian, dicomio.ExplicitVR)
-	p := parser{
-		decoder:      buffer,
-		frameChannel: frameChannel,
-		force:        true,
-	}
-	metaElems := p.parseFileHeader()
-	if p.decoder.Error() != nil {
-		return nil, p.decoder.Error()
-	}
-	p.parsedElements = &element.DataSet{Elements: metaElems}
-
+// NewParserForce initializes a new Parser with forced file reading and returns it
+func NewParserForce(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (Parser, error) {
+	p := newParserInternal(in, bytesToRead, frameChannel, true)
+	p.parsedElements = &element.DataSet{} // to avoid nil pointer errors
 	return &p, nil
-}
-
-// NNewParserFromBytesWithForcedRead initializes and returns a new Parser that will attempt to skip common sanity and conformance checks, like checking for the 'DICM' magic word in the header
-func NewParserFromBytesWithForcedRead(data []byte, frameChannel chan *frame.Frame) (Parser, error) {
-	return NewParserWithForcedRead(bytes.NewBuffer(data), int64(len(data)), frameChannel)
 }
 
 // NewParserFromBytes initializes and returns a new Parser from []byte
@@ -86,8 +77,8 @@ func NewParserFromBytes(data []byte, frameChannel chan *frame.Frame) (Parser, er
 	return NewParser(bytes.NewBuffer(data), int64(len(data)), frameChannel)
 }
 
-// newParserFromFileInternal does the actual work of creating a new Parser and picks how it parses the head, e.g. is force is true it will read header even if it's missing 'DICM' keyword
-func newParserFromFileInternal(path string, frameChannel chan *frame.Frame, force bool) (Parser, error) {
+// NewParserFromFile initializes and returns a new dicom Parser from a file path
+func NewParserFromFile(path string, frameChannel chan *frame.Frame) (Parser, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -97,29 +88,12 @@ func newParserFromFileInternal(path string, frameChannel chan *frame.Frame, forc
 		file.Close()
 		return nil, err
 	}
-	var p Parser
-	if force {
-		p, err = NewParserWithForcedRead(file, st.Size(), frameChannel)
-	} else {
-		p, err = NewParser(file, st.Size(), frameChannel)
-	}
+	p, err := NewParser(file, st.Size(), frameChannel)
 	if err != nil {
 		file.Close()
 		return nil, err
 	}
 	p.(*parser).file = file
-	return p, nil
-}
-
-// NewParserFromFile initializes and returns a new dicom Parser from a file path
-func NewParserFromFile(path string, frameChannel chan *frame.Frame) (Parser, error) {
-	p, err := newParserFromFileInternal(path, frameChannel, false)
-	return p, err
-}
-
-// NewParserFromFile initializes and returns a new dicom Parser from a file path with the force parameter as true
-func NewParserFromFileWithForcedRead(path string, frameChannel chan *frame.Frame) (Parser, error) {
-	p, err := newParserFromFileInternal(path, frameChannel, true)
 	return p, err
 }
 
@@ -154,7 +128,13 @@ func (p *parser) Parse(options ParseOptions) (*element.DataSet, error) {
 	// Change the transfer syntax for the rest of the file.
 	endian, implicit, err := p.parsedElements.TransferSyntax()
 	if err != nil {
-		return nil, err
+		if p.force {
+			// set the transfer sytanx values to defaults
+			endian = binary.LittleEndian
+			implicit = dicomio.ImplicitVR
+		} else {
+			return nil, err
+		}
 	}
 	p.decoder.PushTransferSyntax(endian, implicit)
 	defer p.decoder.PopTransferSyntax()

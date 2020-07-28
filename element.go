@@ -9,6 +9,9 @@ import (
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
+// Element represents a standard DICOM data element (see the DICOM standard:
+// http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1 ).
+// This Element can be serialized to JSON out of the box and pretty printed as a string via the String() method.
 type Element struct {
 	Tag                    tag.Tag    `json:"tag"`
 	ValueRepresentation    tag.VRKind `json:"VR"`
@@ -31,11 +34,40 @@ func (e *Element) String() string {
 		e.Value.String())
 }
 
+// Value represents a DICOM value. The underlying data that a Value stores can be determined by inspecting its
+// ValueType. DICOM values typically can be one of many types (ints, strings, bytes, sequences of other elements, etc),
+// so this Value interface attempts to represent this as canoically as possible in Golang (since generics do not exist
+// yet).
+//
+// Value is JSON serializable out of the box (implements json.Marshaler).
+//
+// If necessary, a Value's data can be efficiently unpacked by inspecting its underlying ValueType and either using a
+// Golang type assertion or using the helper functions provided (like MustGetStrings). Because for each ValueType there
+// is exactly one underlying Golang type, this should be safe, efficient, and straightforward.
+//
+//	switch(myvalue.ValueType()) {
+//		case dicom.Strings:
+//			// We know the underlying Golang type is []string
+//			fmt.Println(dicom.MustGetStrings(myvalue)[0])
+//			// or
+//			s := myvalue.GetValue().([]string)
+//			break;
+// 		case dicom.Bytes:
+//			// ...
+//	}
+//
+// Unpacking the data like above is only necessary if something specific needs to be done with the underlying data.
+// See the Element and Dataset examples as well to see how to work with this kind of data, and common patterns for doing
+// so.
 type Value interface {
 	// All types that can be a "Value" for an element will implement this empty method, similar to how protocol buffers
 	// implement "oneof" in Go
 	isElementValue()
+	// ValueType returns the underlying ValueType of this Value. This can be used to unpack the underlying data in this
+	// Value.
 	ValueType() ValueType
+	// GetValue returns the underlying value that this Value holds. What type is returned here can be determined exactly
+	// from the ValueType() of this Value (see the ValueType godoc).
 	GetValue() interface{} // TODO: rename to Get to read cleaner
 	String() string
 	MarshalJSON() ([]byte, error)
@@ -43,7 +75,8 @@ type Value interface {
 
 type ValueType int
 
-// Possible ValueTypes
+// Possible ValueTypes that represent the different value types for information parsed into DICOM element values.
+// Each ValueType corresponds to exactly one underlying Golang type.
 const (
 	// Strings represents an underlying value of []string
 	Strings ValueType = iota
@@ -155,6 +188,7 @@ func (e *pixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return ""
 }
+
 func (s *pixelDataValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.PixelDataInfo)
 }

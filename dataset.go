@@ -10,6 +10,12 @@ import (
 
 var ErrorElementNotFound = errors.New("element not found")
 
+// Dataset represents a DICOM dataset, see
+// http://dicom.nema.org/medical/dicom/current/output/html/part05.html#chapter_7.
+//
+// This Dataset representation is JSON serializable out of the box
+// (implements json.Marshaler) and will also pretty print as a string nicely (see String example).
+// This Dataset includes several helper methods to find Elements within this dataset or iterate over the dataset.
 type Dataset struct {
 	Elements []*Element `json:"elements"`
 }
@@ -62,7 +68,8 @@ func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 	}
 }
 
-// String returns a representation of this dataset as a string
+// String returns a printable representation of this dataset as a string, including printing out elements nested inside
+// sequence elements.
 func (d *Dataset) String() string {
 	var b strings.Builder
 	b.Grow(len(d.Elements) * 100) // Underestimate of the size of the final string in an attempt to limit buffer copying

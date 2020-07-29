@@ -97,3 +97,48 @@ func ExampleDataset_FlatIterator() {
 	// (0010,0010)
 	// (0046,0102)
 }
+
+func ExampleDataset_String() {
+	d := Dataset{
+		Elements: []*Element{
+			{
+				Tag:                    tag.Rows,
+				ValueRepresentation:    tag.VRInt32List,
+				RawValueRepresentation: "UL",
+				Value: &intsValue{
+					value: []int{100},
+				},
+			},
+			{
+				Tag:                    tag.Columns,
+				ValueRepresentation:    tag.VRInt32List,
+				RawValueRepresentation: "UL",
+				Value: &intsValue{
+					value: []int{200},
+				},
+			},
+		},
+	}
+
+	fmt.Println(d.String())
+
+	// Output:
+	// [
+	//   Tag: (0028,0010)
+	//   Tag Name: Rows
+	//   VR: VRInt32List
+	//   VR Raw: UL
+	//   VL: 0
+	//   Value: &{[100]}
+	// ]
+	//
+	// [
+	//   Tag: (0028,0011)
+	//   Tag Name: Columns
+	//   VR: VRInt32List
+	//   VR Raw: UL
+	//   VL: 0
+	//   Value: &{[200]}
+	// ]
+
+}

@@ -15,7 +15,8 @@ var ErrorElementNotFound = errors.New("element not found")
 //
 // This Dataset representation is JSON serializable out of the box
 // (implements json.Marshaler) and will also pretty print as a string nicely (see String example).
-// This Dataset includes several helper methods to find Elements within this dataset or iterate over the dataset.
+// This Dataset includes several helper methods to find Elements within this dataset or iterate over every Element
+// within this Dataset (including Elements nested within Sequences).
 type Dataset struct {
 	Elements []*Element `json:"elements"`
 }

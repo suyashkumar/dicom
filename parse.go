@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	MagicWord = "DICM"
+	magicWord = "DICM"
 )
 
 var (
@@ -25,7 +25,7 @@ var (
 )
 
 type Parser interface {
-	// Parse DICOM data
+	// Parse DICOM data into a Dataset
 	Parse() (Dataset, error)
 }
 
@@ -37,6 +37,9 @@ type parser struct {
 	frameChannel chan *frame.Frame
 }
 
+// NewParser returns a new Parser that points to the provided io.Reader, with bytesToRead bytes left to read. The
+// frameChannel is an optional channel (can be nil) upon which DICOM image frames will be sent as they are parsed (if
+// provided).
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (Parser, error) {
 	reader, err := dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead)
 	if err != nil {
@@ -68,7 +71,7 @@ func (p *parser) readHeader() ([]*Element, error) {
 	}
 
 	// Check DICOM magic word
-	if s, err := p.reader.ReadString(4); err != nil || s != MagicWord {
+	if s, err := p.reader.ReadString(4); err != nil || s != magicWord {
 		return nil, ErrorMagicWord
 	}
 

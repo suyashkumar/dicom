@@ -15,8 +15,10 @@ import (
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
-var ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
-var ErrorUnsupportedVR = errors.New("unsupported VR")
+var (
+	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
+	ErrorUnsupportedVR    = errors.New("unsupported VR")
+)
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {
 	group, gerr := r.ReadUInt16()

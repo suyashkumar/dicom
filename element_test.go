@@ -55,3 +55,23 @@ func TestElement_String(t *testing.T) {
 	}
 
 }
+
+func TestNewValue(t *testing.T) {
+	data := []string{"a", "b", "c"}
+	v, err := NewValue(data)
+	if err != nil {
+		t.Fatalf("NewValue(%v) returned unexpected error: %v", data, err)
+	}
+	if v.ValueType() != Strings {
+		t.Errorf("NewValue(%v) unexpected ValueType. want: %v, got: %v", data, Strings, v.ValueType())
+	}
+	// TODO(suyashkumar): add tests for the remaining types
+}
+
+func TestNewValue_UnexpectedType(t *testing.T) {
+	data := 10
+	_, err := NewValue(data)
+	if err != ErrorUnexpectedDataType {
+		t.Errorf("NewValue(%v) expected an error. want %v, got %v", data, ErrorUnexpectedDataType, err)
+	}
+}

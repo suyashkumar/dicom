@@ -2,12 +2,16 @@ package dicom
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
+
+// ErrorUnexpectedDataType indicates that an unexpected (not allowed) data type was sent to NewValue.
+var ErrorUnexpectedDataType = errors.New("the type of the data was unexpected or not allowed")
 
 // Element represents a standard DICOM data element (see the DICOM standard:
 // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1 ).
@@ -71,6 +75,35 @@ type Value interface {
 	GetValue() interface{} // TODO: rename to Get to read cleaner
 	String() string
 	MarshalJSON() ([]byte, error)
+}
+
+// NewValue creates a new DICOM value for the supplied data. Likely most useful if creating an Element in testing or
+// write scenarios.
+//
+// Data must be one of the following types, otherwise and error will be returned (ErrorUnexpectedDataType).
+//
+// Acceptable types: []int, []string, []byte, PixelDataInfo, [][]*Element (represents a sequence, which contains several
+// items which each contain several elements).
+func NewValue(data interface{}) (Value, error) {
+	switch data.(type) {
+	case []int:
+		return &intsValue{value: data.([]int)}, nil
+	case []string:
+		return &stringsValue{value: data.([]string)}, nil
+	case []byte:
+		return &bytesValue{value: data.([]byte)}, nil
+	case PixelDataInfo:
+		return &pixelDataValue{PixelDataInfo: data.(PixelDataInfo)}, nil
+	case [][]*Element:
+		items := data.([][]*Element)
+		sequenceItems := make([]*SequenceItemValue, 0, len(items))
+		for _, item := range items {
+			sequenceItems = append(sequenceItems, &SequenceItemValue{elements: item})
+		}
+		return &sequencesValue{value: sequenceItems}, nil
+	default:
+		return nil, ErrorUnexpectedDataType
+	}
 }
 
 type ValueType int

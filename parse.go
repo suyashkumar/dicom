@@ -35,12 +35,13 @@ type parser struct {
 	// file is optional, might be populated if reading from an underlying file
 	file         *os.File
 	frameChannel chan *frame.Frame
+	opts         options
 }
 
 // NewParser returns a new Parser that points to the provided io.Reader, with bytesToRead bytes left to read. The
 // frameChannel is an optional channel (can be nil) upon which DICOM image frames will be sent as they are parsed (if
 // provided).
-func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (Parser, error) {
+func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, opts ...Option) (Parser, error) {
 	reader, err := dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead)
 	if err != nil {
 		return nil, err
@@ -51,14 +52,35 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 		frameChannel: frameChannel,
 	}
 
-	elems, err := p.readHeader()
-	if err != nil {
-		return nil, err
+	// Apply input options
+	for _, opt := range opts {
+		opt(&p.opts)
 	}
 
-	p.dataset = Dataset{Elements: elems}
+	if !p.opts.assumeNoHeaderAndOffset {
+		elems, err := p.readHeader()
+		if err != nil {
+			return nil, err
+		}
+
+		p.dataset = Dataset{Elements: elems}
+	}
 
 	return &p, nil
+}
+
+// Option represents a parser configuration option that can be passed into a call to NewParser
+type Option func(o *options)
+
+// AssumeNoHeaderAndOffset is an Option that configures this parser to assume that the input DICOM has no valid
+// header and no DICM magic word after the 128 byte offset.
+// This is to support some odd non-conformant dicoms seen in the wild.
+var AssumeNoHeaderAndOffset = func(o *options) {
+	o.assumeNoHeaderAndOffset = true
+}
+
+type options struct {
+	assumeNoHeaderAndOffset bool
 }
 
 // readHeader reads the DICOM magic header and group two metadata elements.
@@ -113,16 +135,15 @@ func (p *parser) readHeader() ([]*Element, error) {
 func (p *parser) Parse() (Dataset, error) {
 	// Determine and set the transfer syntax based on the metadata elements parsed so far.
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
-	if err != nil {
-		// proceed with a default?
-		log.Println("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
-	}
-	bo, implicit, err := uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
-	if err != nil {
-		// proceed with a default?
+	if err == nil {
+		bo, implicit, err := uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
+		if err != nil {
+			log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")
+		}
+		p.reader.SetTransferSyntax(bo, implicit)
+	} else {
 		log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")
 	}
-	p.reader.SetTransferSyntax(bo, implicit)
 	for !p.reader.IsLimitExhausted() {
 		// TODO: avoid silent looping
 		elem, err := readElement(p.reader, &p.dataset, p.frameChannel)

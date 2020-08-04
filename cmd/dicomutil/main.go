@@ -17,9 +17,11 @@ import (
 )
 
 var (
-	filepath            = flag.String("path", "", "path")
-	extractImagesStream = flag.Bool("extract-images-stream", false, "Extract images using frame streaming capability")
-	printJSON           = flag.Bool("json", false, "Print dataset as JSON")
+	filepath                = flag.String("path", "", "path")
+	extractImagesStream     = flag.Bool("extract-images-stream", false, "Extract images using frame streaming capability")
+	printJSON               = flag.Bool("json", false, "Print dataset as JSON")
+	assumeNoHeaderAndOffset = flag.Bool("noheader", false,
+		"Set to true if you want to read the dicom assuming no header or 128 byte offset")
 )
 
 // FrameBufferSize represents the size of the *Frame buffered channel for streaming calls
@@ -46,7 +48,13 @@ func main() {
 		if *extractImagesStream {
 			ds = parseWithStreaming(f, info.Size())
 		} else {
-			p, err := dicom.NewParser(f, info.Size(), nil)
+			var p dicom.Parser
+			var err error
+			if *assumeNoHeaderAndOffset {
+				p, err = dicom.NewParser(f, info.Size(), nil, dicom.AssumeNoHeaderAndOffset)
+			} else {
+				p, err = dicom.NewParser(f, info.Size(), nil)
+			}
 			if err != nil {
 				log.Fatalf("error creating parser: %v", err)
 			}

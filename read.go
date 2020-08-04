@@ -439,7 +439,9 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 }
 
 // readElement reads the next element. If the next element is a sequence element,
-// it may result in a collection of Elements. It takes a pointer to the Dataset of
+// it may read a collection of Elements.
+//
+// readElement takes a pointer to the Dataset of
 // elements read so far, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.

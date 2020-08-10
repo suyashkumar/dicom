@@ -131,8 +131,6 @@ func (p *parser) Parse() (Dataset, error) {
 			return Dataset{}, err
 		}
 
-		// log.Println("Read tag: ", elem.Tag)
-
 		// TODO: add dicom options to only keep track of certain tags
 
 		if elem.Tag == tag.SpecificCharacterSet {

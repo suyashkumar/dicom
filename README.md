@@ -61,6 +61,7 @@ make
 
 ## Acknowledgements
 
+* <img src="https://user-images.githubusercontent.com/6299853/90325771-b23f2e80-df34-11ea-9d18-5c33b69c2746.png" width="110px" align="left"/> [Segmed](https://www.segmed.ai/) for their help with validation and other contributions to the library. 
 * Original [go-dicom](https://github.com/gillesdemey/go-dicom)
 * Grailbio [go-dicom](https://github.com/grailbio/go-dicom) -- commits from their fork were applied to ours
 * GradientHealth for supporting work I did on this while there [gradienthealth/dicom](https://github.com/gradienthealth/dicom)

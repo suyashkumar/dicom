@@ -7,7 +7,7 @@ import (
 
 var ErrorUnimplemented = errors.New("this functionality is not yet implemented")
 
-// TODO(suyashkumar): do we want to have a Writer struct that mirrors the Parser struct?
+// TODO(suyashkumar): consider adding an element-by-element write API.
 
 // WriteOption represents an option that can be passed to WriteDataset. Later options will override previous options if
 // applicable.

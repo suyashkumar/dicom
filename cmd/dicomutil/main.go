@@ -46,11 +46,7 @@ func main() {
 		if *extractImagesStream {
 			ds = parseWithStreaming(f, info.Size())
 		} else {
-			p, err := dicom.NewParser(f, info.Size(), nil)
-			if err != nil {
-				log.Fatalf("error creating parser: %v", err)
-			}
-			data, err := p.Parse()
+			data, err := dicom.Parse(f, info.Size(), nil)
 			if err != nil {
 				log.Fatalf("error parsing data: %v", err)
 			}
@@ -93,17 +89,13 @@ func main() {
 
 func parseWithStreaming(in io.Reader, size int64) *dicom.Dataset {
 	fc := make(chan *frame.Frame, FrameBufferSize)
-	p, err := dicom.NewParser(in, size, fc)
-	if err != nil {
-		log.Fatalf("error creating parser: %v", err)
-	}
 
 	// Go routine to process frames as they are sent to frameChannel
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go writeStreamingFrames(fc, &wg)
 
-	ds, err := p.Parse()
+	ds, err := dicom.Parse(in, size, fc)
 	if err != nil {
 		log.Fatalf("error parsing: %v", err)
 	}

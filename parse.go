@@ -51,8 +51,9 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Datase
 // useful for some streaming processing applications. If you instead just want to parse the whole input DICOM at once,
 // just use the dicom.Parse(...) method.
 type Parser struct {
-	reader  dicomio.Reader
-	dataset Dataset
+	reader   dicomio.Reader
+	dataset  Dataset
+	metadata Dataset
 	// file is optional, might be populated if reading from an underlying file
 	file         *os.File
 	frameChannel chan *frame.Frame
@@ -80,6 +81,8 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 	}
 
 	p.dataset = Dataset{Elements: elems}
+	// TODO(suyashkumar): avoid storing the metadata pointers twice (though not that expensive)
+	p.metadata = Dataset{Elements: elems}
 
 	// Determine and set the transfer syntax based on the metadata elements parsed so far.
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
@@ -95,6 +98,43 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 	p.reader.SetTransferSyntax(bo, implicit)
 
 	return &p, nil
+}
+
+// Next parses and returns the next top-level element from the DICOM this Parser points to.
+func (p *Parser) Next() (*Element, error) {
+	if p.reader.IsLimitExhausted() {
+		// Close the frameChannel if needed
+		if p.frameChannel != nil {
+			close(p.frameChannel)
+		}
+		return nil, ErrorEndOfDICOM
+	}
+	elem, err := readElement(p.reader, &p.dataset, p.frameChannel)
+	if err != nil {
+		// TODO: tolerate some kinds of errors and continue parsing
+		return nil, err
+	}
+
+	// TODO: add dicom options to only keep track of certain tags
+
+	if elem.Tag == tag.SpecificCharacterSet {
+		encodingNames := MustGetStrings(elem.Value)
+		cs, err := charset.ParseSpecificCharacterSet(encodingNames)
+		if err != nil {
+			// unable to parse character set, hard error
+			// TODO: add option continue, even if unable to parse
+			return nil, err
+		}
+		p.reader.SetCodingSystem(cs)
+	}
+
+	p.dataset.Elements = append(p.dataset.Elements, elem)
+	return elem, nil
+
+}
+
+func (p *Parser) GetMetadata() Dataset {
+	return p.metadata
 }
 
 // readHeader reads the DICOM magic header and group two metadata elements.
@@ -144,37 +184,4 @@ func (p *Parser) readHeader() ([]*Element, error) {
 		metaElems = append(metaElems, elem)
 	}
 	return metaElems, nil
-}
-
-// Next parses and returns the next top-level element from the DICOM this Parser points to.
-func (p *Parser) Next() (*Element, error) {
-	if p.reader.IsLimitExhausted() {
-		// Close the frameChannel if needed
-		if p.frameChannel != nil {
-			close(p.frameChannel)
-		}
-		return nil, ErrorEndOfDICOM
-	}
-	elem, err := readElement(p.reader, &p.dataset, p.frameChannel)
-	if err != nil {
-		// TODO: tolerate some kinds of errors and continue parsing
-		return nil, err
-	}
-
-	// TODO: add dicom options to only keep track of certain tags
-
-	if elem.Tag == tag.SpecificCharacterSet {
-		encodingNames := MustGetStrings(elem.Value)
-		cs, err := charset.ParseSpecificCharacterSet(encodingNames)
-		if err != nil {
-			// unable to parse character set, hard error
-			// TODO: add option continue, even if unable to parse
-			return nil, err
-		}
-		p.reader.SetCodingSystem(cs)
-	}
-
-	p.dataset.Elements = append(p.dataset.Elements, elem)
-	return elem, nil
-
 }

@@ -13,9 +13,9 @@ var ErrorUnimplemented = errors.New("this functionality is not yet implemented")
 // applicable.
 type WriteOption func(*writeOptSet)
 
-// WriteDataset will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
+// Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
 // information if available).
-func WriteDataset(out io.Writer, ds *Dataset, opts ...WriteOption) error {
+func Write(out io.Writer, ds *Dataset, opts ...WriteOption) error {
 	return ErrorUnimplemented
 }
 

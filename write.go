@@ -81,15 +81,6 @@ func writeFileHeader(w *dicomio.Writer, ds *Dataset, metaElems []*Element, opts 
 	tagsUsed := make(map[tag.Tag]bool)
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
-	writeMetaElem := func(tag tag.Tag) error {
-		elem, err := ds.FindElementByTag(tag)
-		if err != nil {
-			return err
-		}
-		tagsUsed[tag] = true // TODO this hsouldn't actually be changed until writeElement returns nil for error
-		return writeElement(subWriter, elem, opts...)
-	}
-
 	writeMetaElem(dicomtag.FileMetaInformationVersion)
 	writeMetaElem(dicomtag.MediaStorageSOPClassUID)
 	writeMetaElem(dicomtag.MediaStorageSOPInstanceUID)
@@ -153,23 +144,18 @@ func writeElement(w *dicomio.Writer, elem *Elemet, opts ...WriteOption) error {
 	return nil
 }
 
-// func writeMetaElem(w *Writer, tag tag.Tag, tagsUsed *map[tag.Tag]bool) error {
-// 	tagInfo := tag.Find(tag)
-// 	elem := Element{
-// 		Tag: tag,
-// 		ValueRepresentation: tag.GetVRKind(tagInfo.VR),
-// 		RawValueRepresentation: tagInfo.VR,
-//
-//
-// 	}
-//
-// 	if elem, err := element.FindByTag(metaElems, tag); err == nil {
-// 			Element(subEncoder, elem, opts...)
-// 		} else {
-// 			subEncoder.SetErrorf("%v not found in metaelems: %v", dicomtag.DebugString(tag), err)
-// 		}
-// 		tagsUsed[tag] = true
-// }
+func writeMetaElem(w *Writer, tag tag.Tag, ds *Dataset, agsUsed *map[tag.Tag]bool) error {
+		elem, err := ds.FindElementByTag(tag)
+		if err != nil {
+			return err
+		}
+		err = writeElement(subWriter, elem, opts...)
+		if err != nil {
+			return err
+		}
+		tagsUsed[tag] = true
+		return nil
+}
 
 func verifyVR(elem *Element) error {
 	return nil

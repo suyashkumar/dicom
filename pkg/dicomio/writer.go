@@ -2,12 +2,17 @@ package dicomio
 
 import (
   "io"
-  "binary"
+  "encoding/binary"
 )
 
 // Writer is  what Encoder object used to be
 type Writer interface {
-  SetTransferSynax(bo binary.ByteOrder)
+  SetTransferSynax(bo binary.ByteOrder, implicit bool)
+  Bytes() []byte
+  WriteZeros(len int)
+  WriteString(str string)
+  WriteBytes(bytes []byte)
+  // TODO fill in other functions that Writer has
 }
 
 type writer struct {
@@ -17,23 +22,33 @@ type writer struct {
 }
 
 // See https://github.com/suyashkumar/dicom/blob/6ffe547e2a080b3dcc1ce01946a7c7350d531bdc/dicomio/buffer.go#L80
-func NewWriter(out io.Writer, bo binary.ByteOrder, implicit bool) *Writer {
-  return &Writer{
+func NewWriter(out io.Writer, bo binary.ByteOrder, implicit bool) Writer {
+  return &writer{
     out: out,
     bo: bo,
     implicit: implicit,
   }
 }
 
-func (w *Writer) SetTransferSynax(bo binary.ByteOrder, implicit bool) {
+func (w *writer) SetTransferSynax(bo binary.ByteOrder, implicit bool) {
   w.bo = bo
   w.implicit = implicit
 }
 
 // Retrieve the a []byte representation of what's contained in writer.out
-func (w *Writer) Bytes() []byte {return ni}
+func (w *writer) Bytes() []byte {return nil}
 
 
 // Low-level functions to write to writer.out
-func (w *Writer) WriteZeros() {}
-func (w *Writer) WriteZeros() {}
+func (w *writer) WriteZeros(len int) {
+  zeros := make([]byte, len)
+  w.out.Write(zeros)
+}
+
+func (w *writer) WriteString(str string) {
+  w.out.Write([]byte(str))
+}
+
+func (w *writer) WriteBytes(bytes []byte) {
+  
+}

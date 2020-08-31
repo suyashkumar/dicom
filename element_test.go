@@ -28,7 +28,7 @@ func TestElement_MarshalJSON_NestedElements(t *testing.T) {
 		t.Errorf("unexpected error marshaling json: %v", err)
 	}
 	if string(j) != want {
-		t.Errorf("json.Marshal(%v) produced incorrect output. want: %s, got:%s", seqElement, want, string(j))
+		t.Errorf("json.Marshal(%v) produced incorrect output. got: %s, want: %s", seqElement, string(j), want)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestElement_String(t *testing.T) {
 		"]\n\n"
 	got := e.String()
 	if want != got {
-		t.Errorf("String(%v) unexpected diff. want:\n%s got:\n%s ", e, want, got)
+		t.Errorf("String(%v) unexpected diff. got:\n%s want:\n%s", e, got, want)
 	}
 
 }
@@ -63,7 +63,7 @@ func TestNewValue(t *testing.T) {
 		t.Fatalf("NewValue(%v) returned unexpected error: %v", data, err)
 	}
 	if v.ValueType() != Strings {
-		t.Errorf("NewValue(%v) unexpected ValueType. want: %v, got: %v", data, Strings, v.ValueType())
+		t.Errorf("NewValue(%v) unexpected ValueType. got: %v, want: %v", data, v.ValueType(), Strings)
 	}
 	// TODO(suyashkumar): add tests for the remaining types
 }
@@ -72,6 +72,6 @@ func TestNewValue_UnexpectedType(t *testing.T) {
 	data := 10
 	_, err := NewValue(data)
 	if err != ErrorUnexpectedDataType {
-		t.Errorf("NewValue(%v) expected an error. want %v, got %v", data, ErrorUnexpectedDataType, err)
+		t.Errorf("NewValue(%v) expected an error. got: %v, want: %v", data, err, ErrorUnexpectedDataType)
 	}
 }

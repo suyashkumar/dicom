@@ -48,7 +48,7 @@ func TestDataset_FindElementByTag(t *testing.T) {
 	}
 
 	if rows := MustGetInts(elem.Value)[0]; rows != 100 {
-		t.Errorf("FindElementByTag(%v): want: %v, got: %v", tag.Rows, 100, rows)
+		t.Errorf("FindElementByTag(%v): got: %v, want: %v", tag.Rows, rows, 100)
 	}
 }
 

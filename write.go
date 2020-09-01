@@ -131,18 +131,18 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		}
 	}
 
-// 	// writeTag
-// 	err = writeTag(w, elem.Tag)
-// 	if err != nil {
-// 		return nil
-// 	}
-//
-// 	// writeVRVL
-// 	err = writeVRVL(w, elem.ValueRepresentation, elem.ValueLength)
-// 	if err != nil {
-// 		return err
-// 	}
-//
+	// writeTag
+	err := writeTag(w, elem)
+	if err != nil {
+		return nil
+	}
+
+	// writeVRVL
+	err = writeVRVL(w, elem)
+	if err != nil {
+		return err
+	}
+
 // 	// writeValue
 // 	err = writeValue(w, elem.Value)
 // 	if err != nil {
@@ -190,16 +190,31 @@ func writeTag(w dicomio.Writer, elem *Element) error {
 	return nil
 }
 
-// func writeVRVL(w dicomio.Writer, vr string, vl int32) error {
-// 	// see encodeElementHeader
-// 	switch stuff {
-// 		case "SQ":
-// 			// write sq Tag
-// 	}
-//
-// 	return nil
-// }
-//
+func writeVRVL(w dicomio.Writer, elem *Element) error {
+	if len(elem.RawValueRepresentation) != 2 {
+		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%s, it was RawValueRepresentation=%v", elem.Tag, elem.RawValueRepresentation)
+	}
+
+	_, implicit := w.GetTransferSyntax()
+	if elem.Tag.Group == tag.GROUP_ItemSeq {
+		implicit = true
+	}
+	if !implicit { // Explicit
+		w.WriteString(elem.RawValueRepresentation)
+		switch elem.RawValueRepresentation {
+			case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
+				w.WriteZeros(2)
+				w.WriteUInt32(elem.ValueLength)
+			default:
+				w.WriteUInt16(uint16(elem.ValueLength))
+		}
+	} else {
+		w.WriteUInt32(elem.ValueLength)
+	}
+
+	return nil
+}
+
 // func writeValue(w dicomio.Writer, value Value) error {
 // 	return nil
 // }

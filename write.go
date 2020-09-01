@@ -178,7 +178,8 @@ func verifyVR(elem *Element) (string, error) {
 		return tagInfo.VR, nil
 	}
 	if tagInfo.VR != elem.RawValueRepresentation {
-		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v", elem.Tag, elem.RawValueRepresentation, tagInfo.VR)
+		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
+			 tag.DebugString(elem.Tag), elem.RawValueRepresentation, tagInfo.VR)
 	}
 
 	return elem.RawValueRepresentation, nil
@@ -186,7 +187,8 @@ func verifyVR(elem *Element) (string, error) {
 
 func writeTag(w dicomio.Writer, elem *Element) error {
 	if elem.ValueLength % 2 != 0 {
-		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%s, ValueLength=%v", elem.Tag, elem.ValueLength)
+		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
+			tag.DebugString(elem.Tag), elem.ValueLength)
 	}
 	w.WriteUInt16(elem.Tag.Group)
 	w.WriteUInt16(elem.Tag.Element)
@@ -195,7 +197,8 @@ func writeTag(w dicomio.Writer, elem *Element) error {
 
 func writeVRVL(w dicomio.Writer, elem *Element) error {
 	if len(elem.RawValueRepresentation) != 2 && elem.Tag != tag.VLUndefinedLength {
-		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%s, it was RawValueRepresentation=%v", elem.Tag, elem.RawValueRepresentation)
+		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%v, it was RawValueRepresentation=%v",
+			 tag.DebugString(elem.Tag), elem.RawValueRepresentation)
 	}
 
 	// Rectify Undefined Length VL
@@ -236,12 +239,13 @@ func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 		return writePixelData(w, elem)
 	}
 	if vr == "SQ" {
-		return writeSequenceData()
+		return writeSequenceData() // TODO implement
 	} else if vr == "NA" { // Item
 		return writeItemData()
 	} else {
 		if elem.ValueRepresentation == tag.VLUndefinedLength {
-			return fmt.Errorf("ERROR writeValue: Undefined-length elemnt writing is not yet supported. Tag=%s, ValueRepresentation=%v, ValueLength=%v", elem.Tag, elem.RawValueRepresentation, elem.ValueLength)
+			return fmt.Errorf("ERROR writeValue: Undefined-length elemnt writing is not yet supported. Tag=%v, ValueRepresentation=%v, ValueLength=%v",
+				 tag.DebugString(elem.Tag), elem.RawValueRepresentation, elem.ValueLength)
 		}
 		subWriter := dicomio.NewWriter(&bytes.Buffer{}, w.GetTransferSyntax())
 		return writeGeneralData()
@@ -268,11 +272,24 @@ func writeGeneralData(w dicomio.Writer, elem *Element, vr string) error {
 			v, ok := value.(float64)
 			err = dissectValue(subWriter, v, ok, "float64")
 		case "OW", "OB":
-			// not sure what to do here
+			if len(elem.Value.GetValue()) != 1 {
+				return fmt.Errorf("%v: expect a single value but found %v",
+					  tag.DebugString(elem.Tag), elem.Value.GetValue())
+			}
+			if elem.ValueType != Bytes {
+				return fmt.Errorf("%v: expect a binary string, but found %v",
+ 						tag.DebugString(elem.Tag), elem.Value.GetValue())
+			}
+			
+			if vr == "OW" {
+				err = writeOtherWordString(subWriter, elem.Value.GetValue())
+			} else if vr == "OB" {
+				err = writeOtherByteString(subWriter, elem.Value.GetValue())
+			}
 		case "AT", "NA":
 			fallthrough
 		default:
-			// Not sure yet
+			err = writeStringValue(subWriter, elem.Value, vr)
 		}
 		if err != nil {
 			return err
@@ -282,11 +299,59 @@ func writeGeneralData(w dicomio.Writer, elem *Element, vr string) error {
 
 func dissectValue(w dicomio.Writer, value interface{}, ok bool, dataType string) error {
 	if !ok {
-		return fmt.Errorf("ERROR expected %v, but found %T (%v)", dataType, value, value)
+		return fmt.Errorf("ERROR expected %v, but found %T (%v)",
+				dataType, value, value)
 	}
 	return w.Write(value)
 }
 
 func writePixelData(w *dicomio.Writer, elem *Element) error {
 	return ErrorUnimplemented
+}
+
+func writeOtherWordString(w dicomio.Writer, data []byte) error {
+	if len(data) % 2 != 0 {
+		return ErrorOWRequiresEvenVL
+	}
+	r, err := dicomio.NewReader(bytes.NewBuffer(data), w.bo, int64(len(bytes)))
+	if err != nil {
+		return err
+	}
+	for i := 0; i < int(len(bytes) / 2); i++ {
+		v := d.ReadUInt16()
+		w.WriteUInt16(v)
+	}
+	return nil
+}
+
+func writeOtherByteString(w dicomio.Writer, data[]byte) error {
+	w.WriteBytes(data)
+	if len(data) % 2 == 1 {
+		w.WriteByte(0)
+	}
+	return nil
+}
+
+func writeStringValue(w dicomio.Writer, value Value, vr string) error {
+	if value.ValueType != Strings {
+		return fmt.Errorf("Non-string value found")
+	}
+	s := ""
+	for i, value := range value.GetValue() {
+		substr, _ := value.(string)
+		if i > 0 {
+			s += "\\"
+		}
+		s += substr
+	}
+	w.WriteString(s)
+	if len(s) % 2 == 1 {
+		switch vr {
+			case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
+				w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+			default:
+				w.WriteByte(0)
+		}
+	}
+	return nil
 }

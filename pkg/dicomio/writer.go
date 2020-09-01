@@ -10,9 +10,11 @@ import (
 type Writer interface {
   SetTransferSynax(bo binary.ByteOrder, implicit bool)
   Bytes() []byte
+  Write(data interface{}) error
   WriteZeros(len int)
-  WriteString(str string)
-  WriteBytes(bytes []byte)
+  WriteString(v string)
+  WriteByte(v byte)
+  WriteBytes(v []byte)
   WriteUInt16(v uint16)
   WriteUInt32(v uint32)
   GetTransferSyntax() (binary.ByteOrder, bool)
@@ -64,11 +66,13 @@ func (w *writer) WriteZeros(len int) {
   w.out.Write(zeros)
 }
 
-func (w *writer) WriteString(str string) {
-  w.out.Write([]byte(str))
+func (w *writer) WriteString(v string) {
+  w.out.Write([]byte(v))
 }
 
-func (w *writer) WriteBytes(bytes []byte) {}
+func (w *writer) WriteByte(v byte) {}
+
+func (w *writer) WriteBytes(v []byte) {}
 
 func (w *writer) WriteUInt16(v uint16) {
   binary.Write(w.out, w.bo, &v)

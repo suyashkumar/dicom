@@ -175,18 +175,21 @@ func verifyVR(elem *Element) (string, error) {
 		return tagInfo.VR, nil
 	}
 	if tagInfo.VR != elem.RawValueRepresentation {
-		mismatchErr := fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v", elem.Tag, elem.RawValueRepresentation, tagInfo.VR)
-		return "", mismatchErr
+		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v", elem.Tag, elem.RawValueRepresentation, tagInfo.VR)
 	}
 
 	return elem.RawValueRepresentation, nil
 }
 
-// func writeTag(w dicomio.Writer, tag *tag.Tag) error {
-// 	// see encodeElementHeader
-// 	return nil
-// }
-//
+func writeTag(w dicomio.Writer, elem *Element) error {
+	if elem.ValueLength % 2 != 0 {
+		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%s, ValueLength=%v", elem.Tag, elem.ValueLength)
+	}
+	w.WriteUInt16(elem.Tag.Group)
+	w.WriteUInt16(elem.Tag.Element)
+	return nil
+}
+
 // func writeVRVL(w dicomio.Writer, vr string, vl int32) error {
 // 	// see encodeElementHeader
 // 	switch stuff {

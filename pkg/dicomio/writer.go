@@ -12,6 +12,7 @@ type Writer interface {
   WriteZeros(len int)
   WriteString(str string)
   WriteBytes(bytes []byte)
+  WriteUInt16(v uint16)
   // TODO fill in other functions that Writer has
 }
 
@@ -49,6 +50,8 @@ func (w *writer) WriteString(str string) {
   w.out.Write([]byte(str))
 }
 
-func (w *writer) WriteBytes(bytes []byte) {
-  
+func (w *writer) WriteBytes(bytes []byte) {}
+
+func (w *writer) WriteUInt16(v uint16) {
+  binary.Write(w.out, w.bo, &v)
 }

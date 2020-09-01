@@ -2,6 +2,7 @@ package dicom
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"encoding/binary"
 	"bytes"
@@ -120,15 +121,16 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 
 func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	// parse WriteOption options
-// 	options := toOptSet(opts...)
-// 	// SkipVRVerification
-// 	if !options.SkipVRVerification {
-// 		err := verifyVR(elem)
-// 		if err != nil {
-// 			return nil
-// 		}
-// 	}
-//
+	options := toOptSet(opts...)
+	vr := elem.RawValueRepresentation
+	// SkipVRVerification
+	if !options.skipVRVerification {
+		vr, err := verifyVR(elem)
+		if err != nil {
+			return nil
+		}
+	}
+
 // 	// writeTag
 // 	err = writeTag(w, elem.Tag)
 // 	if err != nil {
@@ -163,10 +165,23 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 		return nil
 }
 
-// func verifyVR(elem *Element) error {
-// 	return nil
-// }
-//
+func verifyVR(elem *Element) (string, error) {
+	// Get the tag info
+	tagInfo, err := tag.Find(elem.Tag)
+	if err != nil {
+		 return "UN", nil	// TODO: double check with Suyash that this is still how this should be implemented
+	}
+	if elem.RawValueRepresentation == "" {
+		return tagInfo.VR, nil
+	}
+	if tagInfo.VR != elem.RawValueRepresentation {
+		mismatchErr := fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %s. Element.VR=%v, but DICOM standard defines VR to be %v", elem.Tag, elem.RawValueRepresentation, tagInfo.VR)
+		return "", mismatchErr
+	}
+
+	return elem.RawValueRepresentation, nil
+}
+
 // func writeTag(w dicomio.Writer, tag *tag.Tag) error {
 // 	// see encodeElementHeader
 // 	return nil

@@ -2,6 +2,7 @@ package dicomio
 
 import (
   "io"
+  "fmt"
   "encoding/binary"
 )
 
@@ -45,6 +46,17 @@ func (w *writer) GetTransferSyntax() (binary.ByteOrder, bool) {
 // Retrieve the a []byte representation of what's contained in writer.out
 func (w *writer) Bytes() []byte {return nil}
 
+// Write is a general function that will take an input of any supported type
+// and choose the appropriate function to write the given value
+func (w *writer) Write(data interface{}) error {
+  switch data.(type) {
+  case uint16:
+    w.WriteUInt16(data.(uint16))
+  default:
+    return fmt.Errorf("ERROR dicomutil.Writer.Write: data type=%T not supported", data)
+  }
+  return nil
+}
 
 // Low-level functions to write to writer.out
 func (w *writer) WriteZeros(len int) {

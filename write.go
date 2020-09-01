@@ -143,12 +143,12 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		return err
 	}
 
-// 	// writeValue
-// 	err = writeValue(w, elem.Value)
-// 	if err != nil {
-// 		return err
-// 	}
-//
+	// writeValue
+	err = writeValue(w, elem, vr)
+	if err != nil {
+		return err
+	}
+
 	return ErrorUnimplemented
 }
 
@@ -166,6 +166,9 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 }
 
 func verifyVR(elem *Element) (string, error) {
+	// TODO rectify the vr and vl as either pass through variables, or altering
+	// the actual element data
+
 	// Get the tag info
 	tagInfo, err := tag.Find(elem.Tag)
 	if err != nil {
@@ -191,10 +194,20 @@ func writeTag(w dicomio.Writer, elem *Element) error {
 }
 
 func writeVRVL(w dicomio.Writer, elem *Element) error {
-	if len(elem.RawValueRepresentation) != 2 {
+	if len(elem.RawValueRepresentation) != 2 && elem.Tag != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%s, it was RawValueRepresentation=%v", elem.Tag, elem.RawValueRepresentation)
 	}
 
+	// Rectify Undefined Length VL
+	if elem.ValueLength {
+		// TODO: Ask suyash if it's okay to alter the actual element passed in
+		// Another option (1) is to make a copy of elem passed in insetad of taking
+		// a pointer element in writeElement
+		// Option (2) is to just pass through vl and vr
+		elem.ValueLength = tag.VLUndefinedLength
+	}
+
+	// Write VR then VL
 	_, implicit := w.GetTransferSyntax()
 	if elem.Tag.Group == tag.GROUP_ItemSeq {
 		implicit = true
@@ -215,6 +228,65 @@ func writeVRVL(w dicomio.Writer, elem *Element) error {
 	return nil
 }
 
-// func writeValue(w dicomio.Writer, value Value) error {
-// 	return nil
-// }
+func writeValue(w dicomio.Writer, elem *Element, vr string) error {
+	// NOTE: vr is passed into the function instead of using elemnt.VR so that
+	// the original data in elem isn't altered
+
+	if elem.Tag == tag.PixelData {
+		return writePixelData(w, elem)
+	}
+	if vr == "SQ" {
+		return writeSequenceData()
+	} else if vr == "NA" { // Item
+		return writeItemData()
+	} else {
+		if elem.ValueRepresentation == tag.VLUndefinedLength {
+			return fmt.Errorf("ERROR writeValue: Undefined-length elemnt writing is not yet supported. Tag=%s, ValueRepresentation=%v, ValueLength=%v", elem.Tag, elem.RawValueRepresentation, elem.ValueLength)
+		}
+		subWriter := dicomio.NewWriter(&bytes.Buffer{}, w.GetTransferSyntax())
+		return writeGeneralData()
+	}
+
+	return nil
+}
+
+func writeGeneralData(w dicomio.Writer, elem *Element, vr string) error {
+	var err error
+
+	for _, value := range elem.Value.GetValue() {
+		switch vr {
+		case "US", "SS":
+			v, ok := value.(uint16)
+			err = dissectValue(subWriter, v, ok, "uint16")
+		case "UL", "SL":
+			v, ok := value.(uint32)
+			err = dissectValue(subWriter, v, ok, "uint32")
+		case "FL":
+			v, ok := value.(float32)
+			err = dissectValue(subWriter, v, ok, "float32")
+		case "FD":
+			v, ok := value.(float64)
+			err = dissectValue(subWriter, v, ok, "float64")
+		case "OW", "OB":
+			// not sure what to do here
+		case "AT", "NA":
+			fallthrough
+		default:
+			// Not sure yet
+		}
+		if err != nil {
+			return err
+		}
+	}
+}
+
+func dissectValue(w dicomio.Writer, value interface{}, ok bool, dataType string) error {
+	if !ok {
+		return fmt.Errorf("ERROR expected %v, but found %T (%v)", dataType, value, value)
+	}
+	return w.Write(value)
+}
+
+func writePixelData(w *dicomio.Writer, elem *Element) error {
+	return ErrorUnimplemented
+}

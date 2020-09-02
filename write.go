@@ -137,17 +137,21 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		return nil
 	}
 
-	// writeVRVL
+	// writeValue to subwriter
+	subWriter := NewWriter()
+	err = writeValue(subWriter, elem, vr)
+	if err != nil {
+		return err
+	}
+
+	// writeVRVL with lv length as length of bytes in subwriter
 	err = writeVRVL(w, elem)
 	if err != nil {
 		return err
 	}
 
-	// writeValue
-	err = writeValue(w, elem, vr)
-	if err != nil {
-		return err
-	}
+	// Write the bytes to the original writer
+	w.WriteBytes(subWriter.Bytes())
 
 	return ErrorUnimplemented
 }
@@ -195,19 +199,19 @@ func writeTag(w dicomio.Writer, elem *Element) error {
 	return nil
 }
 
-func writeVRVL(w dicomio.Writer, elem *Element) error {
-	if len(elem.RawValueRepresentation) != 2 && elem.Tag != tag.VLUndefinedLength {
-		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%v, it was RawValueRepresentation=%v",
-			 tag.DebugString(elem.Tag), elem.RawValueRepresentation)
-	}
-
+func writeVRVL(w dicomio.Writer, vr string, vl uint32, elem *Element) error {
 	// Rectify Undefined Length VL
-	if elem.ValueLength {
+	if elem.ValueLength == 0xffff {
 		// TODO: Ask suyash if it's okay to alter the actual element passed in
 		// Another option (1) is to make a copy of elem passed in insetad of taking
 		// a pointer element in writeElement
 		// Option (2) is to just pass through vl and vr
 		elem.ValueLength = tag.VLUndefinedLength
+	}
+
+	if len(elem.RawValueRepresentation) != 2 && elem.ValueLength != tag.VLUndefinedLength {
+		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%v, it was RawValueRepresentation=%v",
+			 tag.DebugString(elem.Tag), elem.RawValueRepresentation)
 	}
 
 	// Write VR then VL
@@ -231,6 +235,14 @@ func writeVRVL(w dicomio.Writer, elem *Element) error {
 	return nil
 }
 
+func writeRawItem(w dicomio.Writer, data []byte) {
+	// TODO refactor writeTag, writeVRVL so that I can call them without an element
+	// e.g. here need to call them
+	writeTag()
+	writeVRVL()
+	w.WriteBytes(data)
+}
+
 func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 	// NOTE: vr is passed into the function instead of using elemnt.VR so that
 	// the original data in elem isn't altered
@@ -243,34 +255,79 @@ func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 	} else if vr == "NA" { // Item
 		return writeItemData()
 	} else {
-		if elem.ValueRepresentation == tag.VLUndefinedLength {
+		if elem.ValueLength == tag.VLUndefinedLength {
 			return fmt.Errorf("ERROR writeValue: Undefined-length elemnt writing is not yet supported. Tag=%v, ValueRepresentation=%v, ValueLength=%v",
 				 tag.DebugString(elem.Tag), elem.RawValueRepresentation, elem.ValueLength)
 		}
-		subWriter := dicomio.NewWriter(&bytes.Buffer{}, w.GetTransferSyntax())
-		return writeGeneralData()
+		bo, implicit := w.GetTransferSyntax()
+		subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
+		return writeGeneralData(w, elem, vr)
 	}
 
 	return nil
 }
 
-func writeGeneralData(w dicomio.Writer, elem *Element, vr string) error {
-	var err error
+func writePixelData(w dicomio.Writer, elem *Element) error {
+	image := MustGetPixelDataInfo(elem.Value)
+	if elem.ValueLength == tag.VLUndefinedLength {
+		writeTag(w, elem) // TODO move these calls to a encodeElementHeader function for readability
+		writeVRVL(w, elem)
+		image.writeBasicOffsetTable(w)
+		for _, frame := range image.Frames {
+				writeRawItem(w, frame.EncapsulatedData.Data)
+		}
+		writeTag(w, tag.SequenceDelimitationItem) // TODO make all writeTag calls take the tag
+		writeVRVL(w, "", 0) // TODO vr is "" and vl is 0
+	} else {
+			numFrames := len(image.Frames)
+			numPixels := len(image.Frames[0].NativeData.Data)
+			numValues := len(image.Frames[0].NativeData.Data[0])
+			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
+			// encodeElementHeader(e, elem.Tag, vr, uint32(length))
+			writeTag(w, elem.Tag) // TODO make all writeTag calls take the tag
+			writeVRVL(w, vr, uint32(length)) // TODO find vr
+			buf := new(bytes.Buffer)
+			buf.Grow(length)
+			for frame := 0; frame < numFrames; frame++ {
+				for pixel := 0; pixel < numPixels; pixel++ {
+					for value := 0; value < numValues; value++ {
+						if image.Frames[frame].NativeData.BitsPerSample == 8 {
+							binary.Write(buf, binary.LittleEndian, uint8(image.Frames[frame].NativeData.Data[pixel][value]))
+						} else if image.Frames[frame].NativeData.BitsPerSample == 16 {
+							binary.Write(buf, binary.LittleEndian, uint16(image.Frames[frame].NativeData.Data[pixel][value]))
+						}
+					}
+				}
+			}
+	}
+	return nil
+}
+
+func writeSequenceData() error {return ErrorUnimplemented}
+
+func writeItemData() error {return ErrorUnimplemented}
+
+func writeGeneralData(w dicomio.Writer, elem *Element, vr string) error {
+	// TODO figure out how to loop through elem.Value.GetValue() interface
+	switch
+	values :=
+
+	var err error
 	for _, value := range elem.Value.GetValue() {
 		switch vr {
 		case "US", "SS":
 			v, ok := value.(uint16)
-			err = dissectValue(subWriter, v, ok, "uint16")
+			err = dissectValue(w, v, ok, "uint16")
 		case "UL", "SL":
 			v, ok := value.(uint32)
-			err = dissectValue(subWriter, v, ok, "uint32")
+			err = dissectValue(w, v, ok, "uint32")
 		case "FL":
 			v, ok := value.(float32)
-			err = dissectValue(subWriter, v, ok, "float32")
+			err = dissectValue(w, v, ok, "float32")
 		case "FD":
 			v, ok := value.(float64)
-			err = dissectValue(subWriter, v, ok, "float64")
+			err = dissectValue(w, v, ok, "float64")
 		case "OW", "OB":
 			if len(elem.Value.GetValue()) != 1 {
 				return fmt.Errorf("%v: expect a single value but found %v",
@@ -280,21 +337,22 @@ func writeGeneralData(w dicomio.Writer, elem *Element, vr string) error {
 				return fmt.Errorf("%v: expect a binary string, but found %v",
  						tag.DebugString(elem.Tag), elem.Value.GetValue())
 			}
-			
+
 			if vr == "OW" {
-				err = writeOtherWordString(subWriter, elem.Value.GetValue())
+				err = writeOtherWordString(w, elem.Value.GetValue().([]byte))
 			} else if vr == "OB" {
-				err = writeOtherByteString(subWriter, elem.Value.GetValue())
+				err = writeOtherByteString(w, elem.Value.GetValue().([]byte))
 			}
 		case "AT", "NA":
 			fallthrough
 		default:
-			err = writeStringValue(subWriter, elem.Value, vr)
+			err = writeStringValue(w, elem.Value, vr)
 		}
 		if err != nil {
 			return err
 		}
 	}
+	return nil
 }
 
 func dissectValue(w dicomio.Writer, value interface{}, ok bool, dataType string) error {
@@ -303,10 +361,6 @@ func dissectValue(w dicomio.Writer, value interface{}, ok bool, dataType string)
 				dataType, value, value)
 	}
 	return w.Write(value)
-}
-
-func writePixelData(w *dicomio.Writer, elem *Element) error {
-	return ErrorUnimplemented
 }
 
 func writeOtherWordString(w dicomio.Writer, data []byte) error {
@@ -318,7 +372,7 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 		return err
 	}
 	for i := 0; i < int(len(bytes) / 2); i++ {
-		v := d.ReadUInt16()
+		v := r.ReadUInt16()
 		w.WriteUInt16(v)
 	}
 	return nil

@@ -226,6 +226,15 @@ func (s *pixelDataValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.PixelDataInfo)
 }
 
+func (s *pixelDataValue) writeBasicOffsetTable(w dicomio.Writer) {
+	byteOrder, _ := w.TransferSyntax()
+	subWriter := dicomio.NewWriter()
+	for _, offset := range s.Offsets {
+		subWriter.WriteUInt32(offset)
+	}
+	writeRawItem(w, subEncoder.Bytes())
+}
+
 func MustGetInts(v Value) []int {
 	if v.ValueType() != Ints {
 		log.Panicf("MustGetInts expected ValueType of Ints, got: %v", v.ValueType())

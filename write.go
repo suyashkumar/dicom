@@ -131,6 +131,12 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 			return nil
 		}
 	}
+	if !options.skipValueTypeVerification {
+		err := verifyValueType()
+		if err != nil {
+			return err
+		}
+	}
 
 	// writeTag
 	err := writeTag(w, elem.Tag, elem.ValueLength)
@@ -188,6 +194,41 @@ func verifyVR(t tag.Tag, vr string, vl uint32) (string, error) {
 	}
 
 	return vr, nil
+}
+
+func verifyValueType(t tag.Tag, value Value, valueType ValueType, vr string) error {
+	var ok bool
+	switch vr {
+		case "US", "UL", "SL", "SS":
+			_, ok = value.([]int)
+			ok = ok && (valueType == Ints)
+		case "SQ":
+			_, ok = value.([]*SequenceItemValue)
+			ok = ok && (valueType == Sequences)
+		case "NA":
+			_, ok = value.([]*Element)
+			ok = ok && (valueType == SequenceItem)
+		case "OW", "OB":
+			if t == tag.PixelData {
+				_, ok = value.(PixelDataInfo)
+				ok = ok && (valueType == PixelData)
+			} else {
+				_, ok = value.([]byte)
+				ok = ok && (valueType == Bytes)
+			}
+		case "FL", "FD": // TODO floats?
+			return ErrorUnimplemented
+		case "AT":
+			fallthrough
+		default:
+			_, ok = value.([]string)
+			ok = ok && (valueType == Strings)
+		}
+
+		if !ok {
+			return fmt.Errorf("ValueType does not match the specified type in the VR")
+		}
+		return nil
 }
 
 func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
@@ -288,9 +329,8 @@ func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string, o
 		default:
 			return fmt.Errorf("ValueType not supported")
 		}
-		return nil
-
-		// return writeValuePlaceHolder(w, elem, vr)
+		// TODO figure out if this actual has to be here
+		return fmt.Errorf("Something went real bad, this should never be reached")
 	}
 
 func writeStrings(w dicomio.Writer, values []string, vr string) error {
@@ -382,43 +422,67 @@ func writePixelData(w dicomio.Writer, t tag.Tag, image PixelDataInfo, vr string,
 	return nil
 }
 
-
+// TODO investigate why these functions work in original write
+// TODO trace back how we got to casting to Element
 func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts ...WriteOption) error {
-	if vl == tag.VLUndefinedLength {
-			encodeElementHeader(w, t, vr, tag.VLUndefinedLength)
-			for _, value := range values {
-				subelem, ok := value.(*Element)
-				if !ok || subelem.Tag != tag.Item {
-					return fmt.Errorf("SQ element must be an Item, but found %v", value)
-				}
-				err := writeElement(w, subelem, opts...)
-				if err != nil {
-					return err
-				}
-			}
-			encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
-	} else {
-		bo, implicit := w.TransferSyntax()
-		subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
-		for _, value := range values {
-			subelem, ok := value.(*Element)
-			if !ok || subelem.Tag != tag.Item {
-				return fmt.Errorf("SQ element must be an Item, but found %v", value)
-			}
-			err := writeElement(subWriter, subelem, opts...)
-			if err != nil {
-				return err
-			}
-		}
-		bytes := subWriter.Bytes()
-		writeTag(w, t, uint32(len(bytes)))
-		writeVRVL(w, t, vr, &uint32(len(bytes)))
-		w.WriteBytes(bytes)
-	}
-	return nil
+	// if vl == tag.VLUndefinedLength {
+	// 		encodeElementHeader(w, t, vr, tag.VLUndefinedLength)
+	// 		err := writeSubSequence(w, values, opts...)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
+	// } else {
+	// 	bo, implicit := w.TransferSyntax()
+	// 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
+	// 	err := writeSubSequence(subWriter, values, opts...)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	bytes := subWriter.Bytes()
+	// 	encodeElementHeader(w, t, vr, uint32s(len(bytes)))
+	// 	w.WriteBytes(bytes)
+	// }
+	return ErrorUnimplemented
 }
 
-func writeSequenceItem() error {return ErrorUnimplemented}
+// TODO investigate why these functions work in original write
+// TODO trace back how we got to casting to Element
+func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts ...WriteOption) error {
+	// if vl == tag.VLUndefinedLength {
+	// 		encodeElementHeader(w, t, vr, tag.VLUndefinedLength)
+	// 		err := writeSubSequence(w, values, opts...)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		encodeElementHeader(w, tag.ItemDelimitationItem, "", 0)
+	// } else {
+	// 	bo, implicit := w.TransferSyntax()
+	// 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
+	// 	err := writeSubSequence(subWriter, values, opts...)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	bytes := subWriter.Bytes()
+	// 	encodeElementHeader(w, t, vr, uint32(len(bytes)))
+	// 	w.WriteBytes(bytes)
+	// }
+	return ErrorUnimplemented
+}
+
+// func writeSubSequence(w dicomio.Writer, values []*SequenceItemValue, opts ...WriteOption) error {
+// 	for _, value := range values {
+// 			subelem, ok := value.(*Element)
+// 			if !ok || subelem.Tag != tag.Item {
+// 				return fmt.Errorf("SQ element must be an Item, and Item values must be dicom.Element, but found %v", value)
+// 			}
+// 			err := writeElement(w, subelem, opts...)
+// 			if err != nil {
+// 				return err
+// 			}
+// 	}
+// 	return nil
+// }
 
 // w, value Value, tag.Tag, vr string, vl uint32
 func writeValuePlaceHolder(w dicomio.Writer, value Value, t tag.Tag, vr string, vl uint32) error {
@@ -486,14 +550,6 @@ func writeValuePlaceHolder(w dicomio.Writer, value Value, t tag.Tag, vr string, 
 	// }
 	// return nil
 }
-
-// func dissectValue(w dicomio.Writer, value interface{}, ok bool, dataType string) error {
-// 	if !ok {
-// 		return fmt.Errorf("ERROR expected %v, but found %T (%v)",
-// 				dataType, value, value)
-// 	}
-// 	return w.Write(value)
-// }
 
 func writeOtherWordString(w dicomio.Writer, data []byte) error {
 	if len(data) % 2 != 0 {

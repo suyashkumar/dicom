@@ -139,28 +139,28 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		}
 	}
 	if !options.skipValueTypeVerification {
-		err := verifyValueType()
+		err := verifyValueType(elem.Tag, elem.Value, elem.Value.ValueType, vr)
 		if err != nil {
 			return err
 		}
 	}
 
 	// writeValue to subwriter
-	subWriter := NewWriter()
-	err = writeValue(subWriter, elem, vr)
+	bo, implicit := w.GetTransferSyntax()
+	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
+	err := writeValue(subWriter, elem.Value, elem.Value.ValueType, vr, opts...)
 	if err != nil {
 		return err
 	}
 
-	err := encodeElementHeader(w, elem.Tag, vr, elem.ValueLength) // TODO add error catches for rest of places encodeelemheader is called
+	err = encodeElementHeader(w, elem.Tag, vr, elem.ValueLength) // TODO add error catches for rest of places encodeelemheader is called
 	if err != nil {
 		return err
 	}
 
 	// Write the bytes to the original writer
 	w.WriteBytes(subWriter.Bytes())
-
-	return ErrorUnimplemented
+	return nil
 }
 
 func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.Tag]bool, opts ...WriteOption) error {
@@ -197,23 +197,24 @@ func verifyVR(t tag.Tag, vr string, vl uint32) (string, error) {
 }
 
 func verifyValueType(t tag.Tag, value Value, valueType ValueType, vr string) error {
+	v := value.GetValue()
 	var ok bool
 	switch vr {
 		case "US", "UL", "SL", "SS":
-			_, ok = value.([]int)
+			_, ok = v.([]int)
 			ok = ok && (valueType == Ints)
 		case "SQ":
-			_, ok = value.([]*SequenceItemValue)
+			_, ok = v.([]*SequenceItemValue)
 			ok = ok && (valueType == Sequences)
 		case "NA":
-			_, ok = value.([]*Element)
+			_, ok = v.([]*Element)
 			ok = ok && (valueType == SequenceItem)
 		case "OW", "OB":
 			if t == tag.PixelData {
-				_, ok = value.(PixelDataInfo)
+				_, ok = v.(PixelDataInfo)
 				ok = ok && (valueType == PixelData)
 			} else {
-				_, ok = value.([]byte)
+				_, ok = v.([]byte)
 				ok = ok && (valueType == Bytes)
 			}
 		case "FL", "FD": // TODO floats?
@@ -221,7 +222,7 @@ func verifyValueType(t tag.Tag, value Value, valueType ValueType, vr string) err
 		case "AT":
 			fallthrough
 		default:
-			_, ok = value.([]string)
+			_, ok = v.([]string)
 			ok = ok && (valueType == Strings)
 		}
 
@@ -246,7 +247,7 @@ func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
 // Need to find a better solution for this
 func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 	// Rectify Undefined Length VL
-	if vl == 0xffff {
+	if *vl == 0xffff {
 		// TODO: Ask suyash if it's okay to alter the actual element passed in
 		// Another option (1) is to make a copy of elem passed in insetad of taking
 		// a pointer element in writeElement
@@ -517,7 +518,7 @@ func writeValuePlaceHolder(w dicomio.Writer, value Value, t tag.Tag, vr string, 
 	// 			return fmt.Errorf("%v: expect a single value but found %v",
 	// 				  tag.DebugString(elem.Tag), elem.Value.GetValue())
 	// 		}
-	// 		if elem.ValueType != Bytes {
+	// 		if elem.Value.ValueType != Bytes {
 	// 			return fmt.Errorf("%v: expect a binary string, but found %v",
  	// 					tag.DebugString(elem.Tag), elem.Value.GetValue())
 	// 		}

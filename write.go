@@ -245,7 +245,12 @@ func writeRawItem(w dicomio.Writer, data []byte) {
 	w.WriteBytes(data)
 }
 
-func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string) error {
+func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) {
+	writeTag(w, t, vl)
+	writeVRVL(w, t, vr, &vl)
+}
+
+func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string, opts ...WriteOption) error {
 	// NOTE: vr is passed into the function instead of using elemnt.VR so that
 	// the original data in elem isn't altered
 
@@ -277,7 +282,7 @@ func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string) e
 		case PixelData:
 			return writePixelData(w, elem.Tag, MustGetPixelDataInfo(value), vr, elem.ValueLength)
 		case SequenceItem:
-			return writeSequenceItem()
+			return writeSequenceItem( opts...)
 		case Sequences:
 			return writeSequence()
 		default:
@@ -344,8 +349,7 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 // w, tag.Tag, elem.Value, vr, vl
 func writePixelData(w dicomio.Writer, t tag.Tag, image PixelDataInfo, vr string, vl uint32) error {
 	if vl == tag.VLUndefinedLength {
-		writeTag(w, t, vl)
-		writeVRVL(w, t, vr, &(vl))
+		encodeElementHeader(w, t, vr, vl)
 		image.writeBasicOffsetTable(w)
 		for _, frame := range image.Frames {
 				writeRawItem(w, frame.EncapsulatedData.Data)
@@ -359,8 +363,7 @@ func writePixelData(w dicomio.Writer, t tag.Tag, image PixelDataInfo, vr string,
 			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
 			// encodeElementHeader(e, elem.Tag, vr, uint32(length))
-			writeTag(w, t, vl) // TODO make all writeTag calls take the tag
-			writeVRVL(w, t, vr, &uint32(length)) // TODO find vr
+			encodeElementHeader(w, t, vr, uint32(length))
 			buf := new(bytes.Buffer)
 			buf.Grow(length)
 			for frame := 0; frame < numFrames; frame++ {
@@ -379,7 +382,41 @@ func writePixelData(w dicomio.Writer, t tag.Tag, image PixelDataInfo, vr string,
 	return nil
 }
 
-func writeSequence() error {return ErrorUnimplemented}
+
+func writeSequence(w dicomio.Writer, t tag.Tab, values []*SequenceItemValue, vr string, vl uint32, opts ...WriteOption) error {
+	if vl == tag.VLUndefinedLength {
+			encodeElementHeader(w, t, vr, tag.VLUndefinedLength)
+			for _, value := range values {
+				subelem, ok := value.(*Element)
+				if !ok || subelem.Tag != tag.Item {
+					return fmt.Errorf("SQ element must be an Item, but found %v", value)
+				}
+				err := writeElement(w, subelem, opts...)
+				if err != nil {
+					return err
+				}
+			}
+			encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
+	} else {
+		bo, implicit := w.TransferSyntax()
+		subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
+		for _, value := range values {
+			subelem, ok := value.(*Element)
+			if !ok || subelem.Tag != tag.Item {
+				return fmt.Errorf("SQ element must be an Item, but found %v", value)
+			}
+			err := writeElement(subWriter, subelem, opts...)
+			if err != nil {
+				return err
+			}
+		}
+		bytes := subWriter.Bytes()
+		writeTag(w, t, uint32(len(bytes)))
+		writeVRVL(w, t, vr, &uint32(len(bytes)))
+		w.WriteBytes(bytes)
+	}
+	return nil
+}
 
 func writeSequenceItem() error {return ErrorUnimplemented}
 

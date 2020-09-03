@@ -134,7 +134,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	var err error // to fix 'declared and not used' errors
 	// SkipVRVerification
 	if !options.skipVRVerification {
-		vr, err = verifyVR(elem.Tag, elem.RawValueRepresentation, elem.ValueLength)
+		vr, err = verifyVR(elem.Tag, elem.RawValueRepresentation)
 		if err != nil {
 			return nil
 		}
@@ -177,7 +177,7 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 		return nil
 }
 
-func verifyVR(t tag.Tag, vr string, vl uint32) (string, error) {
+func verifyVR(t tag.Tag, vr string) (string, error) {
 	// TODO rectify the vr and vl as either pass through variables, or altering
 	// the actual element data
 

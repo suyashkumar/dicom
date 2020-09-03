@@ -3,6 +3,7 @@ package dicomio
 import (
   "io"
   "encoding/binary"
+  "bytes"
 )
 
 // Writer is  what Encoder object used to be
@@ -44,7 +45,9 @@ func (w *writer) GetTransferSyntax() (binary.ByteOrder, bool) {
 }
 
 // Retrieve the a []byte representation of what's contained in writer.out
-func (w *writer) Bytes() []byte {return nil}
+func (w *writer) Bytes() []byte {
+  return w.out.(*bytes.Buffer).Bytes()
+}
 
 // Low-level functions to write to writer.out
 func (w *writer) WriteZeros(len int) {
@@ -56,9 +59,13 @@ func (w *writer) WriteString(v string) {
   w.out.Write([]byte(v))
 }
 
-func (w *writer) WriteByte(v byte) {}
+func (w *writer) WriteByte(v byte) {
+  binary.Write(w.out, w.bo, &v)
+}
 
-func (w *writer) WriteBytes(v []byte) {}
+func (w *writer) WriteBytes(v []byte) {
+  w.out.Write(v)
+}
 
 func (w *writer) WriteUInt16(v uint16) {
   binary.Write(w.out, w.bo, &v)

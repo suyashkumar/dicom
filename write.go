@@ -65,9 +65,16 @@ func SkipVRVerification() WriteOption {
 	}
 }
 
+func SkipValueTypeVerification() WriteOption {
+	return func(set *writeOptSet) {
+		set.skipValueTypeVerification = true
+	}
+}
+
 // writeOptSet represents the flattened option set after all WriteOptions have been applied.
 type writeOptSet struct {
 	skipVRVerification bool
+	skipValueTypeVerification bool
 }
 
 func toOptSet(opts ...WriteOption) *writeOptSet {
@@ -138,12 +145,6 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		}
 	}
 
-	// writeTag
-	err := writeTag(w, elem.Tag, elem.ValueLength)
-	if err != nil {
-		return nil
-	}
-
 	// writeValue to subwriter
 	subWriter := NewWriter()
 	err = writeValue(subWriter, elem, vr)
@@ -151,8 +152,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		return err
 	}
 
-	// writeVRVL with lv length as length of bytes in subwriter
-	err = writeVRVL(w, elem.Tag, elem.RawValueRepresentation, &(elem.ValueLength))
+	err := encodeElementHeader(w, elem.Tag, vr, elem.ValueLength) // TODO add error catches for rest of places encodeelemheader is called
 	if err != nil {
 		return err
 	}
@@ -286,31 +286,19 @@ func writeRawItem(w dicomio.Writer, data []byte) {
 	w.WriteBytes(data)
 }
 
-func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) {
-	writeTag(w, t, vl)
-	writeVRVL(w, t, vr, &vl)
+func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
+	err := writeTag(w, t, vl)
+	if err != nil {
+		return err
+	}
+	err = writeVRVL(w, t, vr, &vl)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string, opts ...WriteOption) error {
-	// NOTE: vr is passed into the function instead of using elemnt.VR so that
-	// the original data in elem isn't altered
-
-	// if elem.Tag == tag.PixelData {
-	// 	return writePixelData(w, elem, vr)
-	// }
-	// if vr == "SQ" {
-	// 	return writeSequence() // TODO implement
-	// } else if vr == "NA" { // Item
-	// 	return writeSequenceItem()
-	// } else {
-	// 	if elem.ValueLength == tag.VLUndefinedLength {
-	// 		return fmt.Errorf("ERROR writeValue: Undefined-length elemnt writing is not yet supported. Tag=%v, ValueRepresentation=%v, ValueLength=%v",
-	// 			 tag.DebugString(elem.Tag), elem.RawValueRepresentation, elem.ValueLength)
-	// 	}
-	// 	bo, implicit := w.GetTransferSyntax()
-	// 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit) // TODO figure out why I made this
-		verifyMatchVRWithValueTypeAndTypeConversion()
-
 		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states
 		// TODO what about floats?
 		switch valueType {

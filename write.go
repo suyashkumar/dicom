@@ -125,14 +125,14 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	vr := elem.RawValueRepresentation
 	// SkipVRVerification
 	if !options.skipVRVerification {
-		vr, err := verifyVR(elem)
+		vr, err := verifyVR(elem.Tag, elem.RawValueRepresentation, elem.ValueLength)
 		if err != nil {
 			return nil
 		}
 	}
 
 	// writeTag
-	err := writeTag(w, elem)
+	err := writeTag(w, elem.Tag, elem.ValueLength)
 	if err != nil {
 		return nil
 	}
@@ -145,7 +145,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	}
 
 	// writeVRVL with lv length as length of bytes in subwriter
-	err = writeVRVL(w, elem)
+	err = writeVRVL(w, elem.Tag, elem.RawValueRepresentation, &(elem.ValueLength))
 	if err != nil {
 		return err
 	}
@@ -169,77 +169,78 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 		return nil
 }
 
-func verifyVR(elem *Element) (string, error) {
+func verifyVR(t tag.Tag, vr string, vl uint32) (string, error) {
 	// TODO rectify the vr and vl as either pass through variables, or altering
 	// the actual element data
 
 	// Get the tag info
-	tagInfo, err := tag.Find(elem.Tag)
+	tagInfo, err := tag.Find(t)
 	if err != nil {
 		 return "UN", nil	// TODO: double check with Suyash that this is still how this should be implemented
 	}
-	if elem.RawValueRepresentation == "" {
+	if vr == "" {
 		return tagInfo.VR, nil
 	}
-	if tagInfo.VR != elem.RawValueRepresentation {
+	if tagInfo.VR != vr {
 		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
-			 tag.DebugString(elem.Tag), elem.RawValueRepresentation, tagInfo.VR)
+			 tag.DebugString(t), vr, tagInfo.VR)
 	}
 
-	return elem.RawValueRepresentation, nil
+	return vr, nil
 }
 
-func writeTag(w dicomio.Writer, elem *Element) error {
-	if elem.ValueLength % 2 != 0 {
+func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
+	if vl % 2 != 0 {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
-			tag.DebugString(elem.Tag), elem.ValueLength)
+			tag.DebugString(t), vl)
 	}
-	w.WriteUInt16(elem.Tag.Group)
-	w.WriteUInt16(elem.Tag.Element)
+	w.WriteUInt16(t.Group)
+	w.WriteUInt16(t.Element)
 	return nil
 }
 
-func writeVRVL(w dicomio.Writer, vr string, vl uint32, elem *Element) error {
+// TODO vl is a pointer so that we can alter the data in the original element
+// so that later, we can check if elem.VL == tag.VLUndefinedLength
+// Need to find a better solution for this
+func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 	// Rectify Undefined Length VL
-	if elem.ValueLength == 0xffff {
+	if vl == 0xffff {
 		// TODO: Ask suyash if it's okay to alter the actual element passed in
 		// Another option (1) is to make a copy of elem passed in insetad of taking
 		// a pointer element in writeElement
 		// Option (2) is to just pass through vl and vr
-		elem.ValueLength = tag.VLUndefinedLength
+		vl = &(tag.VLUndefinedLength)
 	}
 
-	if len(elem.RawValueRepresentation) != 2 && elem.ValueLength != tag.VLUndefinedLength {
+	if len(vr) != 2 && *vl != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%v, it was RawValueRepresentation=%v",
-			 tag.DebugString(elem.Tag), elem.RawValueRepresentation)
+			 tag.DebugString(t), vr)
 	}
 
 	// Write VR then VL
 	_, implicit := w.GetTransferSyntax()
-	if elem.Tag.Group == tag.GROUP_ItemSeq {
+	if t.Group == tag.GROUP_ItemSeq {
 		implicit = true
 	}
 	if !implicit { // Explicit
-		w.WriteString(elem.RawValueRepresentation)
-		switch elem.RawValueRepresentation {
+		w.WriteString(vr)
+		switch vr {
 			case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
 				w.WriteZeros(2)
-				w.WriteUInt32(elem.ValueLength)
+				w.WriteUInt32(*vl)
 			default:
-				w.WriteUInt16(uint16(elem.ValueLength))
+				w.WriteUInt16(uint16(*vl))
 		}
 	} else {
-		w.WriteUInt32(elem.ValueLength)
+		w.WriteUInt32(*vl)
 	}
 
 	return nil
 }
 
 func writeRawItem(w dicomio.Writer, data []byte) {
-	// TODO refactor writeTag, writeVRVL so that I can call them without an element
-	// e.g. here need to call them
-	writeTag()
-	writeVRVL()
+	writeTag(w, tag.Item, uint32(len(data)))
+	writeVRVL(w, tag.Item, "NA", &uint32(len(data)))
 	w.WriteBytes(data)
 }
 
@@ -248,7 +249,7 @@ func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 	// the original data in elem isn't altered
 
 	if elem.Tag == tag.PixelData {
-		return writePixelData(w, elem)
+		return writePixelData(w, elem, vr)
 	}
 	if vr == "SQ" {
 		return writeSequenceData() // TODO implement
@@ -267,17 +268,18 @@ func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 	return nil
 }
 
-func writePixelData(w dicomio.Writer, elem *Element) error {
+// w, elem.Value, vr, vl
+func writePixelData(w dicomio.Writer, elem *Element, vr string) error {
 	image := MustGetPixelDataInfo(elem.Value)
 	if elem.ValueLength == tag.VLUndefinedLength {
-		writeTag(w, elem) // TODO move these calls to a encodeElementHeader function for readability
-		writeVRVL(w, elem)
+		writeTag(w, elem.Tag, elem.ValueLength)
+		writeVRVL(w, elem.Tag, vr, &(elem.ValueLength))
 		image.writeBasicOffsetTable(w)
 		for _, frame := range image.Frames {
 				writeRawItem(w, frame.EncapsulatedData.Data)
 		}
-		writeTag(w, tag.SequenceDelimitationItem) // TODO make all writeTag calls take the tag
-		writeVRVL(w, "", 0) // TODO vr is "" and vl is 0
+		writeTag(w, tag.SequenceDelimitationItem, 0)
+		writeVRVL(w, tag.SequenceDelimitationItem, "", &0) // TODO figure out how to make a pointer to 0
 	} else {
 			numFrames := len(image.Frames)
 			numPixels := len(image.Frames[0].NativeData.Data)
@@ -285,8 +287,8 @@ func writePixelData(w dicomio.Writer, elem *Element) error {
 			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
 			// encodeElementHeader(e, elem.Tag, vr, uint32(length))
-			writeTag(w, elem.Tag) // TODO make all writeTag calls take the tag
-			writeVRVL(w, vr, uint32(length)) // TODO find vr
+			writeTag(w, elem.Tag, elem.ValueLength) // TODO make all writeTag calls take the tag
+			writeVRVL(w, elem.Tag, vr, &uint32(length)) // TODO find vr
 			buf := new(bytes.Buffer)
 			buf.Grow(length)
 			for frame := 0; frame < numFrames; frame++ {
@@ -300,6 +302,7 @@ func writePixelData(w dicomio.Writer, elem *Element) error {
 					}
 				}
 			}
+			w.WriteBytes(buf.Bytes())
 	}
 	return nil
 }

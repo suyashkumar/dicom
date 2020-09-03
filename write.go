@@ -12,6 +12,7 @@ import (
 )
 
 var ErrorUnimplemented = errors.New("this functionality is not yet implemented")
+var ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match what VR required") // TODO make this error description better
 
 // TODO(suyashkumar): consider adding an element-by-element write API.
 
@@ -248,23 +249,82 @@ func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 	// NOTE: vr is passed into the function instead of using elemnt.VR so that
 	// the original data in elem isn't altered
 
-	if elem.Tag == tag.PixelData {
-		return writePixelData(w, elem, vr)
-	}
-	if vr == "SQ" {
-		return writeSequenceData() // TODO implement
-	} else if vr == "NA" { // Item
-		return writeItemData()
-	} else {
-		if elem.ValueLength == tag.VLUndefinedLength {
-			return fmt.Errorf("ERROR writeValue: Undefined-length elemnt writing is not yet supported. Tag=%v, ValueRepresentation=%v, ValueLength=%v",
-				 tag.DebugString(elem.Tag), elem.RawValueRepresentation, elem.ValueLength)
+	// if elem.Tag == tag.PixelData {
+	// 	return writePixelData(w, elem, vr)
+	// }
+	// if vr == "SQ" {
+	// 	return writeSequence() // TODO implement
+	// } else if vr == "NA" { // Item
+	// 	return writeSequenceItem()
+	// } else {
+	// 	if elem.ValueLength == tag.VLUndefinedLength {
+	// 		return fmt.Errorf("ERROR writeValue: Undefined-length elemnt writing is not yet supported. Tag=%v, ValueRepresentation=%v, ValueLength=%v",
+	// 			 tag.DebugString(elem.Tag), elem.RawValueRepresentation, elem.ValueLength)
+	// 	}
+	// 	bo, implicit := w.GetTransferSyntax()
+	// 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit) // TODO figure out why I made this
+		verifyMatchVRWithValueType()
+
+		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states
+		switch elem.Value.ValueType {
+		case Strings:
+			return writeStrings(w, elem.Value.([]string)) // TODO this is writeStringValue
+		case Bytes:
+			return writeBytes(w, )
+		case Ints:
+			return writeInts()
+		case PixelData:
+			return writePixelData(w, elem, vr)
+		case SequenceItem:
+			return writeSequenceItem()
+		case Sequences:
+			return writeSequence()
+		default:
+			return fmt.Errorf("ValueType not supported")
 		}
-		bo, implicit := w.GetTransferSyntax()
-		subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
-		return writeGeneralData(w, elem, vr)
+		return nil
+
+		// return writeValuePlaceHolder(w, elem, vr)
 	}
 
+func writeStrings(w dicomio.Writer, values []string) error {
+	return ErrorUnimplemented
+}
+
+func writeBytes(w dicomio.Writer, values []byte, vr string) error {
+	var err error
+	if len(values) != 1 {
+		return fmt.Errorf("Expect a single value but found %v", values)
+	}
+	if elem.ValueType != Bytes {
+		return fmt.Errorf("%v: expect a binary string, but found %v",
+				tag.DebugString(elem.Tag), elem.Value.GetValue())
+	}
+	switch vr {
+		case "OW":
+			err = writeOtherWordString(w, elem.Value.GetValue().([]byte))
+		case "OB":
+			err = writeOtherByteString(w, elem.Value.GetValue().([]byte))
+		default:
+			return ErrorMismatchValueTypeAndVR
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+func writeInts(w dicomio.Writer, values []int, vr string) error {
+	for _, value := range values {
+		switch vr {
+		case "US", "SS":
+			w.WriteUInt16(value.(uint16)) // TODO verify that there's no reason this cast would fail
+		case "UL", "SL":
+			w.WriteUInt32(value.(uint32))
+		default:
+			return ErrorMismatchValueTypeAndVR
+		}
+	}
 	return nil
 }
 
@@ -307,64 +367,84 @@ func writePixelData(w dicomio.Writer, elem *Element, vr string) error {
 	return nil
 }
 
-func writeSequenceData() error {return ErrorUnimplemented}
+func writeSequence() error {return ErrorUnimplemented}
 
-func writeItemData() error {return ErrorUnimplemented}
+func writeSequenceItem() error {return ErrorUnimplemented}
 
-func writeGeneralData(w dicomio.Writer, elem *Element, vr string) error {
+// w, value Value, tag.Tag, vr string, vl uint32
+func writeValuePlaceHolder(w dicomio.Writer, value Value, t tag.Tag, vr string, vl uint32) error {
+	vrkind := tag.GetVRKind(t, vr)
+	switch vrkind {
+	case tag.VRBytes:
+		return readBytes(r, t, vr, vl)
+	case tag.VRString:
+		return readString(r, t, vr, vl)
+	case tag.VRDate:
+		return readDate(r, t, vr, vl)
+	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List:
+		return readInt(r, t, vr, vl)
+	case tag.VRSequence:
+		return readSequence(r, t, vr, vl)
+	case tag.VRItem:
+		return readSequenceItem(r, t, vr, vl)
+	case tag.VRPixelData:
+		return readPixelData(r, t, vr, vl, d, fc)
+	default:
+		return readString(r, t, vr, vl)
+	}
+
+	return nil, fmt.Errorf("unsure how to parse this VR")
+
 	// TODO figure out how to loop through elem.Value.GetValue() interface
-	switch
-	values :=
-
-	var err error
-	for _, value := range elem.Value.GetValue() {
-		switch vr {
-		case "US", "SS":
-			v, ok := value.(uint16)
-			err = dissectValue(w, v, ok, "uint16")
-		case "UL", "SL":
-			v, ok := value.(uint32)
-			err = dissectValue(w, v, ok, "uint32")
-		case "FL":
-			v, ok := value.(float32)
-			err = dissectValue(w, v, ok, "float32")
-		case "FD":
-			v, ok := value.(float64)
-			err = dissectValue(w, v, ok, "float64")
-		case "OW", "OB":
-			if len(elem.Value.GetValue()) != 1 {
-				return fmt.Errorf("%v: expect a single value but found %v",
-					  tag.DebugString(elem.Tag), elem.Value.GetValue())
-			}
-			if elem.ValueType != Bytes {
-				return fmt.Errorf("%v: expect a binary string, but found %v",
- 						tag.DebugString(elem.Tag), elem.Value.GetValue())
-			}
-
-			if vr == "OW" {
-				err = writeOtherWordString(w, elem.Value.GetValue().([]byte))
-			} else if vr == "OB" {
-				err = writeOtherByteString(w, elem.Value.GetValue().([]byte))
-			}
-		case "AT", "NA":
-			fallthrough
-		default:
-			err = writeStringValue(w, elem.Value, vr)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	// var err error
+	// for _, value := range elem.Value.GetValue() {
+	// 	switch vr {
+	// 	case "US", "SS":
+	// 		v, ok := value.(uint16)
+	// 		err = dissectValue(w, v, ok, "uint16")
+	// 	case "UL", "SL":
+	// 		v, ok := value.(uint32)
+	// 		err = dissectValue(w, v, ok, "uint32")
+	// 	case "FL":
+	// 		v, ok := value.(float32)
+	// 		err = dissectValue(w, v, ok, "float32")
+	// 	case "FD":
+	// 		v, ok := value.(float64)
+	// 		err = dissectValue(w, v, ok, "float64")
+	// 	case "OW", "OB":
+	// 		if len(elem.Value.GetValue()) != 1 {
+	// 			return fmt.Errorf("%v: expect a single value but found %v",
+	// 				  tag.DebugString(elem.Tag), elem.Value.GetValue())
+	// 		}
+	// 		if elem.ValueType != Bytes {
+	// 			return fmt.Errorf("%v: expect a binary string, but found %v",
+ 	// 					tag.DebugString(elem.Tag), elem.Value.GetValue())
+	// 		}
+	//
+	// 		if vr == "OW" {
+	// 			err = writeOtherWordString(w, elem.Value.GetValue().([]byte))
+	// 		} else if vr == "OB" {
+	// 			err = writeOtherByteString(w, elem.Value.GetValue().([]byte))
+	// 		}
+	// 	case "AT", "NA":
+	// 		fallthrough
+	// 	default:
+	// 		err = writeStringValue(w, elem.Value, vr)
+	// 	}
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	// return nil
 }
 
-func dissectValue(w dicomio.Writer, value interface{}, ok bool, dataType string) error {
-	if !ok {
-		return fmt.Errorf("ERROR expected %v, but found %T (%v)",
-				dataType, value, value)
-	}
-	return w.Write(value)
-}
+// func dissectValue(w dicomio.Writer, value interface{}, ok bool, dataType string) error {
+// 	if !ok {
+// 		return fmt.Errorf("ERROR expected %v, but found %T (%v)",
+// 				dataType, value, value)
+// 	}
+// 	return w.Write(value)
+// }
 
 func writeOtherWordString(w dicomio.Writer, data []byte) error {
 	if len(data) % 2 != 0 {

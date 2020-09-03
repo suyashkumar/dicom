@@ -245,7 +245,7 @@ func writeRawItem(w dicomio.Writer, data []byte) {
 	w.WriteBytes(data)
 }
 
-func writeValue(w dicomio.Writer, elem *Element, vr string) error {
+func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string) error {
 	// NOTE: vr is passed into the function instead of using elemnt.VR so that
 	// the original data in elem isn't altered
 
@@ -266,15 +266,16 @@ func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 		verifyMatchVRWithValueType()
 
 		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states
-		switch elem.Value.ValueType {
+		// TODO what about floats?
+		switch valueType {
 		case Strings:
-			return writeStrings(w, elem.Value.([]string)) // TODO this is writeStringValue
+			return writeStrings(w, value.([]string), vr) // TODO this is writeStringValue
 		case Bytes:
-			return writeBytes(w, )
+			return writeBytes(w, value.([]byte), vr)
 		case Ints:
-			return writeInts()
+			return writeInts(w, value.([]int), vr)
 		case PixelData:
-			return writePixelData(w, elem, vr)
+			return writePixelData(w, elem.Tag, MustGetPixelDataInfo(value), vr, elem.ValueLength)
 		case SequenceItem:
 			return writeSequenceItem()
 		case Sequences:
@@ -287,8 +288,24 @@ func writeValue(w dicomio.Writer, elem *Element, vr string) error {
 		// return writeValuePlaceHolder(w, elem, vr)
 	}
 
-func writeStrings(w dicomio.Writer, values []string) error {
-	return ErrorUnimplemented
+func writeStrings(w dicomio.Writer, values []string, vr string) error {
+		s := ""
+		for i, substr := range values {
+			if i > 0 {
+				s += "\\"
+			}
+			s += substr
+		}
+		w.WriteString(s)
+		if len(s) % 2 == 1 {
+			switch vr {
+				case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
+					w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+				default:
+					w.WriteByte(0)
+			}
+		}
+		return nil
 }
 
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
@@ -296,15 +313,11 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	if len(values) != 1 {
 		return fmt.Errorf("Expect a single value but found %v", values)
 	}
-	if elem.ValueType != Bytes {
-		return fmt.Errorf("%v: expect a binary string, but found %v",
-				tag.DebugString(elem.Tag), elem.Value.GetValue())
-	}
 	switch vr {
 		case "OW":
-			err = writeOtherWordString(w, elem.Value.GetValue().([]byte))
+			err = writeOtherWordString(w, values)
 		case "OB":
-			err = writeOtherByteString(w, elem.Value.GetValue().([]byte))
+			err = writeOtherByteString(w, values)
 		default:
 			return ErrorMismatchValueTypeAndVR
 		}
@@ -328,12 +341,11 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	return nil
 }
 
-// w, elem.Value, vr, vl
-func writePixelData(w dicomio.Writer, elem *Element, vr string) error {
-	image := MustGetPixelDataInfo(elem.Value)
-	if elem.ValueLength == tag.VLUndefinedLength {
-		writeTag(w, elem.Tag, elem.ValueLength)
-		writeVRVL(w, elem.Tag, vr, &(elem.ValueLength))
+// w, tag.Tag, elem.Value, vr, vl
+func writePixelData(w dicomio.Writer, t tag.Tag, image PixelDataInfo, vr string, vl uint32) error {
+	if vl == tag.VLUndefinedLength {
+		writeTag(w, t, vl)
+		writeVRVL(w, t, vr, &(vl))
 		image.writeBasicOffsetTable(w)
 		for _, frame := range image.Frames {
 				writeRawItem(w, frame.EncapsulatedData.Data)
@@ -347,8 +359,8 @@ func writePixelData(w dicomio.Writer, elem *Element, vr string) error {
 			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
 			// encodeElementHeader(e, elem.Tag, vr, uint32(length))
-			writeTag(w, elem.Tag, elem.ValueLength) // TODO make all writeTag calls take the tag
-			writeVRVL(w, elem.Tag, vr, &uint32(length)) // TODO find vr
+			writeTag(w, t, vl) // TODO make all writeTag calls take the tag
+			writeVRVL(w, t, vr, &uint32(length)) // TODO find vr
 			buf := new(bytes.Buffer)
 			buf.Grow(length)
 			for frame := 0; frame < numFrames; frame++ {
@@ -465,30 +477,6 @@ func writeOtherByteString(w dicomio.Writer, data[]byte) error {
 	w.WriteBytes(data)
 	if len(data) % 2 == 1 {
 		w.WriteByte(0)
-	}
-	return nil
-}
-
-func writeStringValue(w dicomio.Writer, value Value, vr string) error {
-	if value.ValueType != Strings {
-		return fmt.Errorf("Non-string value found")
-	}
-	s := ""
-	for i, value := range value.GetValue() {
-		substr, _ := value.(string)
-		if i > 0 {
-			s += "\\"
-		}
-		s += substr
-	}
-	w.WriteString(s)
-	if len(s) % 2 == 1 {
-		switch vr {
-			case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
-				w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
-			default:
-				w.WriteByte(0)
-		}
 	}
 	return nil
 }

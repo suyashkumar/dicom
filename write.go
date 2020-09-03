@@ -268,7 +268,7 @@ func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string, o
 	// 	}
 	// 	bo, implicit := w.GetTransferSyntax()
 	// 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit) // TODO figure out why I made this
-		verifyMatchVRWithValueType()
+		verifyMatchVRWithValueTypeAndTypeConversion()
 
 		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states
 		// TODO what about floats?
@@ -282,9 +282,9 @@ func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string, o
 		case PixelData:
 			return writePixelData(w, elem.Tag, MustGetPixelDataInfo(value), vr, elem.ValueLength)
 		case SequenceItem:
-			return writeSequenceItem( opts...)
+			return writeSequenceItem()
 		case Sequences:
-			return writeSequence()
+			return writeSequence(w, t, value.([]*SequenceItemValue), vr, elem.ValueLength, opts...)
 		default:
 			return fmt.Errorf("ValueType not supported")
 		}
@@ -383,7 +383,7 @@ func writePixelData(w dicomio.Writer, t tag.Tag, image PixelDataInfo, vr string,
 }
 
 
-func writeSequence(w dicomio.Writer, t tag.Tab, values []*SequenceItemValue, vr string, vl uint32, opts ...WriteOption) error {
+func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts ...WriteOption) error {
 	if vl == tag.VLUndefinedLength {
 			encodeElementHeader(w, t, vr, tag.VLUndefinedLength)
 			for _, value := range values {

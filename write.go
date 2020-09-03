@@ -131,15 +131,16 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	// parse WriteOption options
 	options := toOptSet(opts...)
 	vr := elem.RawValueRepresentation
+	var err error // to fix 'declared and not used' errors
 	// SkipVRVerification
 	if !options.skipVRVerification {
-		vr, err := verifyVR(elem.Tag, elem.RawValueRepresentation, elem.ValueLength)
+		vr, err = verifyVR(elem.Tag, elem.RawValueRepresentation, elem.ValueLength)
 		if err != nil {
 			return nil
 		}
 	}
 	if !options.skipValueTypeVerification {
-		err := verifyValueType(elem.Tag, elem.Value, elem.Value.ValueType, vr)
+		err = verifyValueType(elem.Tag, elem.Value, elem.Value.ValueType(), vr)
 		if err != nil {
 			return err
 		}
@@ -148,7 +149,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	// writeValue to subwriter
 	bo, implicit := w.GetTransferSyntax()
 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
-	err := writeValue(subWriter, elem.Value, elem.Value.ValueType, vr, opts...)
+	err = writeValue(subWriter, elem.Tag, elem.Value, elem.Value.ValueType(), vr, elem.ValueLength, opts...)
 	if err != nil {
 		return err
 	}
@@ -252,7 +253,8 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 		// Another option (1) is to make a copy of elem passed in insetad of taking
 		// a pointer element in writeElement
 		// Option (2) is to just pass through vl and vr
-		vl = &(tag.VLUndefinedLength)
+		undefined := tag.VLUndefinedLength
+		vl = &undefined
 	}
 
 	if len(vr) != 2 && *vl != tag.VLUndefinedLength {
@@ -282,9 +284,19 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 }
 
 func writeRawItem(w dicomio.Writer, data []byte) {
-	writeTag(w, tag.Item, uint32(len(data)))
-	writeVRVL(w, tag.Item, "NA", &uint32(len(data)))
+	length := uint32(len(data))
+	writeTag(w, tag.Item, length)
+	writeVRVL(w, tag.Item, "NA", &length)
 	w.WriteBytes(data)
+}
+
+func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) {
+	byteOrder, implicit := w.GetTransferSyntax()
+	subWriter := dicomio.NewWriter(&bytes.Buffer{}, byteOrder, implicit)
+	for _, offset := range offsets {
+		subWriter.WriteUInt32(offset)
+	}
+	writeRawItem(w, subWriter.Bytes())
 }
 
 func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
@@ -299,22 +311,23 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 	return nil
 }
 
-func writeValue(w dicomio.Writer, value Value, valueType ValueType, vr string, opts ...WriteOption) error {
+func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32,  opts ...WriteOption) error {
 		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states
 		// TODO what about floats?
+		v := value.GetValue()
 		switch valueType {
 		case Strings:
-			return writeStrings(w, value.([]string), vr) // TODO this is writeStringValue
+			return writeStrings(w, v.([]string), vr) // TODO this is writeStringValue
 		case Bytes:
-			return writeBytes(w, value.([]byte), vr)
+			return writeBytes(w, v.([]byte), vr)
 		case Ints:
-			return writeInts(w, value.([]int), vr)
+			return writeInts(w, v.([]int), vr)
 		case PixelData:
-			return writePixelData(w, elem.Tag, MustGetPixelDataInfo(value), vr, elem.ValueLength)
+			return writePixelData(w, t, value, vr, vl)
 		case SequenceItem:
-			return writeSequenceItem()
+			// return writeSequenceItem(w, t, ) TODO imlpement
 		case Sequences:
-			return writeSequence(w, t, value.([]*SequenceItemValue), vr, elem.ValueLength, opts...)
+			return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts...)
 		default:
 			return fmt.Errorf("ValueType not supported")
 		}
@@ -365,9 +378,9 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
 		case "US", "SS":
-			w.WriteUInt16(value.(uint16)) // TODO verify that there's no reason this cast would fail
+			w.WriteUInt16(uint16(value)) // TODO verify that there's no reason this cast would fail
 		case "UL", "SL":
-			w.WriteUInt32(value.(uint32))
+			w.WriteUInt32(uint32(value))
 		default:
 			return ErrorMismatchValueTypeAndVR
 		}
@@ -376,15 +389,15 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 }
 
 // w, tag.Tag, elem.Value, vr, vl
-func writePixelData(w dicomio.Writer, t tag.Tag, image PixelDataInfo, vr string, vl uint32) error {
+func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
+	image := MustGetPixelDataInfo(value)
 	if vl == tag.VLUndefinedLength {
 		encodeElementHeader(w, t, vr, vl)
-		image.writeBasicOffsetTable(w)
+		writeBasicOffsetTable(w, image.Offsets)
 		for _, frame := range image.Frames {
 				writeRawItem(w, frame.EncapsulatedData.Data)
 		}
-		writeTag(w, tag.SequenceDelimitationItem, 0)
-		writeVRVL(w, tag.SequenceDelimitationItem, "", &0) // TODO figure out how to make a pointer to 0
+		encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
 	} else {
 			numFrames := len(image.Frames)
 			numPixels := len(image.Frames[0].NativeData.Data)
@@ -475,27 +488,27 @@ func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string
 
 // w, value Value, tag.Tag, vr string, vl uint32
 func writeValuePlaceHolder(w dicomio.Writer, value Value, t tag.Tag, vr string, vl uint32) error {
-	vrkind := tag.GetVRKind(t, vr)
-	switch vrkind {
-	case tag.VRBytes:
-		return readBytes(r, t, vr, vl)
-	case tag.VRString:
-		return readString(r, t, vr, vl)
-	case tag.VRDate:
-		return readDate(r, t, vr, vl)
-	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List:
-		return readInt(r, t, vr, vl)
-	case tag.VRSequence:
-		return readSequence(r, t, vr, vl)
-	case tag.VRItem:
-		return readSequenceItem(r, t, vr, vl)
-	case tag.VRPixelData:
-		return readPixelData(r, t, vr, vl, d, fc)
-	default:
-		return readString(r, t, vr, vl)
-	}
+	// vrkind := tag.GetVRKind(t, vr)
+	// switch vrkind {
+	// case tag.VRBytes:
+	// 	return readBytes(r, t, vr, vl)
+	// case tag.VRString:
+	// 	return readString(r, t, vr, vl)
+	// case tag.VRDate:
+	// 	return readDate(r, t, vr, vl)
+	// case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List:
+	// 	return readInt(r, t, vr, vl)
+	// case tag.VRSequence:
+	// 	return readSequence(r, t, vr, vl)
+	// case tag.VRItem:
+	// 	return readSequenceItem(r, t, vr, vl)
+	// case tag.VRPixelData:
+	// 	return readPixelData(r, t, vr, vl, d, fc)
+	// default:
+	// 	return readString(r, t, vr, vl)
+	// }
 
-	return nil, fmt.Errorf("unsure how to parse this VR")
+	return fmt.Errorf("unsure how to parse this VR")
 
 	// TODO figure out how to loop through elem.Value.GetValue() interface
 	// var err error
@@ -518,7 +531,7 @@ func writeValuePlaceHolder(w dicomio.Writer, value Value, t tag.Tag, vr string, 
 	// 			return fmt.Errorf("%v: expect a single value but found %v",
 	// 				  tag.DebugString(elem.Tag), elem.Value.GetValue())
 	// 		}
-	// 		if elem.Value.ValueType != Bytes {
+	// 		if elem.Value.ValueType() != Bytes {
 	// 			return fmt.Errorf("%v: expect a binary string, but found %v",
  	// 					tag.DebugString(elem.Tag), elem.Value.GetValue())
 	// 		}
@@ -544,18 +557,22 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 	if len(data) % 2 != 0 {
 		return ErrorOWRequiresEvenVL
 	}
-	r, err := dicomio.NewReader(bytes.NewBuffer(data), w.bo, int64(len(bytes)))
+	bo, _ := w.GetTransferSyntax()
+	r, err := dicomio.NewReader(bytes.NewBuffer(data), bo, int64(len(data)))
 	if err != nil {
 		return err
 	}
-	for i := 0; i < int(len(bytes) / 2); i++ {
-		v := r.ReadUInt16()
+	for i := 0; i < int(len(data) / 2); i++ {
+		v, err := r.ReadUInt16()
+		if err != nil {
+			return err
+		}
 		w.WriteUInt16(v)
 	}
 	return nil
 }
 
-func writeOtherByteString(w dicomio.Writer, data[]byte) error {
+func writeOtherByteString(w dicomio.Writer, data []byte) error {
 	w.WriteBytes(data)
 	if len(data) % 2 == 1 {
 		w.WriteByte(0)

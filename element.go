@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"bytes"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"

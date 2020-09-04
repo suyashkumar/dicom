@@ -68,4 +68,25 @@ func TestVerifyVR(t *testing.T) {
 	assert.Equal(t, "UN", vr)
 }
 
+func TestVerifyValueType(t *testing.T) {
+	tg := tag.Tag{ // FileMetaInformationGroupLength tag
+		Group: 0x0002,
+		Element: 0x0000,
+	}
+
+	// VALID
+	value, err := NewValue([]int{128})
+	assert.Nil(t, err)
+	err = verifyValueType(tg, value, Ints, "UL")
+	assert.Nil(t, err)
+
+	// INVALID VR
+	err = verifyValueType(tg, value, Ints, "NA") // incorrect vr
+	assert.NotNil(t, err)
+
+	// WRONG VALUE TYPE
+	err = verifyValueType(tg, value, Strings, "UL")
+	assert.NotNil(t, err)
+}
+
 func TestWrite(t *testing.T) {}

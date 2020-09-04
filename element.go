@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"bytes"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
-	"github.com/suyashkumar/dicom/pkg/dicomio"
 )
 
 // ErrorUnexpectedDataType indicates that an unexpected (not allowed) data type was sent to NewValue.
@@ -226,15 +224,6 @@ func (e *pixelDataValue) String() string {
 
 func (s *pixelDataValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.PixelDataInfo)
-}
-
-func (s *pixelDataValue) writeBasicOffsetTable(w dicomio.Writer) {
-	byteOrder, implicit := w.GetTransferSyntax()
-	subWriter := dicomio.NewWriter(&bytes.Buffer{}, byteOrder, implicit)
-	for _, offset := range s.Offsets {
-		subWriter.WriteUInt32(offset)
-	}
-	writeRawItem(w, subWriter.Bytes())
 }
 
 func MustGetInts(v Value) []int {

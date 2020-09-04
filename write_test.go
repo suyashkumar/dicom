@@ -11,6 +11,12 @@ import (
 	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
+/*
+FURTHER TESTING
+	- Read written values back in and verify Datsets are the same
+	- With 'wild' DICOMs with high variability, read in, write out, read in, and verify
+*/
+
 // TODO clean this function up big time
 func TestWrite(t *testing.T) {
 	location := "fullwrite.dcm"

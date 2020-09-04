@@ -20,10 +20,25 @@ var ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match what VR r
 // applicable.
 type WriteOption func(*writeOptSet)
 
+// SkipVRVerification returns a WriteOption that skips VR verification.
+func SkipVRVerification() WriteOption {
+	return func(set *writeOptSet) {
+		set.skipVRVerification = true
+	}
+}
+
+// SkipValueTypeVerification returns WriteOption function that skips checking ValueType
+// for concurrency with VR and casting
+func SkipValueTypeVerification() WriteOption {
+	return func(set *writeOptSet) {
+		set.skipValueTypeVerification = true
+	}
+}
+
+
 // Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
 // information if available).
 func Write(out io.Writer, ds *Dataset, opts ...WriteOption) error {
-	// make Writer struct
 	w := dicomio.NewWriter(out, nil, false)
 	var metaElems []*Element
 	for _, elem := range ds.Elements {
@@ -32,20 +47,17 @@ func Write(out io.Writer, ds *Dataset, opts ...WriteOption) error {
 		}
 	}
 
-	// Write the file header with meta elements
 	err := writeFileHeader(w, ds, metaElems, opts...)
 	if err != nil {
 		return err
 	}
 
-	// set correct TransferSyntax
-	endian, implicit, err := ds.TransferSyntax() // TODO implememt
+	endian, implicit, err := ds.TransferSyntax()
 	if err != nil {
 		return err
 	}
-	w.SetTransferSynax(endian, implicit)	// TODO: either expand this or make this function
+	w.SetTransferSynax(endian, implicit)
 
-	// Write the rest of the elements with writeElement
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group != tag.MetadataGroup {
 			err = writeElement(w, elem, opts...)
@@ -56,19 +68,6 @@ func Write(out io.Writer, ds *Dataset, opts ...WriteOption) error {
 	}
 
 	return nil
-}
-
-// SkipVRVerification returns a WriteOption that skips VR verification.
-func SkipVRVerification() WriteOption {
-	return func(set *writeOptSet) {
-		set.skipVRVerification = true
-	}
-}
-
-func SkipValueTypeVerification() WriteOption {
-	return func(set *writeOptSet) {
-		set.skipValueTypeVerification = true
-	}
 }
 
 // writeOptSet represents the flattened option set after all WriteOptions have been applied.
@@ -86,7 +85,7 @@ func toOptSet(opts ...WriteOption) *writeOptSet {
 }
 
 func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts ...WriteOption) error {
-	w.SetTransferSynax(binary.LittleEndian, false) // TODO: either expand this or make this function
+	w.SetTransferSynax(binary.LittleEndian, false)
 
 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, binary.LittleEndian, false)
 	tagsUsed := make(map[tag.Tag]bool)
@@ -162,7 +161,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	}
 
 	data := subWriter.Bytes()
-	err = encodeElementHeader(w, elem.Tag, vr, uint32(len(data))) // TODO add error catches for rest of places encodeelemheader is called
+	err = encodeElementHeader(w, elem.Tag, vr, uint32(len(data)))
 	if err != nil {
 		return err
 	}
@@ -186,13 +185,9 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 }
 
 func verifyVR(t tag.Tag, vr string) (string, error) {
-	// TODO rectify the vr and vl as either pass through variables, or altering
-	// the actual element data
-
-	// Get the tag info
 	tagInfo, err := tag.Find(t)
 	if err != nil {
-		 return "UN", nil	// TODO: double check with Suyash that this is still how this should be implemented
+		 return "UN", nil
 	}
 	if vr == "" {
 		return tagInfo.VR, nil
@@ -319,12 +314,12 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 }
 
 func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32,  opts ...WriteOption) error {
-		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states
+		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states, but not all
 		// TODO what about floats?
 		v := value.GetValue()
 		switch valueType {
 		case Strings:
-			return writeStrings(w, v.([]string), vr) // TODO this is writeStringValue
+			return writeStrings(w, v.([]string), vr)
 		case Bytes:
 			return writeBytes(w, v.([]byte), vr)
 		case Ints:
@@ -332,7 +327,7 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 		case PixelData:
 			return writePixelData(w, t, value, vr, vl)
 		case SequenceItem:
-			// return writeSequenceItem(w, t, ) TODO imlpement
+			return writeSequenceItem(w, t, v.([]*Element), vr, vl, otps...)
 		case Sequences:
 			return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts...)
 		default:
@@ -395,7 +390,6 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	return nil
 }
 
-// w, tag.Tag, elem.Value, vr, vl
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 	if vl == tag.VLUndefinedLength {
@@ -417,7 +411,6 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 			numValues := len(image.Frames[0].NativeData.Data[0])
 			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
-			// encodeElementHeader(e, elem.Tag, vr, uint32(length))
 			err := encodeElementHeader(w, t, vr, uint32(length))
 			if err != nil {
 				return err
@@ -440,67 +433,15 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 	return nil
 }
 
-// TODO investigate why these functions work in original write
-// TODO trace back how we got to casting to Element
+// TODO implement
 func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts ...WriteOption) error {
-	// if vl == tag.VLUndefinedLength {
-	// 		encodeElementHeader(w, t, vr, tag.VLUndefinedLength)
-	// 		err := writeSubSequence(w, values, opts...)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
-	// } else {
-	// 	bo, implicit := w.TransferSyntax()
-	// 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
-	// 	err := writeSubSequence(subWriter, values, opts...)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	bytes := subWriter.Bytes()
-	// 	encodeElementHeader(w, t, vr, uint32s(len(bytes)))
-	// 	w.WriteBytes(bytes)
-	// }
 	return ErrorUnimplemented
 }
 
-// TODO investigate why these functions work in original write
-// TODO trace back how we got to casting to Element
+// TODO implement
 func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts ...WriteOption) error {
-	// if vl == tag.VLUndefinedLength {
-	// 		encodeElementHeader(w, t, vr, tag.VLUndefinedLength)
-	// 		err := writeSubSequence(w, values, opts...)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		encodeElementHeader(w, tag.ItemDelimitationItem, "", 0)
-	// } else {
-	// 	bo, implicit := w.TransferSyntax()
-	// 	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
-	// 	err := writeSubSequence(subWriter, values, opts...)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	bytes := subWriter.Bytes()
-	// 	encodeElementHeader(w, t, vr, uint32(len(bytes)))
-	// 	w.WriteBytes(bytes)
-	// }
 	return ErrorUnimplemented
 }
-
-// func writeSubSequence(w dicomio.Writer, values []*SequenceItemValue, opts ...WriteOption) error {
-// 	for _, value := range values {
-// 			subelem, ok := value.(*Element)
-// 			if !ok || subelem.Tag != tag.Item {
-// 				return fmt.Errorf("SQ element must be an Item, and Item values must be dicom.Element, but found %v", value)
-// 			}
-// 			err := writeElement(w, subelem, opts...)
-// 			if err != nil {
-// 				return err
-// 			}
-// 	}
-// 	return nil
-// }
 
 func writeOtherWordString(w dicomio.Writer, data []byte) error {
 	if len(data) % 2 != 0 {

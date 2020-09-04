@@ -6,7 +6,6 @@ import (
   "bytes"
 )
 
-// Writer is  what Encoder object used to be
 type Writer interface {
   SetTransferSynax(bo binary.ByteOrder, implicit bool)
   Bytes() []byte
@@ -17,7 +16,6 @@ type Writer interface {
   WriteUInt16(v uint16)
   WriteUInt32(v uint32)
   GetTransferSyntax() (binary.ByteOrder, bool)
-  // TODO fill in other functions that Writer has
 }
 
 type writer struct {
@@ -45,11 +43,11 @@ func (w *writer) GetTransferSyntax() (binary.ByteOrder, bool) {
 }
 
 // Retrieve the a []byte representation of what's contained in writer.out
+// ONLY works when out is &bytes.Buffer{}
 func (w *writer) Bytes() []byte {
   return w.out.(*bytes.Buffer).Bytes()
 }
 
-// Low-level functions to write to writer.out
 func (w *writer) WriteZeros(len int) {
   zeros := make([]byte, len)
   w.out.Write(zeros)

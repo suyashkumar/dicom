@@ -314,8 +314,11 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 }
 
 func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32,  opts ...WriteOption) error {
+		if vl == tag.VLUndefinedLength && valueType > 2 { // not strings, bytes or ints
+			return fmt.Errorf("Encoding undefined-length element not yet supported: %v", t)
+		}
 		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states, but not all
-		// TODO what about floats?
+		// TODO floats?
 		v := value.GetValue()
 		switch valueType {
 		case Strings:
@@ -327,13 +330,12 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 		case PixelData:
 			return writePixelData(w, t, value, vr, vl)
 		case SequenceItem:
-			return writeSequenceItem(w, t, v.([]*Element), vr, vl, otps...)
+			return writeSequenceItem(w, t, v.([]*Element), vr, vl, opts...)
 		case Sequences:
 			return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts...)
 		default:
 			return fmt.Errorf("ValueType not supported")
 		}
-		// TODO figure out if this actual has to be here
 		return fmt.Errorf("Something went real bad, this should never be reached")
 	}
 

@@ -34,9 +34,6 @@ func TestWrite(t *testing.T) {
 							 transferSyntax,
 							 patientName,
 	}
-	
-	pixeElems := generateRandImage(500, 500)
-	elems = append(elems, pixeElems...)
 
 	ds := &Dataset{Elements: elems}
 

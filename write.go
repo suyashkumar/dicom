@@ -38,22 +38,22 @@ func Write(out io.Writer, ds *Dataset, opts ...WriteOption) error {
 		return err
 	}
 
-	// // set correct TransferSyntax
-	// endian, implicit, err := ds.TransferSyntax()
-	// if err != nil {
-	// 	return err
-	// }
-	// w.SetTransferSynax(endian, implicit)	// TODO: either expand this or make this function
-	//
-	// // Write the rest of the elements with writeElement
-	// for _, elem := range ds.Elements {
-	// 	if elem.Tag != tag.MetadataGroup {
-	// 		err = writeElement(w, elem, opts...)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
+	// set correct TransferSyntax
+	endian, implicit, err := ds.TransferSyntax() // TODO implememt
+	if err != nil {
+		return err
+	}
+	w.SetTransferSynax(endian, implicit)	// TODO: either expand this or make this function
+
+	// Write the rest of the elements with writeElement
+	for _, elem := range ds.Elements {
+		if elem.Tag.Group != tag.MetadataGroup {
+			err = writeElement(w, elem, opts...)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

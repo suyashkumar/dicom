@@ -41,7 +41,7 @@ func (d *Dataset) TransferSyntax() (binary.ByteOrder, bool, error) {
 	}
 	value, ok := elem.Value.GetValue().([]string)
 	if !ok || len(value) != 1 {
-		return fmt.Errorf("Failed to retrieve TransferSyntaxUID. Unable to cast elem.Value to []string")
+		return nil, false, fmt.Errorf("Failed to retrieve TransferSyntaxUID. Unable to cast elem.Value to []string")
 	}
 	transferSyntaxUID := value[0]
 	return uid.ParseTransferSyntaxUID(transferSyntaxUID)

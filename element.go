@@ -106,6 +106,29 @@ func NewValue(data interface{}) (Value, error) {
 	}
 }
 
+func newElement(t tag.Tag, data interface{}) (*Element, error) {
+	tagInfo, err := tag.Find(t)
+	if err != nil {
+		return nil, err
+	}
+	rawVR := tagInfo.VR
+
+	VR := tag.GetVRKind(t, rawVR)
+
+	value, err := NewValue(data)
+	if err != nil {
+		return nil, err
+	}
+
+ 	return &Element{
+		Tag: t,
+		ValueRepresentation: VR,
+		RawValueRepresentation: rawVR,
+		Value: value,
+	}, nil
+}
+
+
 type ValueType int
 
 // Possible ValueTypes that represent the different value types for information parsed into DICOM element values.
@@ -252,26 +275,4 @@ func MustGetPixelDataInfo(v Value) PixelDataInfo {
 		log.Panicf("MustGetPixelDataInfo expected ValueType of PixelData, got: %v", v.ValueType())
 	}
 	return v.GetValue().(PixelDataInfo)
-}
-
-func newElement(t tag.Tag, data interface{}) (*Element, error) {
-	tagInfo, err := tag.Find(t)
-	if err != nil {
-		return nil, err
-	}
-	rawVR := tagInfo.VR
-
-	VR := tag.GetVRKind(t, rawVR)
-
-	value, err := NewValue(data)
-	if err != nil {
-		return nil, err
-	}
-
- 	return &Element{
-		Tag: t,
-		ValueRepresentation: VR,
-		RawValueRepresentation: rawVR,
-		Value: value,
-	}, nil
 }

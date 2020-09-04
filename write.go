@@ -11,8 +11,10 @@ import (
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
+// ErrorUnimplemented is for not yet finished things
 var ErrorUnimplemented = errors.New("this functionality is not yet implemented")
-var ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match what VR required") // TODO make this error description better
+// ErrorMismatchValueTypeAndVR is for when there's a discrepency betweeen the ValueType and what the VR specifies
+var ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match the VR required")
 
 // TODO(suyashkumar): consider adding an element-by-element write API.
 
@@ -314,10 +316,10 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 }
 
 func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32,  opts ...WriteOption) error {
-		if vl == tag.VLUndefinedLength && valueType > 2 { // not strings, bytes or ints
+		if vl == tag.VLUndefinedLength && valueType <= 2 { // strings, bytes or ints
 			return fmt.Errorf("Encoding undefined-length element not yet supported: %v", t)
 		}
-		// TODO figure out what I'm doing about the Undefined length error that gets thrown in some of these states, but not all
+
 		// TODO floats?
 		v := value.GetValue()
 		switch valueType {
@@ -382,7 +384,7 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
 		case "US", "SS":
-			w.WriteUInt16(uint16(value)) // TODO verify that there's no reason this cast would fail
+			w.WriteUInt16(uint16(value))
 		case "UL", "SL":
 			w.WriteUInt32(uint32(value))
 		default:

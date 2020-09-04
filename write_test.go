@@ -18,7 +18,6 @@ func TestWrite(t *testing.T) {
 	assert.Nil(t, err)
 	defer file.Close()
 
-	// Create the meta elements
 	mediaStorageSOPClassUID, err := newElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
 	assert.Nil(t, err)
 	mediaStorageSOPInstanceUID, err := newElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
@@ -37,7 +36,6 @@ func TestWrite(t *testing.T) {
 
 	ds := &Dataset{Elements: elems}
 
-	// write the file header
 	err =  Write(file, ds, func (set *writeOptSet){})
 	assert.Nil(t, err)
 
@@ -46,16 +44,13 @@ func TestWrite(t *testing.T) {
 
 // TODO clean this function up big time
 func TestWriteFileHeader(t *testing.T) {
-	// Create the file
 	location := "fileheader.dcm"
 	file, err := os.Create(location)
 	assert.Nil(t, err)
 	defer file.Close()
 
-	// create a writer on the file
   w := dicomio.NewWriter(file, binary.LittleEndian, false)
 
-	// Create the meta elements
 	mediaStorageSOPClassUID, err := newElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
 	assert.Nil(t, err)
 	mediaStorageSOPInstanceUID, err := newElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
@@ -69,22 +64,10 @@ func TestWriteFileHeader(t *testing.T) {
 	}
 	ds := &Dataset{Elements: metaElems}
 
-	// write the file header
 	err = writeFileHeader(w, ds, metaElems, func (set *writeOptSet){})
 	assert.Nil(t, err)
 
-	// TODO
-		// // read the file
-		// info, err := file.Stat()
-		// assert.Nil(t, err)
-		// p, err := NewParser(file, info.Size(), nil)
-		//
-		// parsedData, err := p.Parse()
-		// assert.Nil(t, err)
-
-		// Verify the the corrrect things were written to the file header
-
-
+	// TODO Verify the the corrrect things were written to the file header
 }
 
 func TestEncodeElementHeader(t *testing.T) {}
@@ -101,17 +84,17 @@ func TestVerifyVR(t *testing.T) {
 		Element: 0x0000,
 	}
 
-	// give the wrong VR
+	// WRONG VR
 	vr, err := verifyVR(tg, "OB")
 	assert.Equal(t, "", vr)
 	assert.NotNil(t, err)
 
-	// No vr given
+	// NO VR
 	vr, err = verifyVR(tg, "")
 	assert.Nil(t, err)
 	assert.Equal(t, "UL", vr)
 
-	// made up tag
+	// MADE UP TAG
 	tg = tag.Tag{
 		Group: 0x9999,
 		Element: 0x9999,

@@ -6,6 +6,7 @@ import (
   "bytes"
 )
 
+// Writer is a lower level encoder that takes abstracted input and writes it at the byte-level
 type Writer interface {
   SetTransferSynax(bo binary.ByteOrder, implicit bool)
   Bytes() []byte
@@ -24,7 +25,7 @@ type writer struct {
   implicit bool
 }
 
-// See https://github.com/suyashkumar/dicom/blob/6ffe547e2a080b3dcc1ce01946a7c7350d531bdc/dicomio/buffer.go#L80
+// NewWriter creates and returns a Writer struct
 func NewWriter(out io.Writer, bo binary.ByteOrder, implicit bool) Writer {
   return &writer{
     out: out,

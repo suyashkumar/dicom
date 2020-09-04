@@ -11,10 +11,40 @@ import (
 	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
+// TODO clean this function up big time
 func TestWrite(t *testing.T) {
+	location := "fullwrite.dcm"
+	file, err := os.Create(location)
+	assert.Nil(t, err)
+	defer file.Close()
 
+	// Create the meta elements
+	mediaStorageSOPClassUID, err := newElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
+	assert.Nil(t, err)
+	mediaStorageSOPInstanceUID, err := newElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
+	assert.Nil(t, err)
+	transferSyntax, err := newElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
+	assert.Nil(t, err)
+	patientName, err := newElement(tag.PatientName, []string{"Robin Banks"})
+	assert.Nil(t, err)
+
+	elems := []*Element{
+							 mediaStorageSOPClassUID,
+							 mediaStorageSOPInstanceUID,
+							 transferSyntax,
+							 patientName,
+	}
+
+	ds := &Dataset{Elements: elems}
+
+	// write the file header
+	err =  Write(file, ds, func (set *writeOptSet){})
+	assert.Nil(t, err)
+
+	// TODO verify that the correct values are written
 }
 
+// TODO clean this function up big time
 func TestWriteFileHeader(t *testing.T) {
 	// Create the file
 	location := "fileheader.dcm"

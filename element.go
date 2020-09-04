@@ -128,6 +128,14 @@ func newElement(t tag.Tag, data interface{}) (*Element, error) {
 	}, nil
 }
 
+func mustNewElement(t tag.Tag, data interface{}) *Element {
+	elem, err := newElement(t, data)
+	if err != nil {
+		log.Panic(err)
+	}
+	return elem
+}
+
 
 type ValueType int
 

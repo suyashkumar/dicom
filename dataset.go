@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"encoding/binary"
 
 	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
 var ErrorElementNotFound = errors.New("element not found")
@@ -30,6 +32,19 @@ func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
 		}
 	}
 	return nil, ErrorElementNotFound
+}
+
+func (d *Dataset) TransferSyntax() (binary.ByteOrder, bool, error) {
+	elem, err := d.FindElementByTag(tag.TransferSyntaxUID)
+	if err != nil {
+		return nil, false, err
+	}
+	value, ok := elem.Value.GetValue().([]string)
+	if !ok || len(value) != 1 {
+		return fmt.Errorf("Failed to retrieve TransferSyntaxUID. Unable to cast elem.Value to []string")
+	}
+	transferSyntaxUID := value[0]
+	return uid.ParseTransferSyntaxUID(transferSyntaxUID)
 }
 
 // FindElementByTagNested searches through the dataset and returns a pointer to the matching element.

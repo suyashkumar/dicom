@@ -117,7 +117,7 @@ func TestVerifyValueType(t *testing.T) {
 	assert.Nil(t, err)
 
 	// INVALID VR
-	err = verifyValueType(tg, value, Ints, "NA") // incorrect vr
+	err = verifyValueType(tg, value, Ints, "NA")
 	assert.NotNil(t, err)
 
 	// WRONG VALUE TYPE

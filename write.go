@@ -92,19 +92,19 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	tagsUsed := make(map[tag.Tag]bool)
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
-	// err := writeMetaElem(w, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
-	// if err != nil {
-	// 	return err
-	// }
-	err := writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts...)
+	// TODO make better structure for error checking so it's no so many lines
+	err := writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
 	if err != nil {
 		return err
 	}
-	// writeMetaElem(tag.MediaStorageSOPClassUID)
-	// writeMetaElem(tag.MediaStorageSOPInstanceUID)
-	// writeMetaElem(tag.TransferSyntaxUID)
-	// writeMetaElem(tag.ImplementationClassUID)
-	// writeMetaElem(tag.ImplementationVersionName)
+	err = writeMetaElem(subWriter, tag.MediaStorageSOPInstanceUID, ds, &tagsUsed, opts...)
+	if err != nil {
+		return err
+	}
+	err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts...)
+	if err != nil {
+		return err
+	}
 
 	for _, elem := range metaElems {
 		if elem.Tag.Group == tag.MetadataGroup {
@@ -124,9 +124,6 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	if err != nil {
 		return err
 	}
-
-fmt.Printf("LEN metaBytes: %v, %v\n", len(metaBytes), lengthElem.ValueLength)
-fmt.Printf("LENGTHELEM: %v", lengthElem)
 
 	err = writeElement(w, lengthElem, opts...)
 	if err != nil {

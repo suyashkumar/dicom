@@ -92,7 +92,14 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	tagsUsed := make(map[tag.Tag]bool)
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
-	writeMetaElem(w, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
+	// err := writeMetaElem(w, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
+	// if err != nil {
+	// 	return err
+	// }
+	err := writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts...)
+	if err != nil {
+		return err
+	}
 	// writeMetaElem(tag.MediaStorageSOPClassUID)
 	// writeMetaElem(tag.MediaStorageSOPInstanceUID)
 	// writeMetaElem(tag.TransferSyntaxUID)
@@ -102,7 +109,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	for _, elem := range metaElems {
 		if elem.Tag.Group == tag.MetadataGroup {
 			if _, ok := tagsUsed[elem.Tag]; !ok {
-				err := writeElement(subWriter, elem, opts...)
+				err = writeElement(subWriter, elem, opts...)
 				if err != nil {
 					return err
 				}
@@ -113,12 +120,15 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	metaBytes := subWriter.Bytes()
 	w.WriteZeros(128)
 	w.WriteString("DICM")
-	lengthElem, err := newElement(tag.FileMetaInformationGroupLength, uint32(len(metaBytes)))
+	lengthElem, err := newElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes)})
 	if err != nil {
 		return err
 	}
 
-	err = writeElement(w, lengthElem, opts...) // TODO write metaelementgrouplength tag
+fmt.Printf("LEN metaBytes: %v, %v\n", len(metaBytes), lengthElem.ValueLength)
+fmt.Printf("LENGTHELEM: %v", lengthElem)
+
+	err = writeElement(w, lengthElem, opts...)
 	if err != nil {
 		return err
 	}
@@ -136,7 +146,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	if !options.skipVRVerification {
 		vr, err = verifyVR(elem.Tag, elem.RawValueRepresentation)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 	if !options.skipValueTypeVerification {
@@ -154,13 +164,14 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		return err
 	}
 
-	err = encodeElementHeader(w, elem.Tag, vr, elem.ValueLength) // TODO add error catches for rest of places encodeelemheader is called
+	data := subWriter.Bytes()
+	err = encodeElementHeader(w, elem.Tag, vr, uint32(len(data))) // TODO add error catches for rest of places encodeelemheader is called
 	if err != nil {
 		return err
 	}
 
 	// Write the bytes to the original writer
-	w.WriteBytes(subWriter.Bytes())
+	w.WriteBytes(data)
 	return nil
 }
 
@@ -279,7 +290,6 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 	} else {
 		w.WriteUInt32(*vl)
 	}
-
 	return nil
 }
 
@@ -392,12 +402,18 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 	if vl == tag.VLUndefinedLength {
-		encodeElementHeader(w, t, vr, vl)
+		err := encodeElementHeader(w, t, vr, vl)
+		if err != nil {
+			return err
+		}
 		writeBasicOffsetTable(w, image.Offsets)
 		for _, frame := range image.Frames {
 				writeRawItem(w, frame.EncapsulatedData.Data)
 		}
-		encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
+		err = encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
+		if err != nil {
+			return err
+		}
 	} else {
 			numFrames := len(image.Frames)
 			numPixels := len(image.Frames[0].NativeData.Data)
@@ -405,7 +421,10 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
 			// encodeElementHeader(e, elem.Tag, vr, uint32(length))
-			encodeElementHeader(w, t, vr, uint32(length))
+			err := encodeElementHeader(w, t, vr, uint32(length))
+			if err != nil {
+				return err
+			}
 			buf := new(bytes.Buffer)
 			buf.Grow(length)
 			for frame := 0; frame < numFrames; frame++ {

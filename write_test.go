@@ -1,13 +1,13 @@
 package dicom
 
 import (
-	"testing"
-	"os"
 	"encoding/binary"
+	"os"
+	"testing"
 
-  "github.com/stretchr/testify/assert"
-  "github.com/suyashkumar/dicom/pkg/dicomio"
-  "github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/stretchr/testify/assert"
+	"github.com/suyashkumar/dicom/pkg/dicomio"
+	"github.com/suyashkumar/dicom/pkg/tag"
 	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
@@ -34,15 +34,15 @@ func TestWrite(t *testing.T) {
 	assert.Nil(t, err)
 
 	elems := []*Element{
-							 mediaStorageSOPClassUID,
-							 mediaStorageSOPInstanceUID,
-							 transferSyntax,
-							 patientName,
+		mediaStorageSOPClassUID,
+		mediaStorageSOPInstanceUID,
+		transferSyntax,
+		patientName,
 	}
 
 	ds := &Dataset{Elements: elems}
 
-	err =  Write(file, ds)
+	err = Write(file, ds)
 	assert.Nil(t, err)
 
 	// TODO verify that the correct values are written
@@ -55,7 +55,7 @@ func TestWriteFileHeader(t *testing.T) {
 	assert.Nil(t, err)
 	defer file.Close()
 
-  w := dicomio.NewWriter(file, binary.LittleEndian, false)
+	w := dicomio.NewWriter(file, binary.LittleEndian, false)
 
 	mediaStorageSOPClassUID, err := newElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
 	assert.Nil(t, err)
@@ -64,9 +64,9 @@ func TestWriteFileHeader(t *testing.T) {
 	transferSyntax, err := newElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
 	assert.Nil(t, err)
 	metaElems := []*Element{
-							 mediaStorageSOPClassUID,
-							 mediaStorageSOPInstanceUID,
-							 transferSyntax,
+		mediaStorageSOPClassUID,
+		mediaStorageSOPInstanceUID,
+		transferSyntax,
 	}
 	ds := &Dataset{Elements: metaElems}
 
@@ -86,7 +86,7 @@ func TestWriteVRVL(t *testing.T) {}
 
 func TestVerifyVR(t *testing.T) {
 	tg := tag.Tag{ // FileMetaInformationGroupLength tag
-		Group: 0x0002,
+		Group:   0x0002,
 		Element: 0x0000,
 	}
 
@@ -102,7 +102,7 @@ func TestVerifyVR(t *testing.T) {
 
 	// MADE UP TAG
 	tg = tag.Tag{
-		Group: 0x9999,
+		Group:   0x9999,
 		Element: 0x9999,
 	}
 	vr, err = verifyVR(tg, "")
@@ -112,7 +112,7 @@ func TestVerifyVR(t *testing.T) {
 
 func TestVerifyValueType(t *testing.T) {
 	tg := tag.Tag{ // FileMetaInformationGroupLength tag
-		Group: 0x0002,
+		Group:   0x0002,
 		Element: 0x0000,
 	}
 

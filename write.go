@@ -1,11 +1,11 @@
 package dicom
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
-	"encoding/binary"
-	"bytes"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/tag"
@@ -13,6 +13,7 @@ import (
 
 // ErrorUnimplemented is for not yet finished things
 var ErrorUnimplemented = errors.New("this functionality is not yet implemented")
+
 // ErrorMismatchValueTypeAndVR is for when there's a discrepency betweeen the ValueType and what the VR specifies
 var ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match the VR required")
 
@@ -36,7 +37,6 @@ func SkipValueTypeVerification() WriteOption {
 		set.skipValueTypeVerification = true
 	}
 }
-
 
 // Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
 // information if available).
@@ -74,7 +74,7 @@ func Write(out io.Writer, ds *Dataset, opts ...WriteOption) error {
 
 // writeOptSet represents the flattened option set after all WriteOptions have been applied.
 type writeOptSet struct {
-	skipVRVerification bool
+	skipVRVerification        bool
 	skipValueTypeVerification bool
 }
 
@@ -176,29 +176,29 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 }
 
 func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.Tag]bool, opts ...WriteOption) error {
-		elem, err := ds.FindElementByTag(t)
-		if err != nil {
-			return err
-		}
-		err = writeElement(w, elem, opts...)
-		if err != nil {
-			return err
-		}
-		(*tagsUsed)[t] = true
-		return nil
+	elem, err := ds.FindElementByTag(t)
+	if err != nil {
+		return err
+	}
+	err = writeElement(w, elem, opts...)
+	if err != nil {
+		return err
+	}
+	(*tagsUsed)[t] = true
+	return nil
 }
 
 func verifyVR(t tag.Tag, vr string) (string, error) {
 	tagInfo, err := tag.Find(t)
 	if err != nil {
-		 return "UN", nil
+		return "UN", nil
 	}
 	if vr == "" {
 		return tagInfo.VR, nil
 	}
 	if tagInfo.VR != vr {
 		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
-			 tag.DebugString(t), vr, tagInfo.VR)
+			tag.DebugString(t), vr, tagInfo.VR)
 	}
 
 	return vr, nil
@@ -208,40 +208,40 @@ func verifyValueType(t tag.Tag, value Value, valueType ValueType, vr string) err
 	v := value.GetValue()
 	var ok bool
 	switch vr {
-		case "US", "UL", "SL", "SS":
-			_, ok = v.([]int)
-			ok = ok && (valueType == Ints)
-		case "SQ":
-			_, ok = v.([]*SequenceItemValue)
-			ok = ok && (valueType == Sequences)
-		case "NA":
-			_, ok = v.([]*Element)
-			ok = ok && (valueType == SequenceItem)
-		case "OW", "OB":
-			if t == tag.PixelData {
-				_, ok = v.(PixelDataInfo)
-				ok = ok && (valueType == PixelData)
-			} else {
-				_, ok = v.([]byte)
-				ok = ok && (valueType == Bytes)
-			}
-		case "FL", "FD": // TODO floats?
-			return ErrorUnimplemented
-		case "AT":
-			fallthrough
-		default:
-			_, ok = v.([]string)
-			ok = ok && (valueType == Strings)
+	case "US", "UL", "SL", "SS":
+		_, ok = v.([]int)
+		ok = ok && (valueType == Ints)
+	case "SQ":
+		_, ok = v.([]*SequenceItemValue)
+		ok = ok && (valueType == Sequences)
+	case "NA":
+		_, ok = v.([]*Element)
+		ok = ok && (valueType == SequenceItem)
+	case "OW", "OB":
+		if t == tag.PixelData {
+			_, ok = v.(PixelDataInfo)
+			ok = ok && (valueType == PixelData)
+		} else {
+			_, ok = v.([]byte)
+			ok = ok && (valueType == Bytes)
 		}
+	case "FL", "FD": // TODO floats?
+		return ErrorUnimplemented
+	case "AT":
+		fallthrough
+	default:
+		_, ok = v.([]string)
+		ok = ok && (valueType == Strings)
+	}
 
-		if !ok {
-			return fmt.Errorf("ValueType does not match the specified type in the VR")
-		}
-		return nil
+	if !ok {
+		return fmt.Errorf("ValueType does not match the specified type in the VR")
+	}
+	return nil
 }
 
 func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
-	if vl % 2 != 0 {
+	if vl%2 != 0 {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
 			tag.DebugString(t), vl)
 	}
@@ -266,7 +266,7 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 
 	if len(vr) != 2 && *vl != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%v, it was RawValueRepresentation=%v",
-			 tag.DebugString(t), vr)
+			tag.DebugString(t), vr)
 	}
 
 	// Write VR then VL
@@ -277,11 +277,11 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 	if !implicit { // Explicit
 		w.WriteString(vr)
 		switch vr {
-			case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
-				w.WriteZeros(2)
-				w.WriteUInt32(*vl)
-			default:
-				w.WriteUInt16(uint16(*vl))
+		case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
+			w.WriteZeros(2)
+			w.WriteUInt32(*vl)
+		default:
+			w.WriteUInt16(uint16(*vl))
 		}
 	} else {
 		w.WriteUInt32(*vl)
@@ -318,50 +318,50 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 	return nil
 }
 
-func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32,  opts ...WriteOption) error {
-		if vl == tag.VLUndefinedLength && valueType <= 2 { // strings, bytes or ints
-			return fmt.Errorf("Encoding undefined-length element not yet supported: %v", t)
-		}
-
-		// TODO floats?
-		v := value.GetValue()
-		switch valueType {
-		case Strings:
-			return writeStrings(w, v.([]string), vr)
-		case Bytes:
-			return writeBytes(w, v.([]byte), vr)
-		case Ints:
-			return writeInts(w, v.([]int), vr)
-		case PixelData:
-			return writePixelData(w, t, value, vr, vl)
-		case SequenceItem:
-			return writeSequenceItem(w, t, v.([]*Element), vr, vl, opts...)
-		case Sequences:
-			return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts...)
-		default:
-			return fmt.Errorf("ValueType not supported")
-		}
-		return fmt.Errorf("Something went real bad, this should never be reached")
+func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32, opts ...WriteOption) error {
+	if vl == tag.VLUndefinedLength && valueType <= 2 { // strings, bytes or ints
+		return fmt.Errorf("Encoding undefined-length element not yet supported: %v", t)
 	}
 
+	// TODO floats?
+	v := value.GetValue()
+	switch valueType {
+	case Strings:
+		return writeStrings(w, v.([]string), vr)
+	case Bytes:
+		return writeBytes(w, v.([]byte), vr)
+	case Ints:
+		return writeInts(w, v.([]int), vr)
+	case PixelData:
+		return writePixelData(w, t, value, vr, vl)
+	case SequenceItem:
+		return writeSequenceItem(w, t, v.([]*Element), vr, vl, opts...)
+	case Sequences:
+		return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts...)
+	default:
+		return fmt.Errorf("ValueType not supported")
+	}
+	return fmt.Errorf("Something went real bad, this should never be reached")
+}
+
 func writeStrings(w dicomio.Writer, values []string, vr string) error {
-		s := ""
-		for i, substr := range values {
-			if i > 0 {
-				s += "\\"
-			}
-			s += substr
+	s := ""
+	for i, substr := range values {
+		if i > 0 {
+			s += "\\"
 		}
-		w.WriteString(s)
-		if len(s) % 2 == 1 {
-			switch vr {
-				case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
-					w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
-				default:
-					w.WriteByte(0)
-			}
+		s += substr
+	}
+	w.WriteString(s)
+	if len(s)%2 == 1 {
+		switch vr {
+		case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
+			w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+		default:
+			w.WriteByte(0)
 		}
-		return nil
+	}
+	return nil
 }
 
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
@@ -370,18 +370,18 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 		return fmt.Errorf("Expect a single value but found %v", values)
 	}
 	switch vr {
-		case "OW":
-			err = writeOtherWordString(w, values)
-		case "OB":
-			err = writeOtherByteString(w, values)
-		default:
-			return ErrorMismatchValueTypeAndVR
-		}
-		if err != nil {
-			return err
-		}
-		return nil
+	case "OW":
+		err = writeOtherWordString(w, values)
+	case "OB":
+		err = writeOtherByteString(w, values)
+	default:
+		return ErrorMismatchValueTypeAndVR
 	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
@@ -406,36 +406,36 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 		}
 		writeBasicOffsetTable(w, image.Offsets)
 		for _, frame := range image.Frames {
-				writeRawItem(w, frame.EncapsulatedData.Data)
+			writeRawItem(w, frame.EncapsulatedData.Data)
 		}
 		err = encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
 		if err != nil {
 			return err
 		}
 	} else {
-			numFrames := len(image.Frames)
-			numPixels := len(image.Frames[0].NativeData.Data)
-			numValues := len(image.Frames[0].NativeData.Data[0])
-			length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
+		numFrames := len(image.Frames)
+		numPixels := len(image.Frames[0].NativeData.Data)
+		numValues := len(image.Frames[0].NativeData.Data[0])
+		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
-			err := encodeElementHeader(w, t, vr, uint32(length))
-			if err != nil {
-				return err
-			}
-			buf := new(bytes.Buffer)
-			buf.Grow(length)
-			for frame := 0; frame < numFrames; frame++ {
-				for pixel := 0; pixel < numPixels; pixel++ {
-					for value := 0; value < numValues; value++ {
-						if image.Frames[frame].NativeData.BitsPerSample == 8 {
-							binary.Write(buf, binary.LittleEndian, uint8(image.Frames[frame].NativeData.Data[pixel][value]))
-						} else if image.Frames[frame].NativeData.BitsPerSample == 16 {
-							binary.Write(buf, binary.LittleEndian, uint16(image.Frames[frame].NativeData.Data[pixel][value]))
-						}
+		err := encodeElementHeader(w, t, vr, uint32(length))
+		if err != nil {
+			return err
+		}
+		buf := new(bytes.Buffer)
+		buf.Grow(length)
+		for frame := 0; frame < numFrames; frame++ {
+			for pixel := 0; pixel < numPixels; pixel++ {
+				for value := 0; value < numValues; value++ {
+					if image.Frames[frame].NativeData.BitsPerSample == 8 {
+						binary.Write(buf, binary.LittleEndian, uint8(image.Frames[frame].NativeData.Data[pixel][value]))
+					} else if image.Frames[frame].NativeData.BitsPerSample == 16 {
+						binary.Write(buf, binary.LittleEndian, uint16(image.Frames[frame].NativeData.Data[pixel][value]))
 					}
 				}
 			}
-			w.WriteBytes(buf.Bytes())
+		}
+		w.WriteBytes(buf.Bytes())
 	}
 	return nil
 }
@@ -451,7 +451,7 @@ func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string
 }
 
 func writeOtherWordString(w dicomio.Writer, data []byte) error {
-	if len(data) % 2 != 0 {
+	if len(data)%2 != 0 {
 		return ErrorOWRequiresEvenVL
 	}
 	bo, _ := w.GetTransferSyntax()
@@ -459,7 +459,7 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < int(len(data) / 2); i++ {
+	for i := 0; i < int(len(data)/2); i++ {
 		v, err := r.ReadUInt16()
 		if err != nil {
 			return err
@@ -471,7 +471,7 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 
 func writeOtherByteString(w dicomio.Writer, data []byte) error {
 	w.WriteBytes(data)
-	if len(data) % 2 == 1 {
+	if len(data)%2 == 1 {
 		w.WriteByte(0)
 	}
 	return nil

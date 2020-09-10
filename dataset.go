@@ -1,10 +1,10 @@
 package dicom
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"strings"
-	"encoding/binary"
 
 	"github.com/suyashkumar/dicom/pkg/tag"
 	"github.com/suyashkumar/dicom/pkg/uid"

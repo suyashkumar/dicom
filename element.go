@@ -113,17 +113,16 @@ func newElement(t tag.Tag, data interface{}) (*Element, error) {
 	}
 	rawVR := tagInfo.VR
 
-
 	value, err := NewValue(data)
 	if err != nil {
 		return nil, err
 	}
 
- 	return &Element{
-		Tag: t,
-		ValueRepresentation: tag.GetVRKind(t, rawVR),
+	return &Element{
+		Tag:                    t,
+		ValueRepresentation:    tag.GetVRKind(t, rawVR),
 		RawValueRepresentation: rawVR,
-		Value: value,
+		Value:                  value,
 	}, nil
 }
 
@@ -134,7 +133,6 @@ func mustNewElement(t tag.Tag, data interface{}) *Element {
 	}
 	return elem
 }
-
 
 type ValueType int
 

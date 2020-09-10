@@ -2,7 +2,6 @@ package dicom
 
 import (
 	"encoding/binary"
-	"os"
 	"testing"
 	"io/ioutil"
 

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"os"
 	"testing"
+	"io/ioutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -20,7 +21,7 @@ FURTHER TESTING
 // TODO clean this function up big time
 func TestWrite(t *testing.T) {
 	location := "fullwrite.dcm"
-	file, err := os.Create(location)
+	file, err := ioutil.TempFile("", location)
 	assert.Nil(t, err)
 	defer file.Close()
 
@@ -51,7 +52,7 @@ func TestWrite(t *testing.T) {
 // TODO clean this function up big time
 func TestWriteFileHeader(t *testing.T) {
 	location := "fileheader.dcm"
-	file, err := os.Create(location)
+	file, err := ioutil.TempFile("", location)
 	assert.Nil(t, err)
 	defer file.Close()
 

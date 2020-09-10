@@ -3,13 +3,11 @@ package dicomio
 import (
   "io"
   "encoding/binary"
-  "bytes"
 )
 
 // Writer is a lower level encoder that takes abstracted input and writes it at the byte-level
 type Writer interface {
   SetTransferSynax(bo binary.ByteOrder, implicit bool)
-  Bytes() []byte
   WriteZeros(len int)
   WriteString(v string)
   WriteByte(v byte)
@@ -41,12 +39,6 @@ func (w *writer) SetTransferSynax(bo binary.ByteOrder, implicit bool) {
 
 func (w *writer) GetTransferSyntax() (binary.ByteOrder, bool) {
   return w.bo, w.implicit
-}
-
-// Retrieve the a []byte representation of what's contained in writer.out
-// ONLY works when out is &bytes.Buffer{}
-func (w *writer) Bytes() []byte {
-  return w.out.(*bytes.Buffer).Bytes()
 }
 
 func (w *writer) WriteZeros(len int) {

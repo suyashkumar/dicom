@@ -87,13 +87,16 @@ func toOptSet(opts ...WriteOption) *writeOptSet {
 }
 
 func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts ...WriteOption) error {
+	// File headers are alwyas written in littleEndian explicit
 	w.SetTransferSynax(binary.LittleEndian, false)
 
-	subWriter := dicomio.NewWriter(&bytes.Buffer{}, binary.LittleEndian, false)
+	metaBytes := &bytes.Buffer{}
+	subWriter := dicomio.NewWriter(metaBytes, binary.LittleEndian, false)
 	tagsUsed := make(map[tag.Tag]bool)
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
 	// TODO make better structure for error checking so it's no so many lines
+	// TODO Optionally write FileMetaInformationVersion before these required headers to maintain order
 	err := writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
 	if err != nil {
 		return err
@@ -118,10 +121,9 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 		}
 	}
 
-	metaBytes := subWriter.Bytes()
 	w.WriteZeros(128)
 	w.WriteString("DICM")
-	lengthElem, err := newElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes)})
+	lengthElem, err := newElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes.Bytes())})
 	if err != nil {
 		return err
 	}
@@ -130,7 +132,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	if err != nil {
 		return err
 	}
-	w.WriteBytes(metaBytes)
+	w.WriteBytes(metaBytes.Bytes())
 
 	return nil
 }
@@ -156,20 +158,20 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 
 	// writeValue to subwriter
 	bo, implicit := w.GetTransferSyntax()
-	subWriter := dicomio.NewWriter(&bytes.Buffer{}, bo, implicit)
+	data := &bytes.Buffer{}
+	subWriter := dicomio.NewWriter(data, bo, implicit)
 	err = writeValue(subWriter, elem.Tag, elem.Value, elem.Value.ValueType(), vr, elem.ValueLength, opts...)
 	if err != nil {
 		return err
 	}
 
-	data := subWriter.Bytes()
-	err = encodeElementHeader(w, elem.Tag, vr, uint32(len(data)))
+	err = encodeElementHeader(w, elem.Tag, vr, uint32(len(data.Bytes())))
 	if err != nil {
 		return err
 	}
 
 	// Write the bytes to the original writer
-	w.WriteBytes(data)
+	w.WriteBytes(data.Bytes())
 	return nil
 }
 
@@ -296,11 +298,12 @@ func writeRawItem(w dicomio.Writer, data []byte) {
 
 func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) {
 	byteOrder, implicit := w.GetTransferSyntax()
-	subWriter := dicomio.NewWriter(&bytes.Buffer{}, byteOrder, implicit)
+	data := &bytes.Buffer{}
+	subWriter := dicomio.NewWriter(data, byteOrder, implicit)
 	for _, offset := range offsets {
 		subWriter.WriteUInt32(offset)
 	}
-	writeRawItem(w, subWriter.Bytes())
+	writeRawItem(w, data.Bytes())
 }
 
 func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {

@@ -42,7 +42,7 @@ func TestWrite(t *testing.T) {
 
 	ds := &Dataset{Elements: elems}
 
-	err =  Write(file, ds, func (set *writeOptSet){})
+	err =  Write(file, ds)
 	assert.Nil(t, err)
 
 	// TODO verify that the correct values are written
@@ -70,7 +70,7 @@ func TestWriteFileHeader(t *testing.T) {
 	}
 	ds := &Dataset{Elements: metaElems}
 
-	err = writeFileHeader(w, ds, metaElems, func (set *writeOptSet){})
+	err = writeFileHeader(w, ds, metaElems)
 	assert.Nil(t, err)
 
 	// TODO Verify the the corrrect things were written to the file header

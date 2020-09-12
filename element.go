@@ -106,6 +106,34 @@ func NewValue(data interface{}) (Value, error) {
 	}
 }
 
+func newElement(t tag.Tag, data interface{}) (*Element, error) {
+	tagInfo, err := tag.Find(t)
+	if err != nil {
+		return nil, err
+	}
+	rawVR := tagInfo.VR
+
+	value, err := NewValue(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Element{
+		Tag:                    t,
+		ValueRepresentation:    tag.GetVRKind(t, rawVR),
+		RawValueRepresentation: rawVR,
+		Value:                  value,
+	}, nil
+}
+
+func mustNewElement(t tag.Tag, data interface{}) *Element {
+	elem, err := newElement(t, data)
+	if err != nil {
+		log.Panic(err)
+	}
+	return elem
+}
+
 type ValueType int
 
 // Possible ValueTypes that represent the different value types for information parsed into DICOM element values.

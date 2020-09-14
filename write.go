@@ -123,7 +123,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 
 	w.WriteZeros(128)
 	w.WriteString("DICM")
-	lengthElem, err := newElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes.Bytes())})
+	lengthElem, err := NewElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes.Bytes())})
 	if err != nil {
 		return err
 	}

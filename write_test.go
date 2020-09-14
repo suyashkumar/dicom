@@ -2,8 +2,8 @@ package dicom
 
 import (
 	"encoding/binary"
-	"testing"
 	"io/ioutil"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -24,13 +24,13 @@ func TestWrite(t *testing.T) {
 	assert.Nil(t, err)
 	defer file.Close()
 
-	mediaStorageSOPClassUID, err := newElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
+	mediaStorageSOPClassUID, err := NewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
 	assert.Nil(t, err)
-	mediaStorageSOPInstanceUID, err := newElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
+	mediaStorageSOPInstanceUID, err := NewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
 	assert.Nil(t, err)
-	transferSyntax, err := newElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
+	transferSyntax, err := NewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
 	assert.Nil(t, err)
-	patientName, err := newElement(tag.PatientName, []string{"Robin Banks"})
+	patientName, err := NewElement(tag.PatientName, []string{"Robin Banks"})
 	assert.Nil(t, err)
 
 	elems := []*Element{
@@ -57,11 +57,11 @@ func TestWriteFileHeader(t *testing.T) {
 
 	w := dicomio.NewWriter(file, binary.LittleEndian, false)
 
-	mediaStorageSOPClassUID, err := newElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
+	mediaStorageSOPClassUID, err := NewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
 	assert.Nil(t, err)
-	mediaStorageSOPInstanceUID, err := newElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
+	mediaStorageSOPInstanceUID, err := NewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
 	assert.Nil(t, err)
-	transferSyntax, err := newElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
+	transferSyntax, err := NewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
 	assert.Nil(t, err)
 	metaElems := []*Element{
 		mediaStorageSOPClassUID,

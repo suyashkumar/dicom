@@ -96,8 +96,12 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
 	// TODO make better structure for error checking so it's no so many lines
-	// TODO Optionally write FileMetaInformationVersion before these required headers to maintain order
-	err := writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
+	// XXXHACK TODO: decide how to handle this header, since it needs to be written here for correct ordering
+	err := writeMetaElem(subWriter, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
+	if err != nil {
+		return err
+	}
+	err = writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
 	if err != nil {
 		return err
 	}
@@ -355,7 +359,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 	w.WriteString(s)
 	if len(s)%2 == 1 {
 		switch vr {
-		case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
+		case "DT", "LO", "LT", "PN", "SH", "ST", "UT", "DS", "CS":
 			w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 		default:
 			w.WriteByte(0)
@@ -366,9 +370,10 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
-	if len(values) != 1 {
-		return fmt.Errorf("Expect a single value but found %v", values)
-	}
+	// XXXHACK @TODO: This is commented out because some DICOMs had multiple values in FileMetaInformationVersion header
+	//if len(values) != 1 {
+	//	return fmt.Errorf("Expect a single value but found %v", values)
+	//}
 	switch vr {
 	case "OW":
 		err = writeOtherWordString(w, values)
@@ -418,10 +423,6 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 		numValues := len(image.Frames[0].NativeData.Data[0])
 		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
-		err := encodeElementHeader(w, t, vr, uint32(length))
-		if err != nil {
-			return err
-		}
 		buf := new(bytes.Buffer)
 		buf.Grow(length)
 		for frame := 0; frame < numFrames; frame++ {

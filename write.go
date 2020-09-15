@@ -169,7 +169,12 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		return err
 	}
 
-	err = encodeElementHeader(w, elem.Tag, vr, uint32(len(data.Bytes())))
+	length := uint32(len(data.Bytes()))
+	if elem.ValueLength == tag.VLUndefinedLength {
+		length = elem.ValueLength
+	}
+
+	err = encodeElementHeader(w, elem.Tag, vr, length)
 	if err != nil {
 		return err
 	}
@@ -245,7 +250,7 @@ func verifyValueType(t tag.Tag, value Value, valueType ValueType, vr string) err
 }
 
 func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
-	if vl%2 != 0 {
+	if vl%2 != 0  && vl != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
 			tag.DebugString(t), vl)
 	}
@@ -268,7 +273,7 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 		vl = &undefined
 	}
 
-	if len(vr) != 2 && *vl != tag.VLUndefinedLength {
+	if len(vr) != 2 && *vl != tag.VLUndefinedLength && t != tag.SequenceDelimitationItem {
 		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%v, it was RawValueRepresentation=%v",
 			tag.DebugString(t), vr)
 	}
@@ -405,15 +410,11 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 	if vl == tag.VLUndefinedLength {
-		err := encodeElementHeader(w, t, vr, vl)
-		if err != nil {
-			return err
-		}
 		writeBasicOffsetTable(w, image.Offsets)
 		for _, frame := range image.Frames {
 			writeRawItem(w, frame.EncapsulatedData.Data)
 		}
-		err = encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
+		err := encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
 		if err != nil {
 			return err
 		}

@@ -292,6 +292,13 @@ func MustGetBytes(v Value) []byte {
 	return v.GetValue().([]byte)
 }
 
+func MustGetFloats(v Value) []float64 {
+	if v.ValueType() != Floats {
+		log.Panicf("MustGetFloats expected ValueType of Floats, got: %v", v.ValueType())
+	}
+	return v.GetValue().([]float64)
+}
+
 func MustGetPixelDataInfo(v Value) PixelDataInfo {
 	if v.ValueType() != PixelData {
 		log.Panicf("MustGetPixelDataInfo expected ValueType of PixelData, got: %v", v.ValueType())

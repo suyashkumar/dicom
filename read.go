@@ -402,7 +402,8 @@ func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 				return nil, err
 			}
 			// TODO(suyashkumar): revisit this hack to prevent some internal representation issues upconverting from
-			// float32 to float64. There is no loss of precision, but the value gets some additional significant digits.
+			// float32 to float64. There is no loss of precision, but the value gets some additional significant digits
+			// when using golang casting. This approach prevents those artifacts, but is less efficient.
 			pval, err := strconv.ParseFloat(fmt.Sprint(val), 64)
 			if err != nil {
 				return nil, err

@@ -92,16 +92,14 @@ func TestReadFloat_float32(t *testing.T) {
 	}{
 		{
 			name: "float32",
-			floats:[]float32{20.1, 32.22},
+			floats:[]float32{20.1001, 32.22},
 			VR: "FL",
-			// TODO(suyashkumar): look into extra significant digits added when going from float32 -> float64. One
-			// option is having both a float32 and float64 ValueType.
-			want: &floatsValue{value: []float64{float64(float32(20.1)), float64(float32(32.22))}},
+			want: &floatsValue{value: []float64{20.1001, 32.22}},
 			expectedErr: nil,
 		},
 		{
 			name: "float32 with wrong VR",
-			floats:[]float32{20.1, 32.22},
+			floats:[]float32{20.1001, 32.22},
 			VR: "XX",
 			want: nil,
 			expectedErr: errorUnableToParseFloat,

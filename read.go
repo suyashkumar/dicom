@@ -401,7 +401,13 @@ func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 			if err != nil {
 				return nil, err
 			}
-			retVal.value = append(retVal.value, float64(val))
+			// TODO(suyashkumar): revisit this hack to prevent some internal representation issues upconverting from
+			// float32 to float64. There is no loss of precision, but the value gets some additional significant digits.
+			pval, err := strconv.ParseFloat(fmt.Sprint(val), 64)
+			if err != nil {
+				return nil, err
+			}
+			retVal.value = append(retVal.value, pval)
 			break
 		case "FD":
 			val, err := r.ReadFloat64()

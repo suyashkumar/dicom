@@ -97,14 +97,10 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 
 	// TODO make better structure for error checking so it's no so many lines
 	// XXXHACK TODO: decide how to handle this header, since it needs to be written here for correct ordering
-	_, err := ds.FindElementByTag(tag.FileMetaInformationVersion)
-	if err != ErrorElementNotFound {
-		err = writeMetaElem(subWriter, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
-		if err != nil {
-			return err
-		}
+	err := writeMetaElem(subWriter, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
+	if err != nil && err != ErrorElementNotFound {
+		return err
 	}
-
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
 	if err != nil {
 		return err

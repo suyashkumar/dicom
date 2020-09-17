@@ -9,6 +9,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/frame"
@@ -110,12 +111,6 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 	if vl == tag.VLUndefinedLength {
 		var image PixelDataInfo
 		image.IsEncapsulated = true
-		// The first Item in PixelData is the basic offset table. Skip this for now.
-		// TODO: use basic offset table
-		_, _, err := readRawItem(r)
-		if err != nil {
-			return nil, err
-		}
 
 		for !r.IsLimitExhausted() {
 			data, endOfItems, err := readRawItem(r)
@@ -376,8 +371,16 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 
 func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	str, err := r.ReadString(vl)
-	// String may have '\0' suffix if its length is odd.
-	str = strings.Trim(str, " \000")
+	onlySpaces := true
+	for _, char := range str {
+		if !unicode.IsSpace(char) {
+			onlySpaces = false
+		}
+	}
+	if !onlySpaces{
+		// String may have '\0' suffix if its length is odd.
+		str = strings.Trim(str, " \000")
+	}
 
 	// Split multiple strings
 	strs := strings.Split(str, "\\")

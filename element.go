@@ -126,7 +126,7 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	}, nil
 }
 
-func MustNewElement(t tag.Tag, data interface{}) *Element {
+func mustNewElement(t tag.Tag, data interface{}) *Element {
 	elem, err := NewElement(t, data)
 	if err != nil {
 		log.Panic(err)

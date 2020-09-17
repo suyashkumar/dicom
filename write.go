@@ -176,7 +176,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 	length := uint32(len(data.Bytes()))
 	if elem.ValueLength == tag.VLUndefinedLength {
 		length = elem.ValueLength
-	}
+	}	
 
 	err = encodeElementHeader(w, elem.Tag, vr, length)
 	if err != nil {
@@ -368,7 +368,8 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 	w.WriteString(s)
 	if len(s)%2 == 1 {
 		switch vr {
-		case "DT", "LO", "LT", "PN", "SH", "ST", "UT", "DS", "CS":
+		case "DT", "LO", "LT", "PN", "SH", "ST", "UT", "DS", "CS", "TM", "IS", "UN":
+			//fmt.Println(vr)
 			w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 		default:
 			w.WriteByte(0)
@@ -414,7 +415,7 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 	if vl == tag.VLUndefinedLength {
-		writeBasicOffsetTable(w, image.Offsets)
+		//writeBasicOffsetTable(w, image.Offsets)
 		for _, frame := range image.Frames {
 			writeRawItem(w, frame.EncapsulatedData.Data)
 		}

@@ -18,6 +18,7 @@ import (
 var (
 	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
 	ErrorUnsupportedVR    = errors.New("unsupported VR")
+	errorUnableToParseFloat = errors.New("unable to parse float type")
 )
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {
@@ -98,6 +99,8 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readSequenceItem(r, t, vr, vl)
 	case tag.VRPixelData:
 		return readPixelData(r, t, vr, vl, d, fc)
+	case tag.VRFloat32List, tag.VRFloat64List:
+		return readFloat(r, t, vr, vl)
 	default:
 		return readString(r, t, vr, vl)
 	}
@@ -385,6 +388,42 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 	return &stringsValue{value: strs}, err
 }
 
+func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+	err := r.PushLimit(int64(vl))
+	if err != nil {
+		return nil, err
+	}
+	retVal := &floatsValue{value: make([]float64, 0, vl/2)}
+	for !r.IsLimitExhausted() {
+		switch vr {
+		case "FL":
+			val, err := r.ReadFloat32()
+			if err != nil {
+				return nil, err
+			}
+			// TODO(suyashkumar): revisit this hack to prevent some internal representation issues upconverting from
+			// float32 to float64. There is no loss of precision, but the value gets some additional significant digits
+			// when using golang casting. This approach prevents those artifacts, but is less efficient.
+			pval, err := strconv.ParseFloat(fmt.Sprint(val), 64)
+			if err != nil {
+				return nil, err
+			}
+			retVal.value = append(retVal.value, pval)
+			break
+		case "FD":
+			val, err := r.ReadFloat64()
+			if err != nil {
+				return nil, err
+			}
+			retVal.value = append(retVal.value, val)
+			break
+		default:
+			return nil, errorUnableToParseFloat
+		}
+	}
+	return retVal, nil
+}
+
 func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	rawDate, err := r.ReadString(vl)
 	if err != nil {
@@ -399,6 +438,9 @@ func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) 
 func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add other integer types here
 	err := r.PushLimit(int64(vl))
+	if err != nil {
+		return nil, err
+	}
 	retVal := &intsValue{value: make([]int, 0, vl/2)}
 	for !r.IsLimitExhausted() {
 		switch vr {

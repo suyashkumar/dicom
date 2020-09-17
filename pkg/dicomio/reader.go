@@ -18,20 +18,24 @@ var (
 // Reader provides common functionality for reading underlying DICOM data.
 type Reader interface {
 	io.Reader
-	// ReadUInt8 reads a uint16 from the underlying reader
+	// ReadUInt8 reads a uint16 from the underlying reader.
 	ReadUInt8() (uint8, error)
-	// ReadUInt16 reads a uint16 from the underlying reader
+	// ReadUInt16 reads a uint16 from the underlying reader.
 	ReadUInt16() (uint16, error)
-	// ReadUInt32 reads a uint32 from the underlying reader
+	// ReadUInt32 reads a uint32 from the underlying reader.
 	ReadUInt32() (uint32, error)
-	// ReadInt16 reads a int16 from the underlying reader
+	// ReadInt16 reads a int16 from the underlying reader.
 	ReadInt16() (int16, error)
-	// ReadInt32 reads a int32 from the underlying reader
+	// ReadInt32 reads a int32 from the underlying reader.
 	ReadInt32() (int32, error)
+	// ReadFloat32 reads a float32 from the underlying reader.
+	ReadFloat32() (float32, error)
+	// ReadFloat64 reads a float32 from the underlying reader.
+	ReadFloat64() (float64, error)
 	// ReadString reads an n byte string from the underlying reader. Uses the charset.CodingSystem encoding.
 	// Decoders to read the string, if set.
 	ReadString(n uint32) (string, error)
-	// Skip skips the reader ahead by n bytes
+	// Skip skips the reader ahead by n bytes.
 	Skip(n int64) error
 	// PushLimit sets a read limit of n bytes from the current position of the reader. Once the limit is reached,
 	// IsLimitExhausted will return true, and other attempts to read data from dicomio.Reader will return io.EOF.
@@ -42,7 +46,7 @@ type Reader interface {
 	IsLimitExhausted() bool
 	// BytesLeftUntilLimit returns the number of bytes remaining until we reach the currently set limit positon.
 	BytesLeftUntilLimit() int64
-	// SetTransferSyntax sets the byte order and whether the current transfer syntax is implicit or not
+	// SetTransferSyntax sets the byte order and whether the current transfer syntax is implicit or not.
 	SetTransferSyntax(bo binary.ByteOrder, implicit bool)
 	// IsImplicit returns if the currently set transfer syntax on this Reader is implicit or not.
 	IsImplicit() bool
@@ -122,6 +126,18 @@ func (r *reader) ReadInt16() (int16, error) {
 
 func (r *reader) ReadInt32() (int32, error) {
 	var out int32
+	err := binary.Read(r, r.bo, &out)
+	return out, err
+}
+
+func (r *reader) ReadFloat32() (float32, error) {
+	var out float32
+	err := binary.Read(r, r.bo, &out)
+	return out, err
+}
+
+func (r *reader) ReadFloat64() (float64, error) {
+	var out float64
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }

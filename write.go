@@ -175,7 +175,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 
 	length := uint32(len(data.Bytes()))
 	if elem.ValueLength == tag.VLUndefinedLength {
-		length = elem.ValueLength
+		length = tag.VLUndefinedLength 
 	}	
 
 	err = encodeElementHeader(w, elem.Tag, vr, length)

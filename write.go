@@ -11,11 +11,14 @@ import (
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
-// ErrorUnimplemented is for not yet finished things
-var ErrorUnimplemented = errors.New("this functionality is not yet implemented")
-
-// ErrorMismatchValueTypeAndVR is for when there's a discrepency betweeen the ValueType and what the VR specifies
-var ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match the VR required")
+var (
+	// ErrorUnimplemented is for not yet finished things.
+	ErrorUnimplemented = errors.New("this functionality is not yet implemented")
+	// ErrorMismatchValueTypeAndVR is for when there's a discrepency betweeen the ValueType and what the VR specifies.
+	ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match the VR required")
+	// ErrorUnexpectedValueType indicates an unexpected value type was seen.
+	ErrorUnexpectedValueType = errors.New("Unexpected ValueType")
+)
 
 // TODO(suyashkumar): consider adding an element-by-element write API.
 
@@ -338,6 +341,8 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 		return writeSequenceItem(w, t, v.([]*Element), vr, vl, opts...)
 	case Sequences:
 		return writeSequence(w, t, v.([]*SequenceItemValue), vr, vl, opts...)
+	case Floats:
+		return writeFloats(w, value, vr)
 	default:
 		return fmt.Errorf("ValueType not supported")
 	}
@@ -392,6 +397,32 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 			w.WriteUInt32(uint32(value))
 		default:
 			return ErrorMismatchValueTypeAndVR
+		}
+	}
+	return nil
+}
+
+func writeFloats(w dicomio.Writer, v Value, vr string) error {
+	if v.ValueType() != Floats {
+		return ErrorUnexpectedValueType
+	}
+	floats := MustGetFloats(v)
+	for _, fl := range floats {
+		switch vr {
+		case "FL":
+			// NOTE: this is a conversion from float64 -> float32 which may lead to a loss in precision. The assumption
+			// is that the value sitting in the float64 is at float32 precision if the VR is FL associated with this
+			// element. We will need to revisit this. Maybe we can detect if there will be a loss of precision and if so
+			// indicate an error or warning.
+			err := w.WriteFloat32(float32(fl))
+			if err != nil {
+				return err
+			}
+		case "FD":
+			err := w.WriteFloat64(fl)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

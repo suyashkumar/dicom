@@ -415,7 +415,6 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 	if vl == tag.VLUndefinedLength {
-		//writeBasicOffsetTable(w, image.Offsets)
 		for _, frame := range image.Frames {
 			writeRawItem(w, frame.EncapsulatedData.Data)
 		}

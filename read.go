@@ -125,6 +125,12 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 	if vl == tag.VLUndefinedLength {
 		var image PixelDataInfo
 		image.IsEncapsulated = true
+		// The first Item in PixelData is the basic offset table. Skip this for now.
+		// TODO: use basic offset table
+		_, _, err := readRawItem(r)
+		if err != nil {
+			return nil, err
+		}
 
 		for !r.IsLimitExhausted() {
 			data, endOfItems, err := readRawItem(r)

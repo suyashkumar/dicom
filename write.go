@@ -411,7 +411,7 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 		switch vr {
 		case "FL":
 			// NOTE: this is a conversion from float64 -> float32 which may lead to a loss in precision. The assumption
-			// is that the value sitting in the float64 is at float32 precision if the VR is FL associated with this
+			// is that the value sitting in the float64 was originally at float32 precision if the VR is FL for this
 			// element. We will need to revisit this. Maybe we can detect if there will be a loss of precision and if so
 			// indicate an error or warning.
 			err := w.WriteFloat32(float32(fl))

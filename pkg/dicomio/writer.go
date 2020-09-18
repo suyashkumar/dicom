@@ -14,6 +14,8 @@ type Writer interface {
 	WriteBytes(v []byte)
 	WriteUInt16(v uint16)
 	WriteUInt32(v uint32)
+	WriteFloat32(v float32) error
+	WriteFloat64(v float64) error
 	GetTransferSyntax() (binary.ByteOrder, bool)
 }
 
@@ -64,4 +66,12 @@ func (w *writer) WriteUInt16(v uint16) {
 
 func (w *writer) WriteUInt32(v uint32) {
 	binary.Write(w.out, w.bo, &v)
+}
+
+func (w *writer) WriteFloat32(v float32) error {
+	return binary.Write(w.out, w.bo, &v)
+}
+
+func (w *writer) WriteFloat64(v float64) error {
+	return binary.Write(w.out, w.bo, &v)
 }

@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
-	ErrorUnsupportedVR    = errors.New("unsupported VR")
+	ErrorOWRequiresEvenVL   = errors.New("vr of OW requires even value length")
+	ErrorUnsupportedVR      = errors.New("unsupported VR")
 	errorUnableToParseFloat = errors.New("unable to parse float type")
 )
 
@@ -491,20 +491,25 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 		return nil, err
 	}
 	// log.Println("readElement: readTag: ", t)
+	readImplicit := r.IsImplicit()
+	if *t == tag.Item {
+		// Always read implicit for item elements
+		readImplicit = true
+	}
 
-	vr, err := readVR(r, r.IsImplicit(), *t)
+	vr, err := readVR(r, readImplicit, *t)
 	if err != nil {
 		return nil, err
 	}
 
-	vl, err := readVL(r, r.IsImplicit(), *t, vr)
+	vl, err := readVL(r, readImplicit, *t, vr)
 	if err != nil {
 		return nil, err
 	}
 
 	// log.Println("readElement: vr, vl", vr, vl)
 
-	val, err := readValue(r, *t, vr, vl, r.IsImplicit(), d, fc)
+	val, err := readValue(r, *t, vr, vl, readImplicit, d, fc)
 	if err != nil {
 		log.Println("error reading value ", err)
 		return nil, err

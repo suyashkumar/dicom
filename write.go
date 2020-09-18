@@ -102,11 +102,11 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
-	if err != nil {
+	if err != nil && err != ErrorElementNotFound{
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPInstanceUID, ds, &tagsUsed, opts...)
-	if err != nil {
+	if err != nil && err != ErrorElementNotFound {
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts...)

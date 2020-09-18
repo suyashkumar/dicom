@@ -9,6 +9,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
 	"unicode"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"

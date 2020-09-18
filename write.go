@@ -96,7 +96,6 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
 	// TODO make better structure for error checking so it's no so many lines
-	// XXXHACK TODO: decide how to handle this header, since it needs to be written here for correct ordering
 	err := writeMetaElem(subWriter, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
 	if err != nil && err != ErrorElementNotFound {
 		return err
@@ -365,7 +364,6 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 	if len(s)%2 == 1 {
 		switch vr {
 		case "DT", "LO", "LT", "PN", "SH", "ST", "UT", "DS", "CS", "TM", "IS", "UN":
-			//fmt.Println(vr)
 			w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 		default:
 			w.WriteByte(0)

@@ -151,6 +151,8 @@ const (
 	SequenceItem
 	// Sequences represents an underlying value of []SequenceItem
 	Sequences
+	// Floats represents an underlying value of []float64
+	Floats
 )
 
 // Begin definitions of Values:
@@ -197,6 +199,21 @@ func (s *intsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
 func (s *intsValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.value)
+}
+
+// floatsValue represents a value of []float64.
+type floatsValue struct {
+	value []float64 `json:"value"`
+}
+
+func (s *floatsValue) isElementValue()       {}
+func (s *floatsValue) ValueType() ValueType  { return Floats }
+func (s *floatsValue) GetValue() interface{} { return s.value }
+func (s *floatsValue) String() string {
+	return fmt.Sprintf("%v", s.value)
+}
+func (s *floatsValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
 
@@ -273,6 +290,13 @@ func MustGetBytes(v Value) []byte {
 		log.Panicf("MustGetBytes expected ValueType of Bytes, got: %v", v.ValueType())
 	}
 	return v.GetValue().([]byte)
+}
+
+func MustGetFloats(v Value) []float64 {
+	if v.ValueType() != Floats {
+		log.Panicf("MustGetFloats expected ValueType of Floats, got: %v", v.ValueType())
+	}
+	return v.GetValue().([]float64)
 }
 
 func MustGetPixelDataInfo(v Value) PixelDataInfo {

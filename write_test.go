@@ -1,9 +1,13 @@
 package dicom
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io/ioutil"
 	"testing"
+  
+	"github.com/google/go-cmp/cmp"
+  s/1.0-rewrite
 
 	"github.com/stretchr/testify/assert"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -129,4 +133,39 @@ func TestVerifyValueType(t *testing.T) {
 	// WRONG VALUE TYPE
 	err = verifyValueType(tg, value, Strings, "UL")
 	assert.NotNil(t, err)
+}
+
+func TestWriteFloats(t *testing.T) {
+	// TODO: add additional cases
+	cases := []struct {
+		name         string
+		value        Value
+		vr           string
+		expectedData []byte
+		expectedErr  error
+	}{
+		{
+			name:  "float64s",
+			value: &floatsValue{value: []float64{20.1019, 21.212}},
+			vr:    "FD",
+			// TODO: improve test expectation
+			expectedData: []byte{0x60, 0x76, 0x4f, 0x1e, 0x16, 0x1a, 0x34, 0x40, 0x83, 0xc0, 0xca, 0xa1, 0x45, 0x36, 0x35, 0x40},
+			expectedErr:  nil,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := bytes.Buffer{}
+			w := dicomio.NewWriter(&buf, binary.LittleEndian, false)
+			err := writeFloats(w, tc.value, tc.vr)
+			if err != tc.expectedErr {
+				t.Errorf("writeFloats(%v, %s) returned unexpected err. got: %v, want: %v", tc.value, tc.vr, err, tc.expectedErr)
+			}
+			if diff := cmp.Diff(tc.expectedData, buf.Bytes()); diff != "" {
+				t.Errorf("writeFloats(%v, %s) wrote unexpected data. diff: %s", tc.value, tc.vr, diff)
+				t.Errorf("% x", buf.Bytes())
+			}
+		})
+	}
+
 }

@@ -41,9 +41,6 @@ func readVR(r dicomio.Reader, isImplicit bool, t tag.Tag) (string, error) {
 		}
 		return tag.UNKNOWN, nil
 	}
-	if t == tag.Item {  //http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_7.5.html
-		return "na", nil
-	}
 
 	// Explicit Transfer Syntax, read 2 byte VR:
 	return r.ReadString(2)
@@ -68,16 +65,6 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 
 		if vl == tag.VLUndefinedLength && (vr == "UC" || vr == "UR" || vr == "UT") {
 			return 0, errors.New("UC, UR and UT may not have an Undefined Length, i.e.,a Value Length of FFFFFFFFH")
-		}
-		return vl, nil
-	case "na":
-		vl, err := r.ReadUInt32()
-		if err != nil {
-			return 0, err
-		}
-		// Rectify Undefined Length VL
-		if vl == 0xffffffff {
-			vl = tag.VLUndefinedLength
 		}
 		return vl, nil
 	default:

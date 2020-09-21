@@ -5,9 +5,8 @@ import (
 	"encoding/binary"
 	"io/ioutil"
 	"testing"
-  
+
 	"github.com/google/go-cmp/cmp"
-  s/1.0-rewrite
 
 	"github.com/stretchr/testify/assert"
 	"github.com/suyashkumar/dicom/pkg/dicomio"

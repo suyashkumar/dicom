@@ -432,6 +432,7 @@ func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 			return nil, errorUnableToParseFloat
 		}
 	}
+	r.PopLimit()
 	return retVal, nil
 }
 

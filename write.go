@@ -99,13 +99,16 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
 	// TODO make better structure for error checking so it's no so many lines
-	// TODO Optionally write FileMetaInformationVersion before these required headers to maintain order
-	err := writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
-	if err != nil {
+	err := writeMetaElem(subWriter, tag.FileMetaInformationVersion, ds, &tagsUsed, opts...)
+	if err != nil && err != ErrorElementNotFound {
+		return err
+	}
+	err = writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
+	if err != nil && err != ErrorElementNotFound{
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPInstanceUID, ds, &tagsUsed, opts...)
-	if err != nil {
+	if err != nil && err != ErrorElementNotFound {
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts...)
@@ -126,7 +129,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 
 	w.WriteZeros(128)
 	w.WriteString("DICM")
-	lengthElem, err := newElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes.Bytes())})
+	lengthElem, err := NewElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes.Bytes())})
 	if err != nil {
 		return err
 	}
@@ -168,7 +171,12 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 		return err
 	}
 
-	err = encodeElementHeader(w, elem.Tag, vr, uint32(len(data.Bytes())))
+	length := uint32(len(data.Bytes()))
+	if elem.ValueLength == tag.VLUndefinedLength {
+		length = tag.VLUndefinedLength 
+	}	
+
+	err = encodeElementHeader(w, elem.Tag, vr, length)
 	if err != nil {
 		return err
 	}
@@ -244,7 +252,7 @@ func verifyValueType(t tag.Tag, value Value, valueType ValueType, vr string) err
 }
 
 func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
-	if vl%2 != 0 {
+	if vl%2 != 0  && vl != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
 			tag.DebugString(t), vl)
 	}
@@ -267,7 +275,7 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl *uint32) error {
 		vl = &undefined
 	}
 
-	if len(vr) != 2 && *vl != tag.VLUndefinedLength {
+	if len(vr) != 2 && *vl != tag.VLUndefinedLength && t != tag.SequenceDelimitationItem {
 		return fmt.Errorf("ERROR dicomio.writeVRVL: Value Representation must be of length 2, e.g. 'UN'. For tag=%v, it was RawValueRepresentation=%v",
 			tag.DebugString(t), vr)
 	}
@@ -360,7 +368,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 	w.WriteString(s)
 	if len(s)%2 == 1 {
 		switch vr {
-		case "DT", "LO", "LT", "PN", "SH", "ST", "UT":
+		case "DT", "LO", "LT", "PN", "SH", "ST", "UT", "DS", "CS", "TM", "IS", "UN":
 			w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 		default:
 			w.WriteByte(0)
@@ -371,9 +379,10 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
-	if len(values) != 1 {
-		return fmt.Errorf("Expect a single value but found %v", values)
-	}
+	// XXXHACK @TODO: This is commented out because some DICOMs had multiple values in FileMetaInformationVersion header
+	//if len(values) != 1 {
+	//	return fmt.Errorf("Expect a single value but found %v", values)
+	//}
 	switch vr {
 	case "OW":
 		err = writeOtherWordString(w, values)
@@ -431,15 +440,11 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 	if vl == tag.VLUndefinedLength {
-		err := encodeElementHeader(w, t, vr, vl)
-		if err != nil {
-			return err
-		}
 		writeBasicOffsetTable(w, image.Offsets)
 		for _, frame := range image.Frames {
 			writeRawItem(w, frame.EncapsulatedData.Data)
 		}
-		err = encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
+		err := encodeElementHeader(w, tag.SequenceDelimitationItem, "", 0)
 		if err != nil {
 			return err
 		}
@@ -449,10 +454,6 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 		numValues := len(image.Frames[0].NativeData.Data[0])
 		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
 
-		err := encodeElementHeader(w, t, vr, uint32(length))
-		if err != nil {
-			return err
-		}
 		buf := new(bytes.Buffer)
 		buf.Grow(length)
 		for frame := 0; frame < numFrames; frame++ {

@@ -106,7 +106,7 @@ func NewValue(data interface{}) (Value, error) {
 	}
 }
 
-func newElement(t tag.Tag, data interface{}) (*Element, error) {
+func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	tagInfo, err := tag.Find(t)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func newElement(t tag.Tag, data interface{}) (*Element, error) {
 }
 
 func mustNewElement(t tag.Tag, data interface{}) *Element {
-	elem, err := newElement(t, data)
+	elem, err := NewElement(t, data)
 	if err != nil {
 		log.Panic(err)
 	}

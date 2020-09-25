@@ -240,6 +240,12 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 						return nil, bytesRead, errors.New("")
 					}
 					currentPixel[value] = int(val)
+				} else if bitsAllocated == 32 {
+					val, err := d.ReadUInt32()
+					if err != nil {
+						return nil, bytesRead, errors.New("")
+					}
+					currentPixel[value] = int(val)
 				}
 			}
 			currentFrame.NativeData.Data[pixel] = currentPixel

@@ -4,8 +4,8 @@ This document contains citations and further details for the test DICOMs used he
 
 
 ## Files from The Cancer Imaging Archive
-* 1.dcm (from #77)
-* 2.dcm (from #77)
+* [1.dcm](testfiles/1.dcm) (from [#77](https://github.com/suyashkumar/dicom/issues/77))
+* [2.dcm](testfiles/1.dcm) (from [#77](https://github.com/suyashkumar/dicom/issues/77))
 
 ### Notable attributes
 * Contain multiple sequences (including doubly nested sequences)

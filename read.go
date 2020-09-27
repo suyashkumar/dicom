@@ -155,7 +155,6 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 	}
 
 	i, _, err := readNativeFrames(r, d, fc)
-	log.Println("Dataset Size: ", len(d.Elements))
 
 	if err != nil {
 		return nil, err
@@ -394,7 +393,7 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 			onlySpaces = false
 		}
 	}
-	if !onlySpaces{
+	if !onlySpaces {
 		// String may have '\0' suffix if its length is odd.
 		str = strings.Trim(str, " \000")
 	}

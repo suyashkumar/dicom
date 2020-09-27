@@ -30,11 +30,11 @@ func main() {
 	if len(*filepath) > 0 {
 
 		f, err := os.Open(*filepath)
-		defer f.Close()
 		if err != nil {
 			log.Printf("Error opening file: %s\n", *filepath)
 			return
 		}
+		defer f.Close()
 
 		info, err := f.Stat()
 		if err != nil {

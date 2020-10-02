@@ -2,6 +2,7 @@ package dicom_test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -65,4 +66,20 @@ func BenchmarkParse(b *testing.B) {
 			})
 		}
 	}
+}
+
+func Example_readFile() {
+	// Error handling is elided for this example
+	f, _ := os.Open("testfiles/1.dcm")
+	defer f.Close()
+	info, _ := f.Stat()
+
+	// dicom.Parse will take any io.Reader as input. Here, we pass nil for
+	// frameChan because we don't wish to receive streaming image frames for
+	// this example.
+	dataset, _ := dicom.Parse(f, info.Size(), nil)
+
+	// Dataset will nicely print the DICOM dataset data out of the box, and is
+	// also JSON serializable out of the box.
+	fmt.Println(dataset)
 }

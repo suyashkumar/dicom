@@ -64,6 +64,23 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Datase
 	return p.dataset, nil
 }
 
+// ParseFile parses the entire DICOM at the given filepath. See dicom.Parse as
+// well for a more generic io.Reader based API.
+func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return Dataset{}, err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return Dataset{}, err
+	}
+
+	return Parse(f, info.Size(), frameChan)
+}
+
 // Parser is a struct that allows a user to parse Elements from a DICOM element-by-element using Next(), which may be
 // useful for some streaming processing applications. If you instead just want to parse the whole input DICOM at once,
 // just use the dicom.Parse(...) method.

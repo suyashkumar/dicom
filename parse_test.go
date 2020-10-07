@@ -1,12 +1,15 @@
 package dicom_test
 
 import (
+	"encoding/json"
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/suyashkumar/dicom/pkg/frame"
 
 	"github.com/suyashkumar/dicom"
 )
@@ -69,17 +72,32 @@ func BenchmarkParse(b *testing.B) {
 }
 
 func Example_readFile() {
-	// Error handling is elided for this example
-	f, _ := os.Open("testfiles/1.dcm")
-	defer f.Close()
-	info, _ := f.Stat()
+	// Here, we pass nil for frameChan because we don't wish to receive
+	// streaming image frames for this example.
+	// See also: dicom.Parse, which uses a more generic io.Reader API.
+	dataset, _ := dicom.ParseFile("testfiles/1.dcm", nil)
 
-	// dicom.Parse will take any io.Reader as input. Here, we pass nil for
-	// frameChan because we don't wish to receive streaming image frames for
-	// this example.
-	dataset, _ := dicom.Parse(f, info.Size(), nil)
-
-	// Dataset will nicely print the DICOM dataset data out of the box, and is
-	// also JSON serializable out of the box.
+	// Dataset will nicely print the DICOM dataset data out of the box.
 	fmt.Println(dataset)
+
+	// Dataset is also JSON serializable out of the box.
+	j, _ := json.Marshal(dataset)
+	fmt.Println(j)
+}
+
+func Example_streamingFrames() {
+	frameChan := make(chan *frame.Frame)
+
+	// Go routine to handle streaming frames as they are parsed. This may be
+	// useful when parsing a large DICOM with many frames from a network source,
+	// where image frames can start to be processed before the entire DICOM
+	// is parsed (or even read from storage).
+	go func() {
+		for fr := range frameChan {
+			fmt.Println(fr)
+		}
+	}()
+
+	dataset, _ := dicom.ParseFile("testfiles/1.dcm", frameChan)
+	fmt.Println(dataset) // The full dataset
 }

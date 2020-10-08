@@ -47,4 +47,24 @@ jobs:
             export PATH=$PATH:/home/runner/go/bin
             cd $REPO_PATH
             make test
+  
+    - name: Benchmark
+      run: |
+       export GOPATH=$HOME/go
+       export GOBIN=$GOPATH/bin 
+       export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
+       export PATH=$PATH:/home/runner/go/bin
+       go get golang.org/x/perf/cmd/benchstat
+       cd $REPO_PATH
+       make
+       go test -bench . > $HOME/new.txt
+       cd $GITHUB_WORKSPACE
+       git reset --hard HEAD
+       rm -rf $REPO_PATH
+       mkdir -p $REPO_PATH
+       mv $(pwd)/* $REPO_PATH 
+       cd $REPO_PATH
+       go test -bench . > $HOME/old.txt
+       benchstat $HOME/old.txt $HOME/new.txt
+       
 

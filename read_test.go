@@ -1,11 +1,13 @@
 package dicom
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"testing"
+
+	"github.com/suyashkumar/dicom/pkg/dicomio"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -34,25 +36,25 @@ func TestReadTag(t *testing.T) {
 }
 
 func TestReadFloat_float64(t *testing.T) {
-	cases := []struct{
-		name string
-		floats []float64
-		VR string
-		want Value
+	cases := []struct {
+		name        string
+		floats      []float64
+		VR          string
+		want        Value
 		expectedErr error
 	}{
 		{
-			name: "float64",
-			floats:[]float64{20.1, 32.22},
-			VR: "FD",
-			want: &floatsValue{value: []float64{20.1, 32.22}},
+			name:        "float64",
+			floats:      []float64{20.1, 32.22},
+			VR:          "FD",
+			want:        &floatsValue{value: []float64{20.1, 32.22}},
 			expectedErr: nil,
 		},
 		{
-			name: "float64 with wrong VR",
-			floats:[]float64{20.1, 32.22},
-			VR: "XX",
-			want: nil,
+			name:        "float64 with wrong VR",
+			floats:      []float64{20.1, 32.22},
+			VR:          "XX",
+			want:        nil,
 			expectedErr: errorUnableToParseFloat,
 		},
 	}
@@ -66,7 +68,7 @@ func TestReadFloat_float64(t *testing.T) {
 				}
 			}
 
-			r, err := dicomio.NewReader(&data, binary.LittleEndian, int64(data.Len()))
+			r, err := dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))
 			if err != nil {
 				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
 			}
@@ -83,25 +85,25 @@ func TestReadFloat_float64(t *testing.T) {
 }
 
 func TestReadFloat_float32(t *testing.T) {
-	cases := []struct{
-		name string
-		floats []float32
-		VR string
-		want Value
+	cases := []struct {
+		name        string
+		floats      []float32
+		VR          string
+		want        Value
 		expectedErr error
 	}{
 		{
-			name: "float32",
-			floats:[]float32{20.1001, 32.22},
-			VR: "FL",
-			want: &floatsValue{value: []float64{20.1001, 32.22}},
+			name:        "float32",
+			floats:      []float32{20.1001, 32.22},
+			VR:          "FL",
+			want:        &floatsValue{value: []float64{20.1001, 32.22}},
 			expectedErr: nil,
 		},
 		{
-			name: "float32 with wrong VR",
-			floats:[]float32{20.1001, 32.22},
-			VR: "XX",
-			want: nil,
+			name:        "float32 with wrong VR",
+			floats:      []float32{20.1001, 32.22},
+			VR:          "XX",
+			want:        nil,
 			expectedErr: errorUnableToParseFloat,
 		},
 	}
@@ -115,7 +117,7 @@ func TestReadFloat_float32(t *testing.T) {
 				}
 			}
 
-			r, err := dicomio.NewReader(&data, binary.LittleEndian, int64(data.Len()))
+			r, err := dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))
 			if err != nil {
 				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
 			}

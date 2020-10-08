@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -104,7 +105,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts .
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts...)
-	if err != nil && err != ErrorElementNotFound{
+	if err != nil && err != ErrorElementNotFound {
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPInstanceUID, ds, &tagsUsed, opts...)
@@ -173,8 +174,8 @@ func writeElement(w dicomio.Writer, elem *Element, opts ...WriteOption) error {
 
 	length := uint32(len(data.Bytes()))
 	if elem.ValueLength == tag.VLUndefinedLength {
-		length = tag.VLUndefinedLength 
-	}	
+		length = tag.VLUndefinedLength
+	}
 
 	err = encodeElementHeader(w, elem.Tag, vr, length)
 	if err != nil {
@@ -252,7 +253,7 @@ func verifyValueType(t tag.Tag, value Value, valueType ValueType, vr string) err
 }
 
 func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
-	if vl%2 != 0  && vl != tag.VLUndefinedLength {
+	if vl%2 != 0 && vl != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
 			tag.DebugString(t), vl)
 	}
@@ -487,7 +488,7 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 		return ErrorOWRequiresEvenVL
 	}
 	bo, _ := w.GetTransferSyntax()
-	r, err := dicomio.NewReader(bytes.NewBuffer(data), bo, int64(len(data)))
+	r, err := dicomio.NewReader(bufio.NewReader(bytes.NewBuffer(data)), bo, int64(len(data)))
 	if err != nil {
 		return err
 	}

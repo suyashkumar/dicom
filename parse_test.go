@@ -38,6 +38,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// BenchmarkParse runs sanity benchmarks over the sample files in testfiles.
 func BenchmarkParse(b *testing.B) {
 	files, err := ioutil.ReadDir("./testfiles")
 	if err != nil {
@@ -52,6 +53,9 @@ func BenchmarkParse(b *testing.B) {
 				}
 				defer dcm.Close()
 				data, err := ioutil.ReadAll(dcm)
+				if err != nil {
+					b.Errorf("Unable to read file into memory for benchmark: %v", err)
+				}
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
 					_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil)

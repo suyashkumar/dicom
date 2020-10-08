@@ -58,7 +58,11 @@ jobs:
        cd $REPO_PATH
        make
        go test -bench . > new.txt
+       cd $GITHUB_WORKSPACE/dicom
        git reset --hard HEAD
+       mkdir -p $REPO_PATH
+       mv $(pwd)/* $REPO_PATH 
+       cd $REPO_PATH
        go test -bench . > old.txt
        benchstat old.txt new.txt
        

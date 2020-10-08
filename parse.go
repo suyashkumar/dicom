@@ -95,10 +95,9 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 	} else {
 		bo, implicit, err = uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
 		if err != nil {
-			log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")
-			// TODO(suyashkumar): streamline the defaults
-			bo = binary.LittleEndian
-			implicit = true
+			// TODO(suyashkumar): should we attempt to parse with LittleEndian
+			// Implicit here?
+			log.Println("WARN: could not parse transfer syntax uid in metadata")
 		}
 	}
 	p.reader.SetTransferSyntax(bo, implicit)
@@ -149,9 +148,12 @@ func (p *Parser) readHeader() ([]*Element, error) {
 	// non-standard non-compliant DICOM. We try to read this DICOM in a
 	// compatibility mode, where we rewind to position 0 and blindly attempt to
 	// parse a Dataset (and do not parse metadata in the usual way).
-	data, err := p.reader.Peek(128 + 4) // the last 4 bytes should be "DICM"
+	data, err := p.reader.Peek(128 + 4)
+	if err != nil {
+		return nil, err
+	}
 	if string(data[128:]) != magicWord {
-		return []*Element{}, nil
+		return nil, nil
 	}
 
 	err = p.reader.Skip(128 + 4) // skip preamble + magic word
@@ -163,7 +165,6 @@ func (p *Parser) readHeader() ([]*Element, error) {
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
 	maybeMetaLen, err := readElement(p.reader, nil, nil)
 	if err != nil {
-		log.Println("read element err")
 		return nil, err
 	}
 
@@ -185,8 +186,6 @@ func (p *Parser) readHeader() ([]*Element, error) {
 		elem, err := readElement(p.reader, nil, nil)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
-			log.Println("read element err")
-
 			return nil, err
 		}
 		// log.Printf("Metadata Element: %s\n", elem)

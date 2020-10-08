@@ -60,7 +60,7 @@ jobs:
        go test -bench . > new.txt
        cd $GITHUB_WORKSPACE
        git reset --hard HEAD
-       mkdir -p $REPO_PATH
+       rm -rf $REPO_PATH
        mv $(pwd)/* $REPO_PATH 
        cd $REPO_PATH
        go test -bench . > old.txt

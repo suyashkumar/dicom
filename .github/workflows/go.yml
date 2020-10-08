@@ -48,8 +48,8 @@ jobs:
             cd $REPO_PATH
             make test
   
-   - name: Benchmark
-     run: |
+    - name: Benchmark
+      run: |
        export GOPATH=$HOME/go
        export GOBIN=$GOPATH/bin 
        export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom

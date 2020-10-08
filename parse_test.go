@@ -52,10 +52,12 @@ func BenchmarkParse(b *testing.B) {
 					b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
 				}
 				defer dcm.Close()
+
 				data, err := ioutil.ReadAll(dcm)
 				if err != nil {
 					b.Errorf("Unable to read file into memory for benchmark: %v", err)
 				}
+
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
 					_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil)

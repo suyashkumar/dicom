@@ -85,15 +85,20 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 	p.metadata = Dataset{Elements: elems}
 
 	// Determine and set the transfer syntax based on the metadata elements parsed so far.
+	// The default will be LittleEndian Implicit
+	var bo binary.ByteOrder = binary.LittleEndian
+	implicit := true
+
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
 	if err != nil {
 		// proceed with a default?
 		log.Println("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
-	}
-	bo, implicit, err := uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
-	if err != nil {
-		// proceed with a default?
-		log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")
+	} else {
+		bo, implicit, err = uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
+		if err != nil {
+			// proceed with a default?
+			log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")
+		}
 	}
 	p.reader.SetTransferSyntax(bo, implicit)
 
@@ -139,18 +144,21 @@ func (p *Parser) GetMetadata() Dataset {
 
 // readHeader reads the DICOM magic header and group two metadata elements.
 func (p *Parser) readHeader() ([]*Element, error) {
-	// Must read as LittleEndian explicit VR
-	err := p.reader.Skip(128) // skip preamble
+	// Check to see if magic word is at byte offset 128. If not, this is a
+	// non-standard non-compliant DICOM. We try to read this DICOM in a
+	// compatibility mode, where we rewind to position 0 and blindly attempt to
+	// parse a Dataset (and do not parse metadata in the usual way).
+	data, err := p.reader.Peek(128 + 4) // the last 4 bytes should be "DICM"
+	if string(data[128:]) != magicWord {
+		return []*Element{}, nil
+	}
+
+	err = p.reader.Skip(128 + 4) // skip preamble + magic word
 	if err != nil {
-		log.Println("skip er")
 		return nil, err
 	}
 
-	// Check DICOM magic word
-	if s, err := p.reader.ReadString(4); err != nil || s != magicWord {
-		return nil, ErrorMagicWord
-	}
-
+	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
 	maybeMetaLen, err := readElement(p.reader, nil, nil)
 	if err != nil {

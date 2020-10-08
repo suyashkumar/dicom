@@ -183,6 +183,21 @@ func (mr *MockReaderMockRecorder) Skip(n interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Skip", reflect.TypeOf((*MockReader)(nil).Skip), n)
 }
 
+// Peek mocks base method
+func (m *MockReader) Peek(n int) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Peek", n)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Peek indicates an expected call of Peek
+func (mr *MockReaderMockRecorder) Peek(n interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Peek", reflect.TypeOf((*MockReader)(nil).Peek), n)
+}
+
 // PushLimit mocks base method
 func (m *MockReader) PushLimit(n int64) error {
 	m.ctrl.T.Helper()

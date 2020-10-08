@@ -58,7 +58,7 @@ jobs:
        cd $REPO_PATH
        make
        go test -bench . > new.txt
-       cd $GITHUB_WORKSPACE/dicom
+       cd $GITHUB_WORKSPACE
        git reset --hard HEAD
        mkdir -p $REPO_PATH
        mv $(pwd)/* $REPO_PATH 

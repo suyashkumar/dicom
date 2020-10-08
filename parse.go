@@ -85,19 +85,20 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 	p.metadata = Dataset{Elements: elems}
 
 	// Determine and set the transfer syntax based on the metadata elements parsed so far.
-	// The default will be LittleEndian Implicit
+	// The default will be LittleEndian Implicit.
 	var bo binary.ByteOrder = binary.LittleEndian
 	implicit := true
 
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
 	if err != nil {
-		// proceed with a default?
 		log.Println("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
 	} else {
 		bo, implicit, err = uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
 		if err != nil {
-			// proceed with a default?
 			log.Println("WARN: could not parse transfer syntax uid in metadata, proceeding with little endian implicit")
+			// TODO(suyashkumar): streamline the defaults
+			bo = binary.LittleEndian
+			implicit = true
 		}
 	}
 	p.reader.SetTransferSyntax(bo, implicit)

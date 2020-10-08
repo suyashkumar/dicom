@@ -1,6 +1,7 @@
 package dicomio
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -37,6 +38,9 @@ type Reader interface {
 	ReadString(n uint32) (string, error)
 	// Skip skips the reader ahead by n bytes.
 	Skip(n int64) error
+	// Peek returns the next n bytes without advancing the reader. This will
+	// return bufio.ErrBufferFull if the buffer is full.
+	Peek(n int) ([]byte, error)
 	// PushLimit sets a read limit of n bytes from the current position of the reader. Once the limit is reached,
 	// IsLimitExhausted will return true, and other attempts to read data from dicomio.Reader will return io.EOF.
 	PushLimit(n int64) error
@@ -55,7 +59,7 @@ type Reader interface {
 }
 
 type reader struct {
-	in         io.Reader
+	in         *bufio.Reader
 	bo         binary.ByteOrder
 	implicit   bool
 	limit      int64
@@ -66,7 +70,7 @@ type reader struct {
 	cs charset.CodingSystem
 }
 
-func NewReader(in io.Reader, bo binary.ByteOrder, limit int64) (Reader, error) {
+func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) (Reader, error) {
 	return &reader{
 		in:        in,
 		bo:        bo,
@@ -212,4 +216,8 @@ func (r *reader) IsImplicit() bool { return r.implicit }
 
 func (r *reader) SetCodingSystem(cs charset.CodingSystem) {
 	r.cs = cs
+}
+
+func (r *reader) Peek(n int) ([]byte, error) {
+	return r.in.Peek(n)
 }

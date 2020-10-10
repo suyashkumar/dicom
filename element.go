@@ -108,6 +108,14 @@ func NewValue(data interface{}) (Value, error) {
 	}
 }
 
+func mustNewValue(data interface{}) Value {
+	v, err := NewValue(data)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	tagInfo, err := tag.Find(t)
 	if err != nil {

@@ -23,25 +23,6 @@ var (
 
 // TODO(suyashkumar): consider adding an element-by-element write API.
 
-// WriteOption represents an option that can be passed to WriteDataset. Later options will override previous options if
-// applicable.
-type WriteOption func(*writeOptSet)
-
-// SkipVRVerification returns a WriteOption that skips VR verification.
-func SkipVRVerification() WriteOption {
-	return func(set *writeOptSet) {
-		set.skipVRVerification = true
-	}
-}
-
-// SkipValueTypeVerification returns WriteOption function that skips checking ValueType
-// for concurrency with VR and casting
-func SkipValueTypeVerification() WriteOption {
-	return func(set *writeOptSet) {
-		set.skipValueTypeVerification = true
-	}
-}
-
 // Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
 // information if available).
 func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
@@ -77,6 +58,25 @@ func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
 	return nil
 }
 
+// WriteOption represents an option that can be passed to WriteDataset. Later options will override previous options if
+// applicable.
+type WriteOption func(*writeOptSet)
+
+// SkipVRVerification returns a WriteOption that skips VR verification.
+func SkipVRVerification() WriteOption {
+	return func(set *writeOptSet) {
+		set.skipVRVerification = true
+	}
+}
+
+// SkipValueTypeVerification returns WriteOption function that skips checking ValueType
+// for concurrency with VR and casting
+func SkipValueTypeVerification() WriteOption {
+	return func(set *writeOptSet) {
+		set.skipValueTypeVerification = true
+	}
+}
+
 // writeOptSet represents the flattened option set after all WriteOptions have been applied.
 type writeOptSet struct {
 	skipVRVerification        bool
@@ -92,7 +92,7 @@ func toOptSet(opts ...WriteOption) *writeOptSet {
 }
 
 func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts writeOptSet) error {
-	// File headers are alwyas written in littleEndian explicit
+	// File headers are always written in littleEndian explicit
 	w.SetTransferSynax(binary.LittleEndian, false)
 
 	metaBytes := &bytes.Buffer{}
@@ -100,7 +100,6 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	tagsUsed := make(map[tag.Tag]bool)
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
-	// TODO make better structure for error checking so it's no so many lines
 	err := writeMetaElem(subWriter, tag.FileMetaInformationVersion, ds, &tagsUsed, opts)
 	if err != nil && err != ErrorElementNotFound {
 		return err
@@ -147,16 +146,15 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 
 func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	vr := elem.RawValueRepresentation
-	var err error // to fix 'declared and not used' errors
-	// SkipVRVerification
 	if !opts.skipVRVerification {
+		var err error
 		vr, err = verifyVROrDefault(elem.Tag, elem.RawValueRepresentation)
 		if err != nil {
 			return err
 		}
 	}
 	if !opts.skipValueTypeVerification {
-		err = verifyValueType(elem.Tag, elem.Value, vr)
+		err := verifyValueType(elem.Tag, elem.Value, vr)
 		if err != nil {
 			return err
 		}
@@ -166,7 +164,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	bo, implicit := w.GetTransferSyntax()
 	data := &bytes.Buffer{}
 	subWriter := dicomio.NewWriter(data, bo, implicit)
-	err = writeValue(subWriter, elem.Tag, elem.Value, elem.Value.ValueType(), vr, elem.ValueLength, opts)
+	err := writeValue(subWriter, elem.Tag, elem.Value, elem.Value.ValueType(), vr, elem.ValueLength, opts)
 	if err != nil {
 		return err
 	}
@@ -325,10 +323,9 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 
 func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32, opts writeOptSet) error {
 	if vl == tag.VLUndefinedLength && valueType <= 2 { // strings, bytes or ints
-		return fmt.Errorf("Encoding undefined-length element not yet supported: %v", t)
+		return fmt.Errorf("encoding undefined-length element not yet supported: %v", t)
 	}
 
-	// TODO floats?
 	v := value.GetValue()
 	switch valueType {
 	case Strings:
@@ -372,10 +369,6 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
-	// XXXHACK @TODO: This is commented out because some DICOMs had multiple values in FileMetaInformationVersion header
-	//if len(values) != 1 {
-	//	return fmt.Errorf("Expect a single value but found %v", values)
-	//}
 	switch vr {
 	case "OW":
 		err = writeOtherWordString(w, values)

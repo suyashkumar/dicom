@@ -26,7 +26,9 @@ func TestWrite(t *testing.T) {
 	cases := []struct {
 		name          string
 		dataset       Dataset
+		extraElems    []*Element
 		expectedError error
+		opts          []WriteOption
 	}{
 		{
 			name: "basic types",
@@ -40,6 +42,31 @@ func TestWrite(t *testing.T) {
 			}},
 			expectedError: nil,
 		},
+		{
+			name: "without transfer syntax",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				mustNewElement(tag.Rows, []int{128}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+			}},
+			expectedError: ErrorElementNotFound,
+		},
+		{
+			name: "without transfer syntax with DefaultMissingTransferSyntax",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				mustNewElement(tag.Rows, []int{128}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+			}},
+			// This gets inserted if DefaultMissingTransferSyntax is provided:
+			extraElems:    []*Element{mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})},
+			expectedError: nil,
+			opts:          []WriteOption{DefaultMissingTransferSyntax()},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -47,34 +74,38 @@ func TestWrite(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error when creating tempfile: %v", err)
 			}
-			if err = Write(file, tc.dataset); err != tc.expectedError {
+			if err = Write(file, tc.dataset, tc.opts...); err != tc.expectedError {
 				t.Errorf("Write(%v): unexpected error. got: %v, want: %v", tc.dataset, err, tc.expectedError)
 			}
 			file.Close()
 
 			// Read the data back in and check for equality to the tc.dataset:
-			f, err := os.Open(file.Name())
-			if err != nil {
-				t.Fatalf("Unexpected error opening file %s: %v", file.Name(), err)
-			}
-			info, err := f.Stat()
-			if err != nil {
-				t.Fatalf("Unexpected error state file: %s: %v", file.Name(), err)
-			}
+			if tc.expectedError == nil {
+				f, err := os.Open(file.Name())
+				if err != nil {
+					t.Fatalf("Unexpected error opening file %s: %v", file.Name(), err)
+				}
+				info, err := f.Stat()
+				if err != nil {
+					t.Fatalf("Unexpected error state file: %s: %v", file.Name(), err)
+				}
 
-			readDS, err := Parse(f, info.Size(), nil)
-			if err != nil {
-				t.Errorf("Parse of written file, unexpected error: %v", err)
-			}
+				readDS, err := Parse(f, info.Size(), nil)
+				if err != nil {
+					t.Errorf("Parse of written file, unexpected error: %v", err)
+				}
 
-			if diff := cmp.Diff(
-				readDS,
-				tc.dataset,
-				cmp.AllowUnexported(allValues...),
-				cmpopts.IgnoreFields(Element{}, "ValueLength"),
-				cmpopts.IgnoreSliceElements(func(e *Element) bool { return e.Tag == tag.FileMetaInformationGroupLength }),
-			); diff != "" {
-				t.Errorf("Reading Written dataset led to unexpected diff: %s", diff)
+				wantElems := append(tc.dataset.Elements, tc.extraElems...)
+				if diff := cmp.Diff(
+					readDS.Elements,
+					wantElems,
+					cmp.AllowUnexported(allValues...),
+					cmpopts.IgnoreFields(Element{}, "ValueLength"),
+					cmpopts.IgnoreSliceElements(func(e *Element) bool { return e.Tag == tag.FileMetaInformationGroupLength }),
+					cmpopts.SortSlices(func(x, y *Element) bool { return x.Tag.Compare(y.Tag) == 1 }),
+				); diff != "" {
+					t.Errorf("Reading back written dataset led to unexpected diff from source data: %s", diff)
+				}
 			}
 		})
 	}

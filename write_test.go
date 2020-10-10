@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io/ioutil"
+	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/tag"
 	"github.com/suyashkumar/dicom/pkg/uid"
@@ -20,63 +22,62 @@ FURTHER TESTING
 	- With 'wild' DICOMs with high variability, read in, write out, read in, and verify
 */
 
-// TODO clean this function up big time
 func TestWrite(t *testing.T) {
-	location := "fullwrite.dcm"
-	file, err := ioutil.TempFile("", location)
-	assert.Nil(t, err)
-	defer file.Close()
-
-	mediaStorageSOPClassUID, err := NewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
-	assert.Nil(t, err)
-	mediaStorageSOPInstanceUID, err := NewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
-	assert.Nil(t, err)
-	transferSyntax, err := NewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
-	assert.Nil(t, err)
-	patientName, err := NewElement(tag.PatientName, []string{"Robin Banks"})
-	assert.Nil(t, err)
-
-	elems := []*Element{
-		mediaStorageSOPClassUID,
-		mediaStorageSOPInstanceUID,
-		transferSyntax,
-		patientName,
+	cases := []struct {
+		name          string
+		dataset       Dataset
+		expectedError error
+	}{
+		{
+			name: "basic types",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				mustNewElement(tag.Rows, []int{128}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+			}},
+			expectedError: nil,
+		},
 	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			file, err := ioutil.TempFile("", "write_test.dcm")
+			if err != nil {
+				t.Fatalf("Unexpected error when creating tempfile: %v", err)
+			}
+			if err = Write(file, tc.dataset); err != tc.expectedError {
+				t.Errorf("Write(%v): unexpected error. got: %v, want: %v", tc.dataset, err, tc.expectedError)
+			}
+			file.Close()
 
-	ds := &Dataset{Elements: elems}
+			// Read the data back in and check for equality to the tc.dataset:
+			f, err := os.Open(file.Name())
+			if err != nil {
+				t.Fatalf("Unexpected error opening file %s: %v", file.Name(), err)
+			}
+			info, err := f.Stat()
+			if err != nil {
+				t.Fatalf("Unexpected error state file: %s: %v", file.Name(), err)
+			}
 
-	err = Write(file, ds)
-	assert.Nil(t, err)
+			readDS, err := Parse(f, info.Size(), nil)
+			if err != nil {
+				t.Errorf("Parse of written file, unexpected error: %v", err)
+			}
 
-	// TODO verify that the correct values are written
-}
-
-// TODO clean this function up big time
-func TestWriteFileHeader(t *testing.T) {
-	location := "fileheader.dcm"
-	file, err := ioutil.TempFile("", location)
-	assert.Nil(t, err)
-	defer file.Close()
-
-	w := dicomio.NewWriter(file, binary.LittleEndian, false)
-
-	mediaStorageSOPClassUID, err := NewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"})
-	assert.Nil(t, err)
-	mediaStorageSOPInstanceUID, err := NewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"})
-	assert.Nil(t, err)
-	transferSyntax, err := NewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
-	assert.Nil(t, err)
-	metaElems := []*Element{
-		mediaStorageSOPClassUID,
-		mediaStorageSOPInstanceUID,
-		transferSyntax,
+			if diff := cmp.Diff(
+				readDS,
+				tc.dataset,
+				cmp.AllowUnexported(allValues...),
+				cmpopts.IgnoreFields(Element{}, "ValueLength"),
+				cmpopts.IgnoreSliceElements(func(e *Element) bool { return e.Tag == tag.FileMetaInformationGroupLength }),
+			); diff != "" {
+				t.Errorf("Reading Written dataset led to unexpected diff: %s", diff)
+			}
+		})
 	}
-	ds := &Dataset{Elements: metaElems}
-
-	err = writeFileHeader(w, ds, metaElems)
-	assert.Nil(t, err)
-
-	// TODO Verify the the corrrect things were written to the file header
 }
 
 func TestEncodeElementHeader(t *testing.T) {}
@@ -88,50 +89,90 @@ func TestWriteTag(t *testing.T) {}
 func TestWriteVRVL(t *testing.T) {}
 
 func TestVerifyVR(t *testing.T) {
-	tg := tag.Tag{ // FileMetaInformationGroupLength tag
-		Group:   0x0002,
-		Element: 0x0000,
+	cases := []struct {
+		name    string
+		tg      tag.Tag
+		inVR    string
+		wantVR  string
+		wantErr bool
+	}{
+		{
+			name:    "wrong vr",
+			tg:      tag.FileMetaInformationGroupLength,
+			inVR:    "OB",
+			wantVR:  "",
+			wantErr: true,
+		},
+		{
+			name:    "no vr",
+			tg:      tag.FileMetaInformationGroupLength,
+			inVR:    "",
+			wantVR:  "UL",
+			wantErr: false,
+		},
+		{
+			name: "made up tag",
+			tg: tag.Tag{
+				Group:   0x9999,
+				Element: 0x9999,
+			},
+			inVR:    "",
+			wantVR:  "UN",
+			wantErr: false,
+		},
 	}
-
-	// WRONG VR
-	vr, err := verifyVR(tg, "OB")
-	assert.Equal(t, "", vr)
-	assert.NotNil(t, err)
-
-	// NO VR
-	vr, err = verifyVR(tg, "")
-	assert.Nil(t, err)
-	assert.Equal(t, "UL", vr)
-
-	// MADE UP TAG
-	tg = tag.Tag{
-		Group:   0x9999,
-		Element: 0x9999,
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			vr, err := verifyVROrDefault(tc.tg, tc.inVR)
+			if (err != nil && !tc.wantErr) || (err == nil && tc.wantErr) {
+				t.Errorf("verifyVROrDefault(%v, %v), got err: %v but want err: %v", tc.tg, tc.inVR, err, tc.wantErr)
+			}
+			if vr != tc.wantVR {
+				t.Errorf("verifyVROrDefault(%v, %v): unexpected vr. got: %v, want: %v", tc.tg, tc.inVR, vr, tc.wantVR)
+			}
+		})
 	}
-	vr, err = verifyVR(tg, "")
-	assert.Nil(t, err)
-	assert.Equal(t, "UN", vr)
 }
 
 func TestVerifyValueType(t *testing.T) {
-	tg := tag.Tag{ // FileMetaInformationGroupLength tag
-		Group:   0x0002,
-		Element: 0x0000,
+	cases := []struct {
+		name      string
+		tg        tag.Tag
+		value     Value
+		vr        string
+		wantError bool
+	}{
+		{
+			name:      "valid",
+			tg:        tag.FileMetaInformationGroupLength,
+			value:     mustNewValue([]int{128}),
+			vr:        "UL",
+			wantError: false,
+		},
+		{
+			name:      "invalid vr",
+			tg:        tag.FileMetaInformationGroupLength,
+			value:     mustNewValue([]int{128}),
+			vr:        "NA",
+			wantError: true,
+		},
+		{
+			name:      "wrong valueType",
+			tg:        tag.FileMetaInformationGroupLength,
+			value:     mustNewValue([]string{"str"}),
+			vr:        "UL",
+			wantError: true,
+		},
 	}
 
-	// VALID
-	value, err := NewValue([]int{128})
-	assert.Nil(t, err)
-	err = verifyValueType(tg, value, Ints, "UL")
-	assert.Nil(t, err)
-
-	// INVALID VR
-	err = verifyValueType(tg, value, Ints, "NA")
-	assert.NotNil(t, err)
-
-	// WRONG VALUE TYPE
-	err = verifyValueType(tg, value, Strings, "UL")
-	assert.NotNil(t, err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := verifyValueType(tc.tg, tc.value, tc.vr)
+			if (err != nil && !tc.wantError) || (err == nil && tc.wantError) {
+				t.Errorf("verifyValueType(%v, %v, %v), got err: %v but want err: %v", tc.tg, tc.value, tc.vr, err, tc.wantError)
+			}
+		})
+	}
 }
 
 func TestWriteFloats(t *testing.T) {

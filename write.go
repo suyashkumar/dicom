@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/suyashkumar/dicom/pkg/uid"
+
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
@@ -41,10 +43,15 @@ func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
 	}
 
 	endian, implicit, err := ds.TransferSyntax()
-	if err != nil {
+	if (err != nil && err != ErrorElementNotFound) || (err == ErrorElementNotFound && !optSet.defaultMissingTransferSyntax) {
 		return err
 	}
-	w.SetTransferSynax(endian, implicit)
+
+	if err == ErrorElementNotFound && optSet.defaultMissingTransferSyntax {
+		w.SetTransferSynax(binary.LittleEndian, true)
+	} else {
+		w.SetTransferSynax(endian, implicit)
+	}
 
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group != tag.MetadataGroup {
@@ -77,10 +84,21 @@ func SkipValueTypeVerification() WriteOption {
 	}
 }
 
+// DefaultMissingTransferSyntax returns a WriteOption indicating that a missing
+// TransferSyntax should not raise an error, and instead the default
+// LittleEndian Implicit transfer syntax should be used and written out as a
+// Metadata element in the Dataset.
+func DefaultMissingTransferSyntax() WriteOption {
+	return func(set *writeOptSet) {
+		set.defaultMissingTransferSyntax = true
+	}
+}
+
 // writeOptSet represents the flattened option set after all WriteOptions have been applied.
 type writeOptSet struct {
-	skipVRVerification        bool
-	skipValueTypeVerification bool
+	skipVRVerification           bool
+	skipValueTypeVerification    bool
+	defaultMissingTransferSyntax bool
 }
 
 func toOptSet(opts ...WriteOption) *writeOptSet {
@@ -113,7 +131,13 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts)
-	if err != nil {
+	if err == ErrorElementNotFound && opts.defaultMissingTransferSyntax {
+		// Write the default transfer syntax
+		if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
+			return err
+		}
+		tagsUsed[tag.TransferSyntaxUID] = true
+	} else if err != nil {
 		return err
 	}
 

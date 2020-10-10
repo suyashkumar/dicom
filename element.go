@@ -94,6 +94,8 @@ func NewValue(data interface{}) (Value, error) {
 		return &bytesValue{value: data.([]byte)}, nil
 	case PixelDataInfo:
 		return &pixelDataValue{PixelDataInfo: data.(PixelDataInfo)}, nil
+	case []float64:
+		return &floatsValue{value: data.([]float64)}, nil
 	case [][]*Element:
 		items := data.([][]*Element)
 		sequenceItems := make([]*SequenceItemValue, 0, len(items))
@@ -122,7 +124,7 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 		Tag:                    t,
 		ValueRepresentation:    tag.GetVRKind(t, rawVR),
 		RawValueRepresentation: rawVR,
-		Value:                  value,
+		Value: value,
 	}, nil
 }
 
@@ -304,4 +306,16 @@ func MustGetPixelDataInfo(v Value) PixelDataInfo {
 		log.Panicf("MustGetPixelDataInfo expected ValueType of PixelData, got: %v", v.ValueType())
 	}
 	return v.GetValue().(PixelDataInfo)
+}
+
+// allValues is used for tests that need to pass in instances of the unexported
+// value structs to cmp.AllowUnexported.
+var allValues = []interface{}{
+	floatsValue{},
+	intsValue{},
+	stringsValue{},
+	pixelDataValue{},
+	sequencesValue{},
+	bytesValue{},
+	SequenceItemValue{},
 }

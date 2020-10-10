@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
@@ -57,15 +59,82 @@ func TestElement_String(t *testing.T) {
 }
 
 func TestNewValue(t *testing.T) {
-	data := []string{"a", "b", "c"}
-	v, err := NewValue(data)
-	if err != nil {
-		t.Fatalf("NewValue(%v) returned unexpected error: %v", data, err)
+	cases := []struct {
+		name      string
+		data      interface{}
+		wantValue Value
+		wantError error
+	}{
+		{
+			name:      "strings",
+			data:      []string{"a", "b"},
+			wantValue: &stringsValue{value: []string{"a", "b"}},
+			wantError: nil,
+		},
+		{
+			name:      "floats",
+			data:      []float64{1.11, 1.22},
+			wantValue: &floatsValue{value: []float64{1.11, 1.22}},
+			wantError: nil,
+		},
+		{
+			name:      "ints",
+			data:      []int{1, 2},
+			wantValue: &intsValue{value: []int{1, 2}},
+			wantError: nil,
+		},
+		{
+			name:      "bytes",
+			data:      []byte{0x00, 0x01},
+			wantValue: &bytesValue{value: []byte{0x00, 0x01}},
+			wantError: nil,
+		},
+		{
+			// TODO: maybe enhance this case
+			name:      "PixelDataInfo",
+			data:      PixelDataInfo{IsEncapsulated: true},
+			wantValue: &pixelDataValue{PixelDataInfo{IsEncapsulated: true}},
+			wantError: nil,
+		},
+		{
+			name: "sequence",
+			data: [][]*Element{
+				{
+					{
+						Tag:                 tag.PatientName,
+						ValueRepresentation: tag.VRString,
+						Value: &stringsValue{
+							value: []string{"Bob"},
+						},
+					},
+				},
+			},
+			wantValue: &sequencesValue{value: []*SequenceItemValue{
+				{
+					elements: []*Element{
+						{
+							Tag:                 tag.PatientName,
+							ValueRepresentation: tag.VRString,
+							Value: &stringsValue{
+								value: []string{"Bob"},
+							},
+						},
+					},
+				},
+			}},
+		},
 	}
-	if v.ValueType() != Strings {
-		t.Errorf("NewValue(%v) unexpected ValueType. got: %v, want: %v", data, v.ValueType(), Strings)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			v, err := NewValue(tc.data)
+			if err != tc.wantError {
+				t.Fatalf("NewValue(%v) returned unexpected error: %v", tc.data, err)
+			}
+			if diff := cmp.Diff(v, tc.wantValue, cmp.AllowUnexported(allValues...)); diff != "" {
+				t.Errorf("NewValue(%v) unexpected value. diff: %v", tc.data, diff)
+			}
+		})
 	}
-	// TODO(suyashkumar): add tests for the remaining types
 }
 
 func TestNewValue_UnexpectedType(t *testing.T) {

@@ -131,14 +131,14 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts)
+	if err != nil && err != ErrorElementNotFound || err == ErrorElementNotFound && !opts.defaultMissingTransferSyntax {
+		return err
+	}
 	if err == ErrorElementNotFound && opts.defaultMissingTransferSyntax {
 		// Write the default transfer syntax
 		if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
 			return err
 		}
-		tagsUsed[tag.TransferSyntaxUID] = true
-	} else if err != nil {
-		return err
 	}
 
 	for _, elem := range metaElems {

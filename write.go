@@ -216,34 +216,27 @@ func verifyVROrDefault(t tag.Tag, vr string) (string, error) {
 }
 
 func verifyValueType(t tag.Tag, value Value, vr string) error {
-	v := value.GetValue()
 	valueType := value.ValueType()
 	var ok bool
 	switch vr {
 	case "US", "UL", "SL", "SS":
-		_, ok = v.([]int)
-		ok = ok && (valueType == Ints)
+		ok = valueType == Ints
 	case "SQ":
-		_, ok = v.([]*SequenceItemValue)
-		ok = ok && (valueType == Sequences)
+		ok = valueType == Sequences
 	case "NA":
-		_, ok = v.([]*Element)
-		ok = ok && (valueType == SequenceItem)
+		ok = valueType == SequenceItem
 	case "OW", "OB":
 		if t == tag.PixelData {
-			_, ok = v.(PixelDataInfo)
-			ok = ok && (valueType == PixelData)
+			ok = valueType == PixelData
 		} else {
-			_, ok = v.([]byte)
-			ok = ok && (valueType == Bytes)
+			ok = valueType == Bytes
 		}
-	case "FL", "FD": // TODO floats?
-		return ErrorUnimplemented
+	case "FL", "FD":
+		ok = valueType == Floats
 	case "AT":
 		fallthrough
 	default:
-		_, ok = v.([]string)
-		ok = ok && (valueType == Strings)
+		ok = valueType == Strings
 	}
 
 	if !ok {

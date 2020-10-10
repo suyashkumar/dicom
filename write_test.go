@@ -36,6 +36,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
 				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
 				mustNewElement(tag.Rows, []int{128}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
 			expectedError: nil,
 		},
@@ -69,7 +70,7 @@ func TestWrite(t *testing.T) {
 			if diff := cmp.Diff(
 				readDS,
 				tc.dataset,
-				cmp.AllowUnexported(floatsValue{}, intsValue{}, stringsValue{}),
+				cmp.AllowUnexported(allValues...),
 				cmpopts.IgnoreFields(Element{}, "ValueLength"),
 				cmpopts.IgnoreSliceElements(func(e *Element) bool { return e.Tag == tag.FileMetaInformationGroupLength }),
 			); diff != "" {

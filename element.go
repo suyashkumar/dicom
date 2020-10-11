@@ -77,12 +77,14 @@ type Value interface {
 	MarshalJSON() ([]byte, error)
 }
 
-// NewValue creates a new DICOM value for the supplied data. Likely most useful if creating an Element in testing or
-// write scenarios.
+// NewValue creates a new DICOM value for the supplied data. Likely most useful
+// if creating an Element in testing or write scenarios.
 //
-// Data must be one of the following types, otherwise and error will be returned (ErrorUnexpectedDataType).
+// Data must be one of the following types, otherwise and error will be returned
+// (ErrorUnexpectedDataType).
 //
-// Acceptable types: []int, []string, []byte, PixelDataInfo, [][]*Element (represents a sequence, which contains several
+// Acceptable types: []int, []string, []byte, []float64, PixelDataInfo,
+// [][]*Element (represents a sequence, which contains several
 // items which each contain several elements).
 func NewValue(data interface{}) (Value, error) {
 	switch data.(type) {

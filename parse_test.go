@@ -1,13 +1,16 @@
 package dicom_test
 
 import (
-	"encoding/json"
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"image/jpeg"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/suyashkumar/dicom/pkg/tag"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 
@@ -72,8 +75,6 @@ func BenchmarkParse(b *testing.B) {
 }
 
 func Example_readFile() {
-	// Here, we pass nil for frameChan because we don't wish to receive
-	// streaming image frames for this example.
 	// See also: dicom.Parse, which uses a more generic io.Reader API.
 	dataset, _ := dicom.ParseFile("testfiles/1.dcm", nil)
 
@@ -100,4 +101,16 @@ func Example_streamingFrames() {
 
 	dataset, _ := dicom.ParseFile("testfiles/1.dcm", frameChan)
 	fmt.Println(dataset) // The full dataset
+}
+
+func Example_getImageFrames() {
+	dataset, _ := dicom.ParseFile("testfiles/1.dcm", nil)
+	pixelDataElement, _ := dataset.FindElementByTag(tag.PixelData)
+	pixelDataInfo := dicom.MustGetPixelDataInfo(pixelDataElement.Value)
+	for i, fr := range pixelDataInfo.Frames {
+		img, _ := fr.GetImage() // The Go image.Image for this frame
+		f, _ := os.Create(fmt.Sprintf("image_%d.jpg", i))
+		_ = jpeg.Encode(f, img, &jpeg.Options{Quality: 100})
+		_ = f.Close()
+	}
 }

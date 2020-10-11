@@ -12,9 +12,12 @@
 // (like an iterator pattern), flat iteration over nested elements in a Dataset,
 // and more.
 //
-// General usage is simple:
-//   dataset, err := dicom.Parse(anyIOReader, totalBytesToRead, /*frameChannel=*/ nil)
+// General usage is simple.
 // Check out the package examples below and some function specific examples.
+//
+// It may also be helpful to take a look at the example cmd/dicomutil program,
+// which is a CLI built around this library to save out image frames from DICOMs
+// and print out metadata to STDOUT.
 package dicom
 
 import (

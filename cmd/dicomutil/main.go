@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"log"
 	"os"
@@ -108,10 +109,10 @@ func parseWithStreaming(in io.Reader, size int64) *dicom.Dataset {
 func writeStreamingFrames(frameChan chan *frame.Frame, doneWG *sync.WaitGroup) {
 	count := 0 // may not correspond to frame number
 	var wg sync.WaitGroup
-	for frame := range frameChan {
+	for fr := range frameChan {
 		count++
 		wg.Add(1)
-		go generateImage(frame, count, "", &wg)
+		go generateImage(fr, count, "", &wg)
 	}
 	wg.Wait()
 	doneWG.Done()
@@ -123,19 +124,39 @@ func generateImage(fr *frame.Frame, frameIndex int, frameSuffix string, wg *sync
 		log.Fatal("Error while getting image")
 	}
 
-	name := fmt.Sprintf("image_%d%s.jpg", frameIndex, frameSuffix)
+	ext := ".jpg"
+	if !fr.IsEncapsulated() {
+		ext = ".png"
+	}
+
+	name := fmt.Sprintf("image_%d%s%s", frameIndex, frameSuffix, ext)
 	f, err := os.Create(name)
 	if err != nil {
 		fmt.Printf("Error while creating file: %s", err.Error())
+		return
 	}
-	err = jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
-	if err != nil {
-		log.Println(err)
+
+	if !fr.IsEncapsulated() {
+		// Native (non-encapsulated) frames are written as PNGs to exactly
+		// preserve the pixel values.
+		err := png.Encode(f, i)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	} else {
+		err = jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	}
+
 	if err = f.Close(); err != nil {
 		log.Println("ERROR: unable to properly close file: ", f.Name())
 	}
 	log.Printf("Image %s written\n", name)
+
 	if wg != nil {
 		wg.Done()
 	}

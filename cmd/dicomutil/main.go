@@ -142,12 +142,13 @@ func generateImage(fr *frame.Frame, frameIndex int, frameSuffix string, wg *sync
 		err := png.Encode(f, i)
 		if err != nil {
 			log.Println(err)
+			return
 		}
 	} else {
 		err = jpeg.Encode(f, i, &jpeg.Options{Quality: 100})
-
 		if err != nil {
 			log.Println(err)
+			return
 		}
 	}
 

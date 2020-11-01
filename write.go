@@ -153,8 +153,12 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 		}
 	}
 
-	w.WriteZeros(128)
-	w.WriteString("DICM")
+	if err := w.WriteZeros(128); err != nil {
+		return err
+	}
+	if err := w.WriteString(magicWord); err != nil {
+		return err
+	}
 	lengthElem, err := NewElement(tag.FileMetaInformationGroupLength, []int{len(metaBytes.Bytes())})
 	if err != nil {
 		return err
@@ -277,8 +281,12 @@ func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
 			tag.DebugString(t), vl)
 	}
-	w.WriteUInt16(t.Group)
-	w.WriteUInt16(t.Element)
+	if err := w.WriteUInt16(t.Group); err != nil {
+		return err
+	}
+	if err := w.WriteUInt16(t.Element); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -304,16 +312,26 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 		implicit = true
 	}
 	if !implicit { // Explicit
-		w.WriteString(vr)
+		if err := w.WriteString(vr); err != nil {
+			return err
+		}
 		switch vr {
 		case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
-			w.WriteZeros(2)
-			w.WriteUInt32(vl)
+			if err := w.WriteZeros(2); err != nil {
+				return err
+			}
+			if err := w.WriteUInt32(vl); err != nil {
+				return err
+			}
 		default:
-			w.WriteUInt16(uint16(vl))
+			if err := w.WriteUInt16(uint16(vl)); err != nil {
+				return err
+			}
 		}
 	} else {
-		w.WriteUInt32(vl)
+		if err := w.WriteUInt32(vl); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -335,7 +353,9 @@ func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) error {
 	data := &bytes.Buffer{}
 	subWriter := dicomio.NewWriter(data, byteOrder, implicit)
 	for _, offset := range offsets {
-		subWriter.WriteUInt32(offset)
+		if err := subWriter.WriteUInt32(offset); err != nil {
+			return err
+		}
 	}
 	if err := writeRawItem(w, data.Bytes()); err != nil {
 		return err
@@ -389,13 +409,19 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 		}
 		s += substr
 	}
-	w.WriteString(s)
+	if err := w.WriteString(s); err != nil {
+		return err
+	}
 	if len(s)%2 == 1 {
 		switch vr {
 		case "DT", "LO", "LT", "PN", "SH", "ST", "UT", "DS", "CS", "TM", "IS", "UN":
-			w.WriteString(" ") // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+			if err := w.WriteString(" "); err != nil { // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+				return err
+			}
 		default:
-			w.WriteByte(0)
+			if err := w.WriteByte(0); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -421,9 +447,13 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
 		case "US", "SS":
-			w.WriteUInt16(uint16(value))
+			if err := w.WriteUInt16(uint16(value)); err != nil {
+				return err
+			}
 		case "UL", "SL":
-			w.WriteUInt32(uint32(value))
+			if err := w.WriteUInt32(uint32(value)); err != nil {
+				return err
+			}
 		default:
 			return ErrorMismatchValueTypeAndVR
 		}
@@ -497,7 +527,9 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 				}
 			}
 		}
-		w.WriteBytes(buf.Bytes())
+		if err := w.WriteBytes(buf.Bytes()); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -577,15 +609,21 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 		if err != nil {
 			return err
 		}
-		w.WriteUInt16(v)
+		if err := w.WriteUInt16(v); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func writeOtherByteString(w dicomio.Writer, data []byte) error {
-	w.WriteBytes(data)
+	if err := w.WriteBytes(data); err != nil {
+		return err
+	}
 	if len(data)%2 == 1 {
-		w.WriteByte(0)
+		if err := w.WriteByte(0); err != nil {
+			return err
+		}
 	}
 	return nil
 }

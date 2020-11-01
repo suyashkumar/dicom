@@ -5,73 +5,64 @@ import (
 	"io"
 )
 
-// Writer is a lower level encoder that takes abstracted input and writes it at the byte-level
-type Writer interface {
-	SetTransferSyntax(bo binary.ByteOrder, implicit bool)
-	WriteZeros(len int)
-	WriteString(v string)
-	WriteByte(v byte)
-	WriteBytes(v []byte)
-	WriteUInt16(v uint16)
-	WriteUInt32(v uint32)
-	WriteFloat32(v float32) error
-	WriteFloat64(v float64) error
-	GetTransferSyntax() (binary.ByteOrder, bool)
-}
-
-type writer struct {
+// Writer is a lower level encoder that manages writing out entities to an
+// io.Reader.
+type Writer struct {
 	out      io.Writer
 	bo       binary.ByteOrder
 	implicit bool
 }
 
-// NewWriter creates and returns a Writer struct
+// NewWriter initializes and returns a Writer.
 func NewWriter(out io.Writer, bo binary.ByteOrder, implicit bool) Writer {
-	return &writer{
+	return Writer{
 		out:      out,
 		bo:       bo,
 		implicit: implicit,
 	}
 }
 
-func (w *writer) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
+func (w *Writer) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
 	w.bo = bo
 	w.implicit = implicit
 }
 
-func (w *writer) GetTransferSyntax() (binary.ByteOrder, bool) {
+func (w *Writer) GetTransferSyntax() (binary.ByteOrder, bool) {
 	return w.bo, w.implicit
 }
 
-func (w *writer) WriteZeros(len int) {
+func (w *Writer) WriteZeros(len int) error {
 	zeros := make([]byte, len)
-	w.out.Write(zeros)
+	_, err := w.out.Write(zeros)
+	return err
 }
 
-func (w *writer) WriteString(v string) {
-	w.out.Write([]byte(v))
+func (w *Writer) WriteString(v string) error {
+	_, err := w.out.Write([]byte(v))
+	return err
 }
 
-func (w *writer) WriteByte(v byte) {
-	binary.Write(w.out, w.bo, &v)
-}
-
-func (w *writer) WriteBytes(v []byte) {
-	w.out.Write(v)
-}
-
-func (w *writer) WriteUInt16(v uint16) {
-	binary.Write(w.out, w.bo, &v)
-}
-
-func (w *writer) WriteUInt32(v uint32) {
-	binary.Write(w.out, w.bo, &v)
-}
-
-func (w *writer) WriteFloat32(v float32) error {
+func (w *Writer) WriteByte(v byte) error {
 	return binary.Write(w.out, w.bo, &v)
 }
 
-func (w *writer) WriteFloat64(v float64) error {
+func (w *Writer) WriteBytes(v []byte) error {
+	_, err := w.out.Write(v)
+	return err
+}
+
+func (w *Writer) WriteUInt16(v uint16) error {
+	return binary.Write(w.out, w.bo, &v)
+}
+
+func (w *Writer) WriteUInt32(v uint32) error {
+	return binary.Write(w.out, w.bo, &v)
+}
+
+func (w *Writer) WriteFloat32(v float32) error {
+	return binary.Write(w.out, w.bo, &v)
+}
+
+func (w *Writer) WriteFloat64(v float64) error {
 	return binary.Write(w.out, w.bo, &v)
 }

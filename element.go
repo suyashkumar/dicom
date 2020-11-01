@@ -171,7 +171,7 @@ const (
 
 // bytesValue represents a value of []byte.
 type bytesValue struct {
-	value []byte `json:"value"`
+	value []byte
 }
 
 func (b *bytesValue) isElementValue()       {}
@@ -186,7 +186,7 @@ func (b *bytesValue) MarshalJSON() ([]byte, error) {
 
 // stringsValue represents a value of []string.
 type stringsValue struct {
-	value []string `json:"value"`
+	value []string
 }
 
 func (s *stringsValue) isElementValue()       {}
@@ -201,7 +201,7 @@ func (s *stringsValue) MarshalJSON() ([]byte, error) {
 
 // intsValue represents a value of []int.
 type intsValue struct {
-	value []int `json:"value"`
+	value []int
 }
 
 func (s *intsValue) isElementValue()       {}
@@ -216,7 +216,7 @@ func (s *intsValue) MarshalJSON() ([]byte, error) {
 
 // floatsValue represents a value of []float64.
 type floatsValue struct {
-	value []float64 `json:"value"`
+	value []float64
 }
 
 func (s *floatsValue) isElementValue()       {}
@@ -230,7 +230,7 @@ func (s *floatsValue) MarshalJSON() ([]byte, error) {
 }
 
 type SequenceItemValue struct {
-	elements []*Element `json:"elements"`
+	elements []*Element
 }
 
 func (s *SequenceItemValue) isElementValue()       {}
@@ -246,7 +246,7 @@ func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
 
 // sequencesValue represents a set of items in a DICOM sequence.
 type sequencesValue struct {
-	value []*SequenceItemValue `json:"sequenceItems"`
+	value []*SequenceItemValue
 }
 
 func (s *sequencesValue) isElementValue()       {}

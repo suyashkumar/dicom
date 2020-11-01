@@ -107,7 +107,6 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readString(r, t, vr, vl)
 	}
 
-	return nil, fmt.Errorf("unsure how to parse this VR")
 }
 
 func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,

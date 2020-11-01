@@ -118,6 +118,9 @@ func mustNewValue(data interface{}) Value {
 	return v
 }
 
+// NewElement creates a new DICOM Element with the supplied tag and with a value
+// built from the provided data. The data can be one of the types that is
+// acceptable to NewValue.
 func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	tagInfo, err := tag.Find(t)
 	if err != nil {
@@ -146,6 +149,8 @@ func mustNewElement(t tag.Tag, data interface{}) *Element {
 	return elem
 }
 
+// ValueType is a type that represents the type of a Value. It is an enumerated
+// set, and the set of values can be found below.
 type ValueType int
 
 // Possible ValueTypes that represent the different value types for information parsed into DICOM element values.
@@ -171,7 +176,7 @@ const (
 
 // bytesValue represents a value of []byte.
 type bytesValue struct {
-	value []byte `json:"value"`
+	value []byte
 }
 
 func (b *bytesValue) isElementValue()       {}
@@ -186,7 +191,7 @@ func (b *bytesValue) MarshalJSON() ([]byte, error) {
 
 // stringsValue represents a value of []string.
 type stringsValue struct {
-	value []string `json:"value"`
+	value []string
 }
 
 func (s *stringsValue) isElementValue()       {}
@@ -201,7 +206,7 @@ func (s *stringsValue) MarshalJSON() ([]byte, error) {
 
 // intsValue represents a value of []int.
 type intsValue struct {
-	value []int `json:"value"`
+	value []int
 }
 
 func (s *intsValue) isElementValue()       {}
@@ -216,7 +221,7 @@ func (s *intsValue) MarshalJSON() ([]byte, error) {
 
 // floatsValue represents a value of []float64.
 type floatsValue struct {
-	value []float64 `json:"value"`
+	value []float64
 }
 
 func (s *floatsValue) isElementValue()       {}
@@ -229,8 +234,11 @@ func (s *floatsValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
 
+// SequenceItemValue is a Value that represents a single Sequence Item. Learn
+// more about Sequences at
+// http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html.
 type SequenceItemValue struct {
-	elements []*Element `json:"elements"`
+	elements []*Element
 }
 
 func (s *SequenceItemValue) isElementValue()       {}
@@ -246,7 +254,7 @@ func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
 
 // sequencesValue represents a set of items in a DICOM sequence.
 type sequencesValue struct {
-	value []*SequenceItemValue `json:"sequenceItems"`
+	value []*SequenceItemValue
 }
 
 func (s *sequencesValue) isElementValue()       {}
@@ -260,10 +268,11 @@ func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
 
+// PixelDataInfo is a representation of DICOM PixelData.
 type PixelDataInfo struct {
-	Frames         []frame.Frame // Frames
-	IsEncapsulated bool          `json:"isEncapsulated"`
-	Offsets        []uint32      // BasicOffsetTable
+	Frames         []frame.Frame
+	IsEncapsulated bool `json:"isEncapsulated"`
+	Offsets        []uint32
 }
 
 // pixelDataValue represents DICOM PixelData
@@ -279,10 +288,12 @@ func (e *pixelDataValue) String() string {
 	return ""
 }
 
-func (s *pixelDataValue) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.PixelDataInfo)
+func (e *pixelDataValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.PixelDataInfo)
 }
 
+// MustGetInts attempts to get an Ints value out of the provided value, and will
+// panic if it is unable to do so.
 func MustGetInts(v Value) []int {
 	if v.ValueType() != Ints {
 		log.Panicf("MustGetInts expected ValueType of Ints, got: %v", v.ValueType())
@@ -290,6 +301,8 @@ func MustGetInts(v Value) []int {
 	return v.GetValue().([]int)
 }
 
+// MustGetStrings attempts to get a Strings value out of the provided Value, and
+// will panic if it is unable to do so.
 func MustGetStrings(v Value) []string {
 	if v.ValueType() != Strings {
 		log.Panicf("MustGetStrings expected ValueType of Strings, got: %v", v.ValueType())
@@ -297,6 +310,8 @@ func MustGetStrings(v Value) []string {
 	return v.GetValue().([]string)
 }
 
+// MustGetBytes attempts to get a Bytes value out of the provided Value, and
+// will panic if it is unable to do so.
 func MustGetBytes(v Value) []byte {
 	if v.ValueType() != Bytes {
 		log.Panicf("MustGetBytes expected ValueType of Bytes, got: %v", v.ValueType())
@@ -304,6 +319,8 @@ func MustGetBytes(v Value) []byte {
 	return v.GetValue().([]byte)
 }
 
+// MustGetFloats attempts to get a Floats value out of the provided Value, and
+// will panic if it is unable to do so.
 func MustGetFloats(v Value) []float64 {
 	if v.ValueType() != Floats {
 		log.Panicf("MustGetFloats expected ValueType of Floats, got: %v", v.ValueType())
@@ -311,6 +328,8 @@ func MustGetFloats(v Value) []float64 {
 	return v.GetValue().([]float64)
 }
 
+// MustGetPixelDataInfo attempts to get a PixelDataInfo value out of the
+// provided Value, and will panic if it is unable to do so.
 func MustGetPixelDataInfo(v Value) PixelDataInfo {
 	if v.ValueType() != PixelData {
 		log.Panicf("MustGetPixelDataInfo expected ValueType of PixelData, got: %v", v.ValueType())

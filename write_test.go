@@ -31,21 +31,21 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
 			expectedError: nil,
 		},
 		{
-			name: "basic types with sequence (2 Items with 2 values each)",
+			name: "sequence (2 Items with 2 values each)",
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
-					// Item 1
+					// Item 1.
 					{
 						{
 							Tag:                    tag.PatientName,
@@ -64,7 +64,7 @@ func TestWrite(t *testing.T) {
 							},
 						},
 					},
-					// Item 2
+					// Item 2.
 					{
 						{
 							Tag:                    tag.PatientName,
@@ -88,11 +88,47 @@ func TestWrite(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "nested sequences",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+					// Item 1.
+					{
+						{
+							Tag:                    tag.PatientName,
+							ValueRepresentation:    tag.VRStringList,
+							RawValueRepresentation: "PN",
+							Value: &stringsValue{
+								value: []string{"Bob", "Jones"},
+							},
+						},
+						// Nested Sequence.
+						makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+							{
+								{
+									Tag:                    tag.PatientName,
+									ValueRepresentation:    tag.VRStringList,
+									RawValueRepresentation: "PN",
+									Value: &stringsValue{
+										value: []string{"Bob", "Jones"},
+									},
+								},
+							},
+						}),
+					},
+				}),
+			}},
+			expectedError: nil,
+		},
+		{
 			name: "without transfer syntax",
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
@@ -103,7 +139,7 @@ func TestWrite(t *testing.T) {
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
@@ -161,14 +197,6 @@ func TestWrite(t *testing.T) {
 		})
 	}
 }
-
-func TestEncodeElementHeader(t *testing.T) {}
-
-func TestWriteValue(t *testing.T) {}
-
-func TestWriteTag(t *testing.T) {}
-
-func TestWriteVRVL(t *testing.T) {}
 
 func TestVerifyVR(t *testing.T) {
 	cases := []struct {

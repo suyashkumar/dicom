@@ -360,11 +360,6 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 		return fmt.Errorf("encoding undefined-length element not yet supported: %v", t)
 	}
 
-	if t == tag.SequenceDelimitationItem || t == tag.ItemDelimitationItem {
-		// We don't write any values for these items, so we return immediately.
-		return nil
-	}
-
 	v := value.GetValue()
 	switch valueType {
 	case Strings:
@@ -548,12 +543,12 @@ var item = &Element{
 }
 
 func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts writeOptSet) error {
-	// Write out item header
+	// Write out item header.
 	if err := writeElement(w, item, opts); err != nil {
 		return err
 	}
 
-	// Write out nested Dataset elements
+	// Write out nested Dataset elements.
 	for _, elem := range values {
 		if err := writeElement(w, elem, opts); err != nil {
 			return err

@@ -18,7 +18,10 @@ import (
 )
 
 var (
-	ErrorOWRequiresEvenVL   = errors.New("vr of OW requires even value length")
+	// ErrorOWRequiresEvenVL indicates that an element with VR=OW had a not even
+	// value length which is not allowed.
+	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
+	// ErrorUnsupportedVR indicates that this VR is not supported.
 	ErrorUnsupportedVR      = errors.New("unsupported VR")
 	errorUnableToParseFloat = errors.New("unable to parse float type")
 )
@@ -29,9 +32,8 @@ func readTag(r dicomio.Reader) (*tag.Tag, error) {
 
 	if gerr == nil && eerr == nil {
 		return &tag.Tag{Group: group, Element: element}, nil
-	} else {
-		return nil, fmt.Errorf("error reading tag: %v %v", gerr, eerr)
 	}
+	return nil, fmt.Errorf("error reading tag: %v %v", gerr, eerr)
 }
 
 // TODO: Parsed VR should be an enum. Will require refactors of tag pkg.
@@ -83,7 +85,6 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 }
 
 func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool, d *Dataset, fc chan<- *frame.Frame) (Value, error) {
-	// TODO: implement
 	vrkind := tag.GetVRKind(t, vr)
 	// TODO: if we keep consistent function signature, consider a static map of VR to func?
 	switch vrkind {
@@ -327,7 +328,6 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 			if subElem.Tag == tag.ItemDelimitationItem {
 				break
 			}
-			// log.Println("readSequenceItem: tag: ", subElem.Tag)
 
 			sequenceItem.elements = append(sequenceItem.elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
@@ -343,7 +343,6 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 			if err != nil {
 				return nil, err
 			}
-			// log.Println("readSequenceItem: tag: ", subElem.Tag)
 
 			sequenceItem.elements = append(sequenceItem.elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
@@ -507,7 +506,7 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 	if err != nil {
 		return nil, err
 	}
-	// log.Println("readElement: readTag: ", t)
+
 	readImplicit := r.IsImplicit()
 	if *t == tag.Item {
 		// Always read implicit for item elements
@@ -536,12 +535,23 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 
 }
 
-// Read an Item object as raw bytes, useful when parsing encapsulated PixelData
+// Read an Item object as raw bytes, useful when parsing encapsulated PixelData.
+// This returns the read raw item, an indication if this is the end of the set
+// of items, and a possible error.
 func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 	t, err := readTag(r)
+	if err != nil {
+		return nil, true, err
+	}
 	// Item is always encoded implicit. PS3.6 7.5
 	vr, err := readVR(r, true, *t)
+	if err != nil {
+		return nil, true, err
+	}
 	vl, err := readVL(r, true, *t, vr)
+	if err != nil {
+		return nil, true, err
+	}
 
 	if err != nil {
 		return nil, true, err

@@ -20,7 +20,9 @@ var (
 	// ErrorMismatchValueTypeAndVR is for when there's a discrepency betweeen the ValueType and what the VR specifies.
 	ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match the VR required")
 	// ErrorUnexpectedValueType indicates an unexpected value type was seen.
-	ErrorUnexpectedValueType      = errors.New("Unexpected ValueType")
+	ErrorUnexpectedValueType = errors.New("Unexpected ValueType")
+	// ErrorUnsupportedBitsPerSample indicates that the BitsPerSample in this
+	// Dataset is not supported when unpacking native PixelData.
 	ErrorUnsupportedBitsPerSample = errors.New("unsupported BitsPerSample value")
 )
 
@@ -43,7 +45,7 @@ func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
 		return err
 	}
 
-	endian, implicit, err := ds.TransferSyntax()
+	endian, implicit, err := ds.transferSyntax()
 	if (err != nil && err != ErrorElementNotFound) || (err == ErrorElementNotFound && !optSet.defaultMissingTransferSyntax) {
 		return err
 	}
@@ -86,7 +88,7 @@ func SkipValueTypeVerification() WriteOption {
 }
 
 // DefaultMissingTransferSyntax returns a WriteOption indicating that a missing
-// TransferSyntax should not raise an error, and instead the default
+// transferSyntax should not raise an error, and instead the default
 // LittleEndian Implicit transfer syntax should be used and written out as a
 // Metadata element in the Dataset.
 func DefaultMissingTransferSyntax() WriteOption {
@@ -284,10 +286,7 @@ func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
 	if err := w.WriteUInt16(t.Group); err != nil {
 		return err
 	}
-	if err := w.WriteUInt16(t.Element); err != nil {
-		return err
-	}
-	return nil
+	return w.WriteUInt16(t.Element)
 }
 
 func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
@@ -357,10 +356,7 @@ func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) error {
 			return err
 		}
 	}
-	if err := writeRawItem(w, data.Bytes()); err != nil {
-		return err
-	}
-	return nil
+	return writeRawItem(w, data.Bytes())
 }
 
 func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
@@ -588,11 +584,7 @@ func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string
 	}
 
 	// Write ItemDelimitationItem.
-	if err := writeElement(w, sequenceItemDelimitationItem, opts); err != nil {
-		return err
-	}
-
-	return nil
+	return writeElement(w, sequenceItemDelimitationItem, opts)
 }
 
 func writeOtherWordString(w dicomio.Writer, data []byte) error {

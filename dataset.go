@@ -10,6 +10,8 @@ import (
 	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
+// ErrorElementNotFound indicates that the requested element was not found in
+// the Dataset.
 var ErrorElementNotFound = errors.New("element not found")
 
 // Dataset represents a DICOM dataset, see
@@ -34,14 +36,14 @@ func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
 	return nil, ErrorElementNotFound
 }
 
-func (d *Dataset) TransferSyntax() (binary.ByteOrder, bool, error) {
+func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {
 	elem, err := d.FindElementByTag(tag.TransferSyntaxUID)
 	if err != nil {
 		return nil, false, err
 	}
 	value, ok := elem.Value.GetValue().([]string)
 	if !ok || len(value) != 1 {
-		return nil, false, fmt.Errorf("Failed to retrieve TransferSyntaxUID. Unable to cast elem.Value to []string")
+		return nil, false, fmt.Errorf("failed to retrieve TransferSyntaxUID. Unable to cast elem.Value to []string")
 	}
 	transferSyntaxUID := value[0]
 	return uid.ParseTransferSyntaxUID(transferSyntaxUID)

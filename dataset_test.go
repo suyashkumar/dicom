@@ -14,8 +14,9 @@ func makeSequenceElement(tg tag.Tag, items [][]*Element) *Element {
 	}
 
 	return &Element{
-		Tag:                 tg,
-		ValueRepresentation: tag.VRSequence,
+		Tag:                    tg,
+		ValueRepresentation:    tag.VRSequence,
+		RawValueRepresentation: "SQ",
 		Value: &sequencesValue{
 			value: sequenceItems,
 		},

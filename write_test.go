@@ -16,12 +16,6 @@ import (
 	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
-/*
-FURTHER TESTING
-	- Read written values back in and verify Datsets are the same
-	- With 'wild' DICOMs with high variability, read in, write out, read in, and verify
-*/
-
 func TestWrite(t *testing.T) {
 	cases := []struct {
 		name          string
@@ -29,6 +23,7 @@ func TestWrite(t *testing.T) {
 		extraElems    []*Element
 		expectedError error
 		opts          []WriteOption
+		cmpOpts       []cmp.Option
 	}{
 		{
 			name: "basic types",
@@ -39,6 +34,56 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "basic types with sequence (2 Items with 2 values each)",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.PatientName, []string{"Robin Banks"}),
+				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+					// Item 1
+					{
+						{
+							Tag:                    tag.PatientName,
+							ValueRepresentation:    tag.VRStringList,
+							RawValueRepresentation: "PN",
+							Value: &stringsValue{
+								value: []string{"Bob", "Jones"},
+							},
+						},
+						{
+							Tag:                    tag.Rows,
+							ValueRepresentation:    tag.VRUInt16List,
+							RawValueRepresentation: "US",
+							Value: &intsValue{
+								value: []int{100},
+							},
+						},
+					},
+					// Item 2
+					{
+						{
+							Tag:                    tag.PatientName,
+							ValueRepresentation:    tag.VRStringList,
+							RawValueRepresentation: "PN",
+							Value: &stringsValue{
+								value: []string{"Bob", "Jones"},
+							},
+						},
+						{
+							Tag:                    tag.Rows,
+							ValueRepresentation:    tag.VRUInt16List,
+							RawValueRepresentation: "US",
+							Value: &intsValue{
+								value: []int{100},
+							},
+						},
+					},
+				}),
 			}},
 			expectedError: nil,
 		},
@@ -96,13 +141,19 @@ func TestWrite(t *testing.T) {
 				}
 
 				wantElems := append(tc.dataset.Elements, tc.extraElems...)
-				if diff := cmp.Diff(
-					readDS.Elements,
-					wantElems,
+
+				cmpOpts := []cmp.Option{
 					cmp.AllowUnexported(allValues...),
 					cmpopts.IgnoreFields(Element{}, "ValueLength"),
 					cmpopts.IgnoreSliceElements(func(e *Element) bool { return e.Tag == tag.FileMetaInformationGroupLength }),
 					cmpopts.SortSlices(func(x, y *Element) bool { return x.Tag.Compare(y.Tag) == 1 }),
+				}
+				cmpOpts = append(cmpOpts, tc.cmpOpts...)
+
+				if diff := cmp.Diff(
+					readDS.Elements,
+					wantElems,
+					cmpOpts...,
 				); diff != "" {
 					t.Errorf("Reading back written dataset led to unexpected diff from source data: %s", diff)
 				}

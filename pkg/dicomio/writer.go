@@ -7,7 +7,7 @@ import (
 
 // Writer is a lower level encoder that takes abstracted input and writes it at the byte-level
 type Writer interface {
-	SetTransferSynax(bo binary.ByteOrder, implicit bool)
+	SetTransferSyntax(bo binary.ByteOrder, implicit bool)
 	WriteZeros(len int)
 	WriteString(v string)
 	WriteByte(v byte)
@@ -34,7 +34,7 @@ func NewWriter(out io.Writer, bo binary.ByteOrder, implicit bool) Writer {
 	}
 }
 
-func (w *writer) SetTransferSynax(bo binary.ByteOrder, implicit bool) {
+func (w *writer) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
 	w.bo = bo
 	w.implicit = implicit
 }

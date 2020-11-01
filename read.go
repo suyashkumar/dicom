@@ -281,6 +281,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 			if subElement.Tag != tag.Item || subElement.Value.ValueType() != SequenceItem {
 				// This is an error, should be an Item!
 				// TODO: use error var
+				log.Println("Tag is ", subElement.Tag)
 				return nil, fmt.Errorf("non item found in sequence")
 			}
 

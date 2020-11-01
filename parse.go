@@ -1,3 +1,23 @@
+// Package dicom provides a set of tools to read, write, and generally
+// work with DICOM (http://dicom.nema.org/) medical image files in Go.
+//
+// dicom.Parse and dicom.Write provide the core functionality to read and write
+// DICOM Datasets. This package provides Go data structures that represent
+// DICOM concepts (for example, dicom.Dataset and dicom.Element). These
+// structures will pretty-print by default and are JSON serializable out of the
+// box.
+//
+// This package provides some advanced functionality as well, including:
+// streaming image frames to an output channel, reading elements one-by-one
+// (like an iterator pattern), flat iteration over nested elements in a Dataset,
+// and more.
+//
+// General usage is simple.
+// Check out the package examples below and some function specific examples.
+//
+// It may also be helpful to take a look at the example cmd/dicomutil program,
+// which is a CLI built around this library to save out image frames from DICOMs
+// and print out metadata to STDOUT.
 package dicom
 
 import (
@@ -45,6 +65,23 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Datase
 		close(p.frameChannel)
 	}
 	return p.dataset, nil
+}
+
+// ParseFile parses the entire DICOM at the given filepath. See dicom.Parse as
+// well for a more generic io.Reader based API.
+func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return Dataset{}, err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return Dataset{}, err
+	}
+
+	return Parse(f, info.Size(), frameChan)
 }
 
 // Parser is a struct that allows a user to parse Elements from a DICOM element-by-element using Next(), which may be

@@ -23,7 +23,7 @@ func TestElement_MarshalJSON_NestedElements(t *testing.T) {
 	}
 	seqElement := makeSequenceElement(tag.AddOtherSequence, nestedData)
 
-	want := `{"tag":{"Group":70,"Element":258},"VR":9,"rawVR":"","valueLength":0,"value":[[{"tag":{"Group":16,"Element":16},"VR":2,"rawVR":"","valueLength":0,"value":["Bob"]}]]}`
+	want := `{"tag":{"Group":70,"Element":258},"VR":9,"rawVR":"SQ","valueLength":0,"value":[[{"tag":{"Group":16,"Element":16},"VR":2,"rawVR":"","valueLength":0,"value":["Bob"]}]]}`
 
 	j, err := json.Marshal(seqElement)
 	if err != nil {

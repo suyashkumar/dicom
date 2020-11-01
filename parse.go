@@ -40,9 +40,16 @@ const (
 )
 
 var (
-	ErrorMagicWord              = errors.New("error, DICM magic word not found in correct location")
+	// ErrorMagicWord indicates that the magic word was not found in the correct
+	// location in the DICOM.
+	ErrorMagicWord = errors.New("error, DICM magic word not found in correct location")
+	// ErrorMetaElementGroupLength indicates that the MetaElementGroupLength
+	// was not found where expected in the metadata.
 	ErrorMetaElementGroupLength = errors.New("MetaElementGroupLength tag not found where expected")
-	ErrorEndOfDICOM             = errors.New("this indicates to the caller of Next() that the DICOM has been fully parsed.")
+	// ErrorEndOfDICOM indicates to the callers of Parser.Next() that the DICOM
+	// has been fully parsed. Users using one of the other Parse APIs should not
+	// need to use this.
+	ErrorEndOfDICOM = errors.New("this indicates to the caller of Next() that the DICOM has been fully parsed")
 )
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
@@ -175,6 +182,8 @@ func (p *Parser) Next() (*Element, error) {
 
 }
 
+// GetMetadata returns just the set of metadata elements that have been parsed
+// so far.
 func (p *Parser) GetMetadata() Dataset {
 	return p.metadata
 }

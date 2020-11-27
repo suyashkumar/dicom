@@ -1,4 +1,4 @@
-// Package dicomtag enumerates element tags defined in the DICOM standard.
+// Package tag enumerates element tags defined in the DICOM standard.
 //
 // ftp://medical.nema.org/medical/dicom/2011/11_06pu.pdf
 package tag
@@ -13,8 +13,11 @@ import (
 )
 
 const (
-	GROUP_ItemSeq            = 0xFFFE
-	UNKNOWN                  = "UN"
+	// GroupSeqItem is the tag group for a sequence item.
+	GroupSeqItem = 0xFFFE
+	// UnknownVR indicates an unknown VR.
+	UnknownVR = "UN"
+	// VLUndefinedLength is the VL used to indicated undefined length.
 	VLUndefinedLength uint32 = 0xffffffff
 )
 
@@ -47,6 +50,7 @@ func (t Tag) Compare(other Tag) int {
 	return 0
 }
 
+// IsPrivate indicates if the input group is part of a private tag.
 func IsPrivate(group uint16) bool {
 	return group%2 == 1
 }
@@ -57,9 +61,9 @@ func (t Tag) String() string {
 	return fmt.Sprintf("(%04x,%04x)", t.Group, t.Element)
 }
 
-// TagInfo stores detailed information about a Tag defined in the DICOM
+// Info stores detailed information about a Tag defined in the DICOM
 // standard.
-type TagInfo struct {
+type Info struct {
 	Tag Tag
 	// Data encoding "UL", "CS", etc.
 	VR string
@@ -144,22 +148,22 @@ func GetVRKind(tag Tag, vr string) VRKind {
 
 // Find finds information about the given tag. If the tag is not part of
 // the DICOM standard, or is retired from the standard, it returns an error.
-func Find(tag Tag) (TagInfo, error) {
+func Find(tag Tag) (Info, error) {
 	maybeInitTagDict()
 	entry, ok := tagDict[tag]
 	if !ok {
 		// (0000-u-ffff,0000)	UL	GenericGroupLength	1	GENERIC
 		if tag.Group%2 == 0 && tag.Element == 0x0000 {
-			entry = TagInfo{tag, "UL", "GenericGroupLength", "1"}
+			entry = Info{tag, "UL", "GenericGroupLength", "1"}
 		} else {
-			return TagInfo{}, fmt.Errorf("Could not find tag (0x%x, 0x%x) in dictionary", tag.Group, tag.Element)
+			return Info{}, fmt.Errorf("Could not find tag (0x%x, 0x%x) in dictionary", tag.Group, tag.Element)
 		}
 	}
 	return entry, nil
 }
 
 // MustFind is like FindTag, but panics on error.
-func MustFind(tag Tag) TagInfo {
+func MustFind(tag Tag) Info {
 	e, err := Find(tag)
 	if err != nil {
 		panic(fmt.Sprintf("tag %v not found: %s", tag, err))
@@ -172,14 +176,14 @@ func MustFind(tag Tag) TagInfo {
 // an error.
 //
 //   Example: FindTagByName("TransferSyntaxUID")
-func FindByName(name string) (TagInfo, error) {
+func FindByName(name string) (Info, error) {
 	maybeInitTagDict()
 	for _, ent := range tagDict {
 		if ent.Name == name {
 			return ent, nil
 		}
 	}
-	return TagInfo{}, fmt.Errorf("Could not find tag with name %s", name)
+	return Info{}, fmt.Errorf("Could not find tag with name %s", name)
 }
 
 // DebugString returns a human-readable diagnostic string for the tag, in format
@@ -189,9 +193,8 @@ func DebugString(tag Tag) string {
 	if err != nil {
 		if IsPrivate(tag.Group) {
 			return fmt.Sprintf("(%04x,%04x)[private]", tag.Group, tag.Element)
-		} else {
-			return fmt.Sprintf("(%04x,%04x)[??]", tag.Group, tag.Element)
 		}
+		return fmt.Sprintf("(%04x,%04x)[??]", tag.Group, tag.Element)
 	}
 	return fmt.Sprintf("(%04x,%04x)[%s]", tag.Group, tag.Element, e.Name)
 }

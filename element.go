@@ -137,7 +137,7 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 		Tag:                    t,
 		ValueRepresentation:    tag.GetVRKind(t, rawVR),
 		RawValueRepresentation: rawVR,
-		Value: value,
+		Value:                  value,
 	}, nil
 }
 
@@ -241,13 +241,24 @@ type SequenceItemValue struct {
 	elements []*Element
 }
 
-func (s *SequenceItemValue) isElementValue()       {}
-func (s *SequenceItemValue) ValueType() ValueType  { return SequenceItem }
+func (s *SequenceItemValue) isElementValue() {}
+
+// ValueType returns the underlying ValueType of this Value. This can be used
+// to unpack the underlying data in this Value.
+func (s *SequenceItemValue) ValueType() ValueType { return SequenceItem }
+
+// GetValue returns the underlying value that this Value holds. What type is
+// returned here can be determined exactly from the ValueType() of this Value
+// (see the ValueType godoc).
 func (s *SequenceItemValue) GetValue() interface{} { return s.elements }
+
+// String is used to get a string representation of this struct.
 func (s *SequenceItemValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return fmt.Sprintf("%+v", s.elements)
 }
+
+// MarshalJSON is the method used to marshal this struct to JSON.
 func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.elements)
 }

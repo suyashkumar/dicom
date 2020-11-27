@@ -1,4 +1,4 @@
-name: suyashkumar/dicom build
+name: build
 on: [push, pull_request]
 jobs:
 

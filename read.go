@@ -42,7 +42,7 @@ func readVR(r dicomio.Reader, isImplicit bool, t tag.Tag) (string, error) {
 		if entry, err := tag.Find(t); err == nil {
 			return entry.VR, nil
 		}
-		return tag.UNKNOWN, nil
+		return tag.UnknownVR, nil
 	}
 
 	// Explicit Transfer Syntax, read 2 byte VR:

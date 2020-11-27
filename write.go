@@ -307,7 +307,7 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 
 	// Write VR then VL
 	_, implicit := w.GetTransferSyntax()
-	if t.Group == tag.GROUP_ItemSeq {
+	if t.Group == tag.GroupSeqItem {
 		implicit = true
 	}
 	if !implicit { // Explicit

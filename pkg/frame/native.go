@@ -14,12 +14,17 @@ type NativeFrame struct {
 	BitsPerSample int
 }
 
+// IsEncapsulated indicates if the frame is encapsulated or not.
 func (n *NativeFrame) IsEncapsulated() bool { return false }
 
+// GetNativeFrame returns a NativeFrame from this frame. If the underlying frame
+// is not a NativeFrame, ErrorFrameTypeNotPresent will be returned.
 func (n *NativeFrame) GetNativeFrame() (*NativeFrame, error) {
 	return n, nil
 }
 
+// GetEncapsulatedFrame returns ErrorFrameTypeNotPresent, because this struct
+// does not hold encapsulated frame data.
 func (n *NativeFrame) GetEncapsulatedFrame() (*EncapsulatedFrame, error) {
 	return nil, ErrorFrameTypeNotPresent
 }

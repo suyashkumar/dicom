@@ -13,6 +13,9 @@ import (
 )
 
 var (
+	// ErrorInsufficientBytesLeft indicates there are not enough bytes left in
+	// the current buffer (or enough bytes left until the currently set limit)
+	// to complete the operation.
 	ErrorInsufficientBytesLeft = errors.New("not enough bytes left until buffer limit to complete this operation")
 )
 
@@ -33,28 +36,36 @@ type Reader interface {
 	ReadFloat32() (float32, error)
 	// ReadFloat64 reads a float32 from the underlying reader.
 	ReadFloat64() (float64, error)
-	// ReadString reads an n byte string from the underlying reader. Uses the charset.CodingSystem encoding.
-	// Decoders to read the string, if set.
+	// ReadString reads an n byte string from the underlying reader.
+	// Uses the charset.CodingSystem encoding decoders to read the string, if
+	// set.
 	ReadString(n uint32) (string, error)
 	// Skip skips the reader ahead by n bytes.
 	Skip(n int64) error
 	// Peek returns the next n bytes without advancing the reader. This will
 	// return bufio.ErrBufferFull if the buffer is full.
 	Peek(n int) ([]byte, error)
-	// PushLimit sets a read limit of n bytes from the current position of the reader. Once the limit is reached,
-	// IsLimitExhausted will return true, and other attempts to read data from dicomio.Reader will return io.EOF.
+	// PushLimit sets a read limit of n bytes from the current position of the
+	// reader. Once the limit is reached, IsLimitExhausted will return true, and
+	// other attempts to read data from dicomio.Reader will return io.EOF.
 	PushLimit(n int64) error
-	// PopLimit removes the most recent limit set, and restores the limit before that one.
+	// PopLimit removes the most recent limit set, and restores the limit before
+	// that one.
 	PopLimit()
-	// IsLimitExhausted indicates whether or not we have read up to the currently set limit position.
+	// IsLimitExhausted indicates whether or not we have read up to the
+	// currently set limit position.
 	IsLimitExhausted() bool
-	// BytesLeftUntilLimit returns the number of bytes remaining until we reach the currently set limit positon.
+	// BytesLeftUntilLimit returns the number of bytes remaining until we reach
+	// the currently set limit position.
 	BytesLeftUntilLimit() int64
-	// SetTransferSyntax sets the byte order and whether the current transfer syntax is implicit or not.
+	// SetTransferSyntax sets the byte order and whether the current transfer
+	// syntax is implicit or not.
 	SetTransferSyntax(bo binary.ByteOrder, implicit bool)
-	// IsImplicit returns if the currently set transfer syntax on this Reader is implicit or not.
+	// IsImplicit returns if the currently set transfer syntax on this Reader is
+	// implicit or not.
 	IsImplicit() bool
-	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString is called.
+	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString
+	// is called.
 	SetCodingSystem(cs charset.CodingSystem)
 }
 
@@ -65,11 +76,13 @@ type reader struct {
 	limit      int64
 	bytesRead  int64
 	limitStack []int64
-	// cs represents the CodingSystem to use when reading the string. If a particular encoding.
-	// Decoder within this CodingSystem is nil, assume ASCII
+	// cs represents the CodingSystem to use when reading the string. If a
+	// particular encoding.Decoder within this CodingSystem is nil, assume
+	// ASCII.
 	cs charset.CodingSystem
 }
 
+// NewReader creates and returns a new dicomio.Reader.
 func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) (Reader, error) {
 	return &reader{
 		in:        in,

@@ -17,17 +17,17 @@ import (
 	"github.com/suyashkumar/dicom"
 )
 
-// TestParse is an end-to-end sanity check over DICOMs in testfiles/. Currently it only checks that no error is returned
+// TestParse is an end-to-end sanity check over DICOMs in testdata/. Currently it only checks that no error is returned
 // when parsing the files.
 func TestParse(t *testing.T) {
-	files, err := ioutil.ReadDir("./testfiles")
+	files, err := ioutil.ReadDir("./testdata")
 	if err != nil {
-		t.Fatalf("unable to read testfiles/: %v", err)
+		t.Fatalf("unable to read testdata/: %v", err)
 	}
 	for _, f := range files {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
 			t.Run(f.Name(), func(t *testing.T) {
-				dcm, err := os.Open("./testfiles/" + f.Name())
+				dcm, err := os.Open("./testdata/" + f.Name())
 				if err != nil {
 					t.Errorf("Unable to open %s. Error: %v", f.Name(), err)
 				}
@@ -45,16 +45,16 @@ func TestParse(t *testing.T) {
 	}
 }
 
-// BenchmarkParse runs sanity benchmarks over the sample files in testfiles.
+// BenchmarkParse runs sanity benchmarks over the sample files in testdata.
 func BenchmarkParse(b *testing.B) {
-	files, err := ioutil.ReadDir("./testfiles")
+	files, err := ioutil.ReadDir("./testdata")
 	if err != nil {
-		b.Fatalf("unable to read testfiles/: %v", err)
+		b.Fatalf("unable to read testdata/: %v", err)
 	}
 	for _, f := range files {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
 			b.Run(f.Name(), func(b *testing.B) {
-				dcm, err := os.Open("./testfiles/" + f.Name())
+				dcm, err := os.Open("./testdata/" + f.Name())
 				if err != nil {
 					b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
 				}
@@ -76,7 +76,7 @@ func BenchmarkParse(b *testing.B) {
 
 func Example_readFile() {
 	// See also: dicom.Parse, which uses a more generic io.Reader API.
-	dataset, _ := dicom.ParseFile("testfiles/1.dcm", nil)
+	dataset, _ := dicom.ParseFile("testdata/1.dcm", nil)
 
 	// Dataset will nicely print the DICOM dataset data out of the box.
 	fmt.Println(dataset)
@@ -99,12 +99,12 @@ func Example_streamingFrames() {
 		}
 	}()
 
-	dataset, _ := dicom.ParseFile("testfiles/1.dcm", frameChan)
+	dataset, _ := dicom.ParseFile("testdata/1.dcm", frameChan)
 	fmt.Println(dataset) // The full dataset
 }
 
 func Example_getImageFrames() {
-	dataset, _ := dicom.ParseFile("testfiles/1.dcm", nil)
+	dataset, _ := dicom.ParseFile("testdata/1.dcm", nil)
 	pixelDataElement, _ := dataset.FindElementByTag(tag.PixelData)
 	pixelDataInfo := dicom.MustGetPixelDataInfo(pixelDataElement.Value)
 	for i, fr := range pixelDataInfo.Frames {

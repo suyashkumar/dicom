@@ -28,7 +28,7 @@ Some notable features:
 To use this in your golang project, import `github.com/suyashkumar/dicom`. This repository supports Go modules, and regularly tags releases using semantic versioning. Typical usage is straightforward:
 ```go 
 
-dataset, _ := dicom.ParseFile("testfiles/1.dcm", nil) // See also: dicom.Parse which has a generic io.Reader API.
+dataset, _ := dicom.ParseFile("testdata/1.dcm", nil) // See also: dicom.Parse which has a generic io.Reader API.
 
 // Dataset will nicely print the DICOM dataset data out of the box.
 fmt.Println(dataset)

@@ -9,7 +9,6 @@ import (
 	"log"
 	"strconv"
 	"strings"
-
 	"unicode"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -553,9 +552,6 @@ func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 		return nil, true, err
 	}
 
-	if err != nil {
-		return nil, true, err
-	}
 	if *t == tag.SequenceDelimitationItem {
 		if vl != 0 {
 			log.Printf("SequenceDelimitationItem's VL != 0: %d", vl)

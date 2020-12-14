@@ -57,6 +57,8 @@ jobs:
        go get golang.org/x/perf/cmd/benchstat
        cd $REPO_PATH
        make
+       echo "New Commit:"
+       git log -1 --format="%H"
        go test -bench . > $HOME/new.txt
        cd $GITHUB_WORKSPACE
        git reset --hard HEAD
@@ -65,6 +67,8 @@ jobs:
        mkdir -p $REPO_PATH
        mv $(pwd)/* $REPO_PATH 
        cd $REPO_PATH
+       echo "Old Commit:"
+       git log -1 --format="%H"
        go test -bench . > $HOME/old.txt
        benchstat $HOME/old.txt $HOME/new.txt
        

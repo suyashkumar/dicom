@@ -34,6 +34,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
 			expectedError: nil,
 		},

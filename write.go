@@ -258,7 +258,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 	valueType := value.ValueType()
 	var ok bool
 	switch vr {
-	case "US", "UL", "SL", "SS":
+	case "US", "UL", "SL", "SS", "AT":
 		ok = valueType == Ints
 	case "SQ":
 		ok = valueType == Sequences
@@ -272,8 +272,6 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		}
 	case "FL", "FD":
 		ok = valueType == Floats
-	case "AT":
-		fallthrough
 	default:
 		ok = valueType == Strings
 	}
@@ -450,7 +448,9 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
-		case "US", "SS":
+		// TODO(suyashkumar): consider validating that elements with VR=AT only
+		// have two elements in the future.
+		case "US", "SS", "AT":
 			if err := w.WriteUInt16(uint16(value)); err != nil {
 				return err
 			}

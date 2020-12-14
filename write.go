@@ -448,8 +448,7 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
-		// TODO(suyashkumar): consider validating that elements with VR=AT only
-		// have two elements in the future.
+		// TODO(suyashkumar): consider additional validation of VR=AT elements.
 		case "US", "SS", "AT":
 			if err := w.WriteUInt16(uint16(value)); err != nil {
 				return err

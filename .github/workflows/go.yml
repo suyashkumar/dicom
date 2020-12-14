@@ -24,7 +24,7 @@ jobs:
             mkdir -p $GOBIN 
             export PATH=$PATH:/home/runner/go/bin
             mkdir -p $REPO_PATH
-            cp $(pwd)/{.,}* $REPO_PATH 
+            cp -r $(pwd)/{.,}* $REPO_PATH 
             cd $REPO_PATH 
             go mod download
 

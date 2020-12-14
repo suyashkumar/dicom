@@ -62,12 +62,12 @@ jobs:
        cd $GITHUB_WORKSPACE
        git reset --hard HEAD
        git checkout $GITHUB_BASE_REF
+       echo "Base Commit:"
+       git log -1 --format="%H"
        rm -rf $REPO_PATH
        mkdir -p $REPO_PATH
-       mv $(pwd)/* $REPO_PATH 
+       cp -r $(pwd)/* $REPO_PATH
        cd $REPO_PATH
-       echo "Old Commit:"
-       git log -1 --format="%H"
        go test -bench . > $HOME/old.txt
        benchstat $HOME/old.txt $HOME/new.txt
        

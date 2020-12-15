@@ -42,9 +42,7 @@ func TestNativeFrame_GetImage(t *testing.T) {
 			NativeFrame: frame.NativeFrame{
 				Rows: 5,
 				Cols: 3,
-				Data: [][]int{
-					{0}, {0}, {0}, {0}, {1}, {1}, {0}, {0}, {0}, {0}, {1}, {0}, {0}, {0}, {0}
-				},
+				Data: [][]int{{0}, {0}, {0}, {0}, {1}, {1}, {0}, {0}, {0}, {0}, {1}, {0}, {0}, {0}, {0}},
 			},
 			SetPoints: []point{{1, 1}, {2, 1}, {1, 3}},
 		},

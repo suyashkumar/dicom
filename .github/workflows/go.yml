@@ -24,7 +24,7 @@ jobs:
             mkdir -p $GOBIN 
             export PATH=$PATH:/home/runner/go/bin
             mkdir -p $REPO_PATH
-            mv $(pwd)/* $REPO_PATH 
+            cp -r $(pwd)/* $REPO_PATH 
             cd $REPO_PATH 
             go mod download
 
@@ -55,15 +55,18 @@ jobs:
        export REPO_PATH=$GOPATH/src/github.com/suyashkumar/dicom
        export PATH=$PATH:/home/runner/go/bin
        go get golang.org/x/perf/cmd/benchstat
+       echo "New Commit:"
+       git log -1 --format="%H"
        cd $REPO_PATH
-       make
        go test -bench . > $HOME/new.txt
        cd $GITHUB_WORKSPACE
        git reset --hard HEAD
        git checkout $GITHUB_BASE_REF
+       echo "Base Commit:"
+       git log -1 --format="%H"
        rm -rf $REPO_PATH
        mkdir -p $REPO_PATH
-       mv $(pwd)/* $REPO_PATH 
+       cp -r $(pwd)/* $REPO_PATH
        cd $REPO_PATH
        go test -bench . > $HOME/old.txt
        benchstat $HOME/old.txt $HOME/new.txt

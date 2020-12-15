@@ -16,6 +16,13 @@ import (
 	"github.com/suyashkumar/dicom/pkg/uid"
 )
 
+// TestWrite tests the write package by ensuring that it is consistent with the
+// Parse implementation. In particular, it is tested by writing out known
+// collections of Element and reading them back in using the Parse API and
+// ensuing the read in collection is equal to the initial collection.
+//
+// This also serves to test that the Parse implementation is consistent with the
+// Write implementation (e.g. it kinda goes both ways and covers Parse too).
 func TestWrite(t *testing.T) {
 	cases := []struct {
 		name          string
@@ -34,6 +41,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
 			expectedError: nil,
 		},

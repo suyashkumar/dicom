@@ -93,7 +93,7 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readString(r, t, vr, vl)
 	case tag.VRDate:
 		return readDate(r, t, vr, vl)
-	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List:
+	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List, tag.VRTagList:
 		return readInt(r, t, vr, vl)
 	case tag.VRSequence:
 		return readSequence(r, t, vr, vl)
@@ -459,7 +459,7 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	retVal := &intsValue{value: make([]int, 0, vl/2)}
 	for !r.IsLimitExhausted() {
 		switch vr {
-		case "US":
+		case "US", "AT":
 			val, err := r.ReadUInt16()
 			if err != nil {
 				return nil, err

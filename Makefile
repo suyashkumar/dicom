@@ -1,5 +1,5 @@
 BINARY = dicomutil
-VERSION != git describe --tags --always
+VERSION = `git describe --tags --always`
 
 .PHONY: build
 build:

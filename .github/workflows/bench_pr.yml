@@ -19,7 +19,7 @@ jobs:
       run: | 
             go mod download
   
-    - name: Benchmark
+    - name: Benchmark against GITHUB_BASE_REF
       run: |
        export PATH=$PATH:$GOBIN
        go get golang.org/x/perf/cmd/benchstat

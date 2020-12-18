@@ -2,7 +2,7 @@ name: bench_pr
 on: [pull_request]
 jobs:
   build:
-    name: Build and Test
+    name: Benchmark (PR)
     runs-on: ubuntu-latest
     steps:
 

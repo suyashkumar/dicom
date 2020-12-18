@@ -282,7 +282,7 @@ func TestReadNativeFrames(t *testing.T) {
 				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
 			}
 
-			if diff := cmp.Diff(pixelData, tc.expectedPixelData); diff != "" {
+			if diff := cmp.Diff(tc.expectedPixelData, pixelData); diff != "" {
 				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.data, diff)
 			}
 		})

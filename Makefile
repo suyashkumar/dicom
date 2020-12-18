@@ -31,3 +31,10 @@ release:
 	tar -zcvf ${BINARY}-linux-amd64.tar.gz ${BINARY}-linux-amd64; \
 	tar -zcvf ${BINARY}-darwin-amd64.tar.gz ${BINARY}-darwin-amd64; \
 	zip -r ${BINARY}-windows-amd64.exe.zip ${BINARY}-windows-amd64.exe;
+
+bench-diff:
+	go test -bench . -count 5 > bench_current.txt
+	git checkout main
+	go test -bench . -count 5 > bench_main.txt
+	benchstat bench_main.txt bench_current.txt
+	git checkout -

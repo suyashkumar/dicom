@@ -18,7 +18,7 @@ jobs:
       run: | 
             go mod download
   
-    - name: Benchmark
+    - name: Benchmark (against HEAD~1)
       run: |
        export PATH=$PATH:$GOBIN
        go get golang.org/x/perf/cmd/benchstat

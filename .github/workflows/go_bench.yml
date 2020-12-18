@@ -1,0 +1,34 @@
+name: bench_pr
+on: [pull_request]
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.15
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.15
+      id: go
+
+    - name: Check out code 
+      uses: actions/checkout@v1
+
+    - name: Get dependencies
+      run: | 
+            go mod download
+  
+    - name: Benchmark
+      run: |
+       go get golang.org/x/perf/cmd/benchstat
+       echo "New Commit:"
+       git log -1 --format="%H"
+       go test -bench=. -count=5 > $HOME/new.txt
+       git reset --hard HEAD
+       git checkout $GITHUB_BASE_REF
+       echo "Base Commit:"
+       git log -1 --format="%H"
+       go test -bench=. -count=5 > $HOME/old.txt
+       benchstat $HOME/old.txt $HOME/new.txt
+       

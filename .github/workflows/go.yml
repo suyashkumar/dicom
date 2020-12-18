@@ -58,7 +58,7 @@ jobs:
        echo "New Commit:"
        git log -1 --format="%H"
        cd $REPO_PATH
-       go test -bench . > $HOME/new.txt
+       go test -bench=. -count=5 > $HOME/new.txt
        cd $GITHUB_WORKSPACE
        git reset --hard HEAD
        git checkout $GITHUB_BASE_REF
@@ -68,7 +68,7 @@ jobs:
        mkdir -p $REPO_PATH
        cp -r $(pwd)/* $REPO_PATH
        cd $REPO_PATH
-       go test -bench . > $HOME/old.txt
+       go test -bench=. -count=5 > $HOME/old.txt
        benchstat $HOME/old.txt $HOME/new.txt
        
 

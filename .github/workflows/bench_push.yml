@@ -24,10 +24,10 @@ jobs:
        go get golang.org/x/perf/cmd/benchstat
        echo "New Commit:"
        git log -1 --format="%H"
-       go test -bench=. -benchtime=12s -count=5 > $HOME/new.txt
+       go test -bench=. -benchtime=1.5s -count=5 > $HOME/new.txt
        git reset --hard HEAD
        git checkout HEAD~1
        echo "Base Commit:"
        git log -1 --format="%H"
-       go test -bench=. -benchtime=12s -count=5 > $HOME/old.txt
+       go test -bench=. -benchtime=1.5s -count=5 > $HOME/old.txt
        benchstat $HOME/old.txt $HOME/new.txt

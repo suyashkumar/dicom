@@ -21,6 +21,8 @@ jobs:
   
     - name: Benchmark
       run: |
+       export GOBIN=$GOPATH/bin
+       export PATH=$PATH:$GOBIN
        go get golang.org/x/perf/cmd/benchstat
        echo "New Commit:"
        git log -1 --format="%H"

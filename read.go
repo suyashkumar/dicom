@@ -229,19 +229,19 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 				if bitsAllocated == 8 {
 					val, err := d.ReadUInt8()
 					if err != nil {
-						return nil, bytesRead, errors.New("")
+						return nil, bytesRead, err
 					}
 					currentPixel[value] = int(val)
 				} else if bitsAllocated == 16 {
 					val, err := d.ReadUInt16()
 					if err != nil {
-						return nil, bytesRead, errors.New("")
+						return nil, bytesRead, err
 					}
 					currentPixel[value] = int(val)
 				} else if bitsAllocated == 32 {
 					val, err := d.ReadUInt32()
 					if err != nil {
-						return nil, bytesRead, errors.New("")
+						return nil, bytesRead, err
 					}
 					currentPixel[value] = int(val)
 				}

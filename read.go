@@ -223,30 +223,30 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 				Data:          make([][]int, int(pixelsPerFrame)),
 			},
 		}
+		buf := make([]int, int(pixelsPerFrame)*samplesPerPixel)
 		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
-			currentPixel := make([]int, samplesPerPixel)
 			for value := 0; value < samplesPerPixel; value++ {
 				if bitsAllocated == 8 {
 					val, err := d.ReadUInt8()
 					if err != nil {
 						return nil, bytesRead, err
 					}
-					currentPixel[value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(val)
 				} else if bitsAllocated == 16 {
 					val, err := d.ReadUInt16()
 					if err != nil {
 						return nil, bytesRead, err
 					}
-					currentPixel[value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(val)
 				} else if bitsAllocated == 32 {
 					val, err := d.ReadUInt32()
 					if err != nil {
 						return nil, bytesRead, err
 					}
-					currentPixel[value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(val)
 				}
 			}
-			currentFrame.NativeData.Data[pixel] = currentPixel
+			currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
 		}
 		image.Frames[frameIdx] = currentFrame
 		if fc != nil {

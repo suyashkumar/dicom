@@ -67,7 +67,7 @@ type Reader interface {
 	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString
 	// is called.
 	SetCodingSystem(cs charset.CodingSystem)
-	GetByteOrder() binary.ByteOrder
+	ByteOrder() binary.ByteOrder
 }
 
 type reader struct {

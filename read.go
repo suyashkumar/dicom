@@ -229,7 +229,6 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
 			for value := 0; value < samplesPerPixel; value++ {
 
-				// read into pre-allocated pixel buffer
 				n, err := d.Read(pixelBuf)
 				if err != nil {
 					return nil, bytesRead,

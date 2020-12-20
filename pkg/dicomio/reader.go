@@ -236,6 +236,6 @@ func (r *reader) Peek(n int) ([]byte, error) {
 	return r.in.Peek(n)
 }
 
-func (r *reader) GetByteOrder() binary.ByteOrder {
+func (r *reader) ByteOrder() binary.ByteOrder {
 	return r.bo
 }

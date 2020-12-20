@@ -170,7 +170,10 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	if err != nil {
 		return err
 	}
-	w.WriteBytes(metaBytes.Bytes())
+	err = w.WriteBytes(metaBytes.Bytes())
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -214,7 +217,10 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 
 	if elem.Value != nil {
 		// Write the bytes to the original writer
-		w.WriteBytes(valueData.Bytes())
+		err = w.WriteBytes(valueData.Bytes())
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -252,7 +258,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 	valueType := value.ValueType()
 	var ok bool
 	switch vr {
-	case "US", "UL", "SL", "SS":
+	case "US", "UL", "SL", "SS", "AT":
 		ok = valueType == Ints
 	case "SQ":
 		ok = valueType == Sequences
@@ -266,8 +272,6 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		}
 	case "FL", "FD":
 		ok = valueType == Floats
-	case "AT":
-		fallthrough
 	default:
 		ok = valueType == Strings
 	}
@@ -343,7 +347,9 @@ func writeRawItem(w dicomio.Writer, data []byte) error {
 	if err := writeVRVL(w, tag.Item, "NA", length); err != nil {
 		return err
 	}
-	w.WriteBytes(data)
+	if err := w.WriteBytes(data); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -442,7 +448,8 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
-		case "US", "SS":
+		// TODO(suyashkumar): consider additional validation of VR=AT elements.
+		case "US", "SS", "AT":
 			if err := w.WriteUInt16(uint16(value)); err != nil {
 				return err
 			}

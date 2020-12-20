@@ -17,7 +17,11 @@ import (
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
+// GitVersion is the current version of dicomutil, will be replaced in release step with current git commit hash or tag.
+var GitVersion = "unknown"
+
 var (
+	version             = flag.Bool("version", false, "print current version and exit")
 	filepath            = flag.String("path", "", "path")
 	extractImagesStream = flag.Bool("extract-images-stream", false, "Extract images using frame streaming capability")
 	printJSON           = flag.Bool("json", false, "Print dataset as JSON")
@@ -28,6 +32,12 @@ const FrameBufferSize = 100
 
 func main() {
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("dicomutil: %s\n", GitVersion)
+		os.Exit(0)
+	}
+
 	if len(*filepath) > 0 {
 
 		f, err := os.Open(*filepath)

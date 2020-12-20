@@ -35,7 +35,7 @@ func (n *NativeFrame) GetEncapsulatedFrame() (*EncapsulatedFrame, error) {
 func (n *NativeFrame) GetImage() (image.Image, error) {
 	i := image.NewGray16(image.Rect(0, 0, n.Cols, n.Rows))
 	for j := 0; j < len(n.Data); j++ {
-		i.SetGray16(j%n.Cols, j/n.Rows, color.Gray16{Y: uint16(n.Data[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
+		i.SetGray16(j%n.Cols, j/n.Cols, color.Gray16{Y: uint16(n.Data[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
 	}
 	return i, nil
 }

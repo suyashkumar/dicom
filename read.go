@@ -9,7 +9,6 @@ import (
 	"log"
 	"strconv"
 	"strings"
-
 	"unicode"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -94,7 +93,7 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readString(r, t, vr, vl)
 	case tag.VRDate:
 		return readDate(r, t, vr, vl)
-	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List:
+	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List, tag.VRTagList:
 		return readInt(r, t, vr, vl)
 	case tag.VRSequence:
 		return readSequence(r, t, vr, vl)
@@ -224,30 +223,30 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 				Data:          make([][]int, int(pixelsPerFrame)),
 			},
 		}
+		buf := make([]int, int(pixelsPerFrame)*samplesPerPixel)
 		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
-			currentPixel := make([]int, samplesPerPixel)
 			for value := 0; value < samplesPerPixel; value++ {
 				if bitsAllocated == 8 {
 					val, err := d.ReadUInt8()
 					if err != nil {
-						return nil, bytesRead, errors.New("")
+						return nil, bytesRead, err
 					}
-					currentPixel[value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(val)
 				} else if bitsAllocated == 16 {
 					val, err := d.ReadUInt16()
 					if err != nil {
-						return nil, bytesRead, errors.New("")
+						return nil, bytesRead, err
 					}
-					currentPixel[value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(val)
 				} else if bitsAllocated == 32 {
 					val, err := d.ReadUInt32()
 					if err != nil {
-						return nil, bytesRead, errors.New("")
+						return nil, bytesRead, err
 					}
-					currentPixel[value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(val)
 				}
 			}
-			currentFrame.NativeData.Data[pixel] = currentPixel
+			currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
 		}
 		image.Frames[frameIdx] = currentFrame
 		if fc != nil {
@@ -460,7 +459,7 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	retVal := &intsValue{value: make([]int, 0, vl/2)}
 	for !r.IsLimitExhausted() {
 		switch vr {
-		case "US":
+		case "US", "AT":
 			val, err := r.ReadUInt16()
 			if err != nil {
 				return nil, err
@@ -553,9 +552,6 @@ func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 		return nil, true, err
 	}
 
-	if err != nil {
-		return nil, true, err
-	}
 	if *t == tag.SequenceDelimitationItem {
 		if vl != 0 {
 			log.Printf("SequenceDelimitationItem's VL != 0: %d", vl)

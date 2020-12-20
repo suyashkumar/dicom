@@ -1,4 +1,4 @@
-# Testfiles Details
+# Test files Details
 
 This document contains citations and further details for the test DICOMs used
 here. Eventually I would like to store a way more expansive set of test DICOMs

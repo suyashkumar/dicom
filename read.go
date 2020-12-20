@@ -212,7 +212,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 
 	// Parse the pixels:
 	image.Frames = make([]frame.Frame, nFrames)
-	bo := d.GetByteOrder()
+	bo := d.ByteOrder()
 	pixelBuf := make([]byte, bitsAllocated/8)
 	for frameIdx := 0; frameIdx < nFrames; frameIdx++ {
 		// Init current frame

@@ -67,6 +67,7 @@ type Reader interface {
 	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString
 	// is called.
 	SetCodingSystem(cs charset.CodingSystem)
+	GetByteOrder() binary.ByteOrder
 }
 
 type reader struct {
@@ -233,4 +234,8 @@ func (r *reader) SetCodingSystem(cs charset.CodingSystem) {
 
 func (r *reader) Peek(n int) ([]byte, error) {
 	return r.in.Peek(n)
+}
+
+func (r *reader) GetByteOrder() binary.ByteOrder {
+	return r.bo
 }

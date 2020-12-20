@@ -212,6 +212,8 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 
 	// Parse the pixels:
 	image.Frames = make([]frame.Frame, nFrames)
+	bo := d.GetByteOrder()
+	pixelBuf := make([]byte, bitsAllocated/8)
 	for frameIdx := 0; frameIdx < nFrames; frameIdx++ {
 		// Init current frame
 		currentFrame := frame.Frame{
@@ -226,24 +228,24 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		buf := make([]int, int(pixelsPerFrame)*samplesPerPixel)
 		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
 			for value := 0; value < samplesPerPixel; value++ {
+
+				// read into pre-allocated pixel buffer
+				n, err := d.Read(pixelBuf)
+				if err != nil {
+					return nil, bytesRead,
+						fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
+				}
+				if n < bitsAllocated/8 {
+					return nil, bytesRead,
+						fmt.Errorf("not enough bytes in the input to read uint%d", bitsAllocated)
+				}
+
 				if bitsAllocated == 8 {
-					val, err := d.ReadUInt8()
-					if err != nil {
-						return nil, bytesRead, err
-					}
-					buf[(pixel*samplesPerPixel)+value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(pixelBuf[0])
 				} else if bitsAllocated == 16 {
-					val, err := d.ReadUInt16()
-					if err != nil {
-						return nil, bytesRead, err
-					}
-					buf[(pixel*samplesPerPixel)+value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(bo.Uint16(pixelBuf))
 				} else if bitsAllocated == 32 {
-					val, err := d.ReadUInt32()
-					if err != nil {
-						return nil, bytesRead, err
-					}
-					buf[(pixel*samplesPerPixel)+value] = int(val)
+					buf[(pixel*samplesPerPixel)+value] = int(bo.Uint32(pixelBuf))
 				}
 			}
 			currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]

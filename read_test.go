@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -250,6 +251,19 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			Name: "insufficient bytes, uint32",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.NumberOfFrames, []string{"2"}),
+				mustNewElement(tag.BitsAllocated, []int{32}),
+				mustNewElement(tag.SamplesPerPixel, []int{2}),
+			}},
+			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
+			expectedPixelData: nil,
+			expectedError:     ErrorIncompleteRead,
+		},
+		{
 			Name: "missing Columns",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{5}),
@@ -278,7 +292,7 @@ func TestReadNativeFrames(t *testing.T) {
 			}
 
 			pixelData, _, err := readNativeFrames(r, &tc.existingData, nil)
-			if err != tc.expectedError {
+			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
 			}
 

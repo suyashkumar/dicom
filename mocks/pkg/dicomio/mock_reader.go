@@ -289,3 +289,17 @@ func (mr *MockReaderMockRecorder) SetCodingSystem(cs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCodingSystem", reflect.TypeOf((*MockReader)(nil).SetCodingSystem), cs)
 }
+
+// GetByteOrder indicates an expected call of GetByteOrder
+func (mr *MockReaderMockRecorder) GetByteOrder() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByteOrder", reflect.TypeOf((*MockReader)(nil).GetByteOrder))
+}
+
+// GetByteOrder mocks base method
+func (m *MockReader) GetByteOrder() binary.ByteOrder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByteOrder")
+	ret0, _ := ret[0].(binary.ByteOrder)
+	return ret0
+}

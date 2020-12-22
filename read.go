@@ -23,7 +23,6 @@ var (
 	// ErrorUnsupportedVR indicates that this VR is not supported.
 	ErrorUnsupportedVR      = errors.New("unsupported VR")
 	errorUnableToParseFloat = errors.New("unable to parse float type")
-	ErrorIncompleteRead     = errors.New("unable to read specified number of bytes")
 )
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {
@@ -230,12 +229,8 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		buf := make([]int, int(pixelsPerFrame)*samplesPerPixel)
 		for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
 			for value := 0; value < samplesPerPixel; value++ {
-
-				n, err := d.Read(pixelBuf)
-				if err != nil || n < bytesAllocated {
-					if err == nil {
-						err = ErrorIncompleteRead
-					}
+				_, err := io.ReadFull(d, pixelBuf)
+				if err != nil {
 					return nil, bytesRead,
 						fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
 				}

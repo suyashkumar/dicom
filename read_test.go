@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -261,7 +262,7 @@ func TestReadNativeFrames(t *testing.T) {
 			}},
 			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
 			expectedPixelData: nil,
-			expectedError:     ErrorIncompleteRead,
+			expectedError:     io.ErrUnexpectedEOF,
 		},
 		{
 			Name: "missing Columns",

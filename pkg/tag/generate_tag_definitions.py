@@ -33,27 +33,27 @@ Breakdown of regex:
 Named Capture Group MIN (?P<MIN>\d+)
     \d+ matches a digit (equal to [0-9])
         + Quantifier — Matches between one and unlimited times, as many times as
-          possible, giving back as needed (greedy)
-
-Non-capturing group (?:-(?P<STEP>\d+)?(?P<MAX>[\d+|n]))?
-    ? Quantifier — Matches between zero and one times, as many times as possible
+           possible, giving back as needed (greedy)
+           
+Non-capturing group (?:-(?P<MAX>\d+)?(?P<HAS_N>[n])?)?
+    ? Quantifier — Matches between zero and one times, as many times as possible, 
       giving back as needed (greedy)
-
+      
     - matches the character - literally (case sensitive)
-
-    Named Capture Group STEP (?P<STEP>\d+)?
-        ? Quantifier — Matches between zero and one times, as many times as
+    
+Named Capture Group MAX (?P<MAX>\d+)?
+    ? Quantifier — Matches between zero and one times, as many times as possible,
+      giving back as needed (greedy)
+      
+    \d+ matches a digit (equal to [0-9])
+        + Quantifier — Matches between one and unlimited times, as many times as
           possible, giving back as needed (greedy)
-
-        \d+ matches a digit (equal to [0-9])
-            + Quantifier — Matches between one and unlimited times, as many
-              times as possible, giving back as needed (greedy)
-
-    Named Capture Group MAX (?P<MAX>[\d+|n])
-        Match a single character present in the list below [\d+|n]:
-            \d matches a digit (equal to [0-9])
-
-            +|n matches a single character in the list +|n (case sensitive)
+          
+Named Capture Group HAS_N (?P<HAS_N>[n])?
+    ? Quantifier — Matches between zero and one times, as many times as possible,
+      giving back as needed (greedy)
+      
+    Match a single character present in the list below [n]
 '''
 
 

@@ -147,6 +147,151 @@ func TestVMInfo(t *testing.T) {
 	}
 }
 
+// Tests that when min and max are 1 VMInfo.IsSingleValue() returns true.
+func TestVMInfo_IsSingleValue_True(t *testing.T) {
+	vmInfo := VMInfo{Minimum: 1, Maximum: 1, Step: 1}
+	if !vmInfo.IsSingleValue() {
+		t.Error("IsSingleValue returned false")
+	}
+}
+
+// Tests that when min or max is not 1 VMInfo.IsSingleValue() returns false.
+func TestVMInfo_IsSingleValue_False(t *testing.T) {
+	type TestCase struct {
+		Min int
+		Max int
+	}
+
+	testCases := []TestCase{
+		{
+			2,
+			2,
+		},
+		{
+			1,
+			2,
+		},
+		{
+			1,
+			-1,
+		},
+	}
+
+	var thisCase TestCase
+
+	runTest := func(t *testing.T) {
+		vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
+		if vmInfo.IsSingleValue() {
+			t.Error("IsSingleValue returned true")
+		}
+	}
+
+	for _, thisCase = range testCases {
+		t.Run(fmt.Sprintf("min_%v_max_%v", thisCase.Min, thisCase.Max), runTest)
+	}
+}
+
+// Tests that when max is -1 VMInfo.IsUnbounded() returns true.
+func TestVMInfo_IsUnbounded_True(t *testing.T) {
+	type TestCase struct {
+		Min  int
+		Max  int
+		Step int
+	}
+
+	testCases := []TestCase{
+		{
+			1,
+			-1,
+			1,
+		},
+		{
+			2,
+			-1,
+			1,
+		},
+		{
+			2,
+			-1,
+			2,
+		},
+	}
+
+	var thisCase TestCase
+
+	runTest := func(t *testing.T) {
+		vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
+		if !vmInfo.IsUnbounded() {
+			t.Error("IsUnbounded returned false")
+		}
+	}
+
+	for _, thisCase = range testCases {
+		t.Run(
+			fmt.Sprintf(
+				"min_%v_max_%v_step_%v",
+				thisCase.Min,
+				thisCase.Max,
+				thisCase.Step,
+			),
+			runTest,
+		)
+	}
+}
+
+// Tests that when max is not -1 VMInfo.IsUnbounded() returns false.
+func TestVMInfo_IsUnbounded_False(t *testing.T) {
+	type TestCase struct {
+		Min  int
+		Max  int
+		Step int
+	}
+
+	testCases := []TestCase{
+		{
+			1,
+			1,
+			1,
+		},
+		{
+			2,
+			2,
+			1,
+		},
+		{
+			1,
+			32,
+			1,
+		},
+		{
+			32,
+			32,
+			1,
+		},
+	}
+
+	var thisCase TestCase
+
+	runTest := func(t *testing.T) {
+		vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
+		if vmInfo.IsUnbounded() {
+			t.Error("IsUnbounded returned true")
+		}
+	}
+
+	for _, thisCase = range testCases {
+		t.Run(
+			fmt.Sprintf(
+				"min_%v_max_%v_step_%v",
+				thisCase.Min,
+				thisCase.Max,
+				thisCase.Step,
+			),
+			runTest,
+		)
+	}
+}
+
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		if _, err := Find(Tag{2, 0}); err != nil {

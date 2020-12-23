@@ -8,7 +8,6 @@ package tag
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -62,99 +61,27 @@ func (t Tag) String() string {
 	return fmt.Sprintf("(%04x,%04x)", t.Group, t.Element)
 }
 
-// VM info stores parsed information about the Value Multiplicity of the tag.
+// VM info stores parsed information about the Value Multiplicity (cardinality) of the
+// tag.
 type VMInfo struct {
 	// The minimum number of values the Value Multiplicity allows
 	Minimum int
 	// The maximum number of values the Value Multiplicity allows. If -1, Maximum
-	// is unbounded.
+	// is unbounded. If equal to Minimum, there is only a single VM allowed.
 	Maximum int
 	// Some multiplicities are described like '2-2n', where maximum must be divisible by
 	// 2. In these cases, step will be equal to y for VM = 'x-yn'
 	Step int
 }
 
-// Regex which can parse a VM
-var vmRegex = regexp.MustCompile(
-	/*
-		Breakdown of regex:
+// Returns true if value can only be single.
+func (vmInfo VMInfo) IsSingleValue() bool {
+	return vmInfo.Minimum == 1 && vmInfo.Maximum == 1
+}
 
-		Named Capture Group MIN (?P<MIN>\d+)
-			\d+ matches a digit (equal to [0-9])
-				+ Quantifier — Matches between one and unlimited times, as many times as
-				  possible, giving back as needed (greedy)
-
-		Non-capturing group (?:-(?P<STEP>\d+)?(?P<MAX>[\d+|n]))?
-			? Quantifier — Matches between zero and one times, as many times as possible
-			  giving back as needed (greedy)
-
-			- matches the character - literally (case sensitive)
-
-			Named Capture Group STEP (?P<STEP>\d+)?
-				? Quantifier — Matches between zero and one times, as many times as
-				  possible, giving back as needed (greedy)
-
-				\d+ matches a digit (equal to [0-9])
-					+ Quantifier — Matches between one and unlimited times, as many
-					  times as possible, giving back as needed (greedy)
-
-			Named Capture Group MAX (?P<MAX>[\d+|n])
-				Match a single character present in the list below [\d+|n]:
-					\d matches a digit (equal to [0-9])
-
-					+|n matches a single character in the list +|n (case sensitive)
-	*/
-	`(?P<MIN>\d+)(?:-(?P<STEP>\d+)?(?P<MAX>[\d+|n]))?`,
-)
-
-// Parses vm of forms 'x', 'x-y', and 'x-ny', where x=minimum, y=maximum, and n=step.
-func mustParseVM(vm string) VMInfo {
-	groups := vmRegex.FindStringSubmatch(vm)
-
-	// If the full match is empty, then we did not parse the VM, panic
-	if groups[0] == "" {
-		panic(fmt.Errorf("could not parse VM '%v'", vm))
-	}
-
-	// If the minStr is emtpy, we did not parse the VM sub-matches correctly, panic.
-	minStr := groups[1]
-	if minStr == "" {
-		panic(fmt.Errorf("could not parse VM '%v'", vm))
-	}
-
-	stepStr := groups[2]
-	maxStr := groups[3]
-
-	// If there is no step specified, it is 1.
-	if stepStr == "" {
-		stepStr = "1"
-	}
-
-	// If there is no max specified, it is equal to the minimum string
-	if maxStr == "" {
-		maxStr = minStr
-	}
-
-	min, err := strconv.Atoi(minStr)
-	if err != nil {
-		panic(fmt.Errorf("error parsing vm minimum '%v' from '%v': %w", minStr, vm, err))
-	}
-
-	step, err := strconv.Atoi(stepStr)
-	if err != nil {
-		panic(fmt.Errorf("error parsing vm step '%v' from '%v': %w", stepStr, vm, err))
-	}
-
-	max, err := strconv.Atoi(maxStr)
-	if err != nil {
-		panic(fmt.Errorf("error parsing vm maximum '%v' from '%v': %w", maxStr, vm, err))
-	}
-
-	return VMInfo{
-		Maximum: max,
-		Step:    step,
-		Minimum: min,
-	}
+// Returns true the number of maximum values is unbounded.
+func (vmInfo VMInfo) IsUnbounded() bool {
+	return vmInfo.Maximum == -1
 }
 
 // Info stores detailed information about a Tag defined in the DICOM

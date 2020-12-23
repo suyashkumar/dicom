@@ -6,12 +6,110 @@ from typing import IO, NamedTuple, List
 
 logging.basicConfig(level=logging.DEBUG)
 
+VMInfo = NamedTuple('VMInfo', [
+    ('min', int),
+    ('max', int),
+    ('step', int)])
+
 Tag = NamedTuple('Tag', [
     ('group', int),
     ('elem', int),
     ('vr', str),
     ('name', str),
-    ('vm', str)])
+    ('vm', str),
+    ('vm_info', VMInfo)])
+
+
+vmRegex = re.compile(r'(?P<MIN>\d+)(?:-(?P<MAX>\d+)?(?P<HAS_N>[n])?)?')
+'''
+The above regex parsed vms of the following conventions:
+    - '1'
+    - '1-2'
+    - '1-n'
+    - '1-2n' 
+
+Breakdown of regex:
+
+Named Capture Group MIN (?P<MIN>\d+)
+    \d+ matches a digit (equal to [0-9])
+        + Quantifier — Matches between one and unlimited times, as many times as
+          possible, giving back as needed (greedy)
+
+Non-capturing group (?:-(?P<STEP>\d+)?(?P<MAX>[\d+|n]))?
+    ? Quantifier — Matches between zero and one times, as many times as possible
+      giving back as needed (greedy)
+
+    - matches the character - literally (case sensitive)
+
+    Named Capture Group STEP (?P<STEP>\d+)?
+        ? Quantifier — Matches between zero and one times, as many times as
+          possible, giving back as needed (greedy)
+
+        \d+ matches a digit (equal to [0-9])
+            + Quantifier — Matches between one and unlimited times, as many
+              times as possible, giving back as needed (greedy)
+
+    Named Capture Group MAX (?P<MAX>[\d+|n])
+        Match a single character present in the list below [\d+|n]:
+            \d matches a digit (equal to [0-9])
+
+            +|n matches a single character in the list +|n (case sensitive)
+'''
+
+
+def parse_vm(vm: str) -> VMInfo:
+    match = vmRegex.fullmatch(vm)
+    if match is None:
+        raise ValueError(f'"{vm}" is not a valid Value Multiplicity')
+
+    groups = match.groupdict()
+    try:
+        min_str = groups["MIN"]
+    except KeyError:
+        raise ValueError(
+            f'"{vm}" is not a valid Value Multiplicity: could not parse min',
+        )
+
+    # If there is not explicit max value, it is the same as the min value.
+    max_str = groups["MAX"]
+    has_n = groups["HAS_N"]
+
+    # If there is an 'n' AND a MAX value, that means we parsed something like '2-2n':
+    # the max is actually the step scalar and the max value is unbounded (-1).
+    if has_n and max_str:
+        step_str = max_str
+        max_str = "-1"
+    # If there is an 'n' and no max string we parsed something like '1-n'. The mac
+    # value is unbounded and the step value is 1.
+    elif has_n and not max_str:
+        max_str = "-1"
+        step_str = "1"
+    # If there is no max and no 'n', we parsed something like '1'. Max is equal to min,
+    # and the step value is 1.
+    elif not max_str:
+        max_str = min_str
+        step_str = "1"
+    # Otherwise we parsed something like 1-2, and step value is 1.
+    else:
+        step_str = "1"
+
+    try:
+        min = int(min_str)
+    except BaseException as err:
+        raise ValueError(f"error parsing min: {err}") from err
+
+    try:
+        max = int(max_str)
+    except BaseException as err:
+        raise ValueError(f"error parsing max: {err}")
+
+    try:
+        step = int(step_str)
+    except BaseException as err:
+        raise ValueError(f"error parsing step: {err}")
+
+    return VMInfo(min=min, max=max, step=step)
+
 
 def list_tags() -> List[Tag]:
     global DATA
@@ -31,19 +129,28 @@ def list_tags() -> List[Tag]:
         if vr == "XS":
             # Its generally safe to treat XS as unsigned.  See
             # https://github.com/dgobbi/vtk-dicom/issues/38 for
-	    # some discussions.
+            # some discussions.
             vr = "US"
         elif vr == "OX":
-	    # TODO(saito) I'm less sure about the OX rule. Where is
-	    # this crap defined in the standard??
+            # TODO(saito) I'm less sure about the OX rule. Where is
+            # this crap defined in the standard??
             vr = "OW"
+
+        vm = m.group(5)
+
+        try:
+            vm_info = parse_vm(vm)
+        except Exception as error:
+            logging.error(f"Error parsing vm '{vm}': {error}", vm)
+            ok = False
+            continue
 
         tag = Tag(group=m.group(1),
                   elem=m.group(2),
                   vr=vr,
                   name=m.group(4),
-                  vm=m.group(5))
-
+                  vm=vm,
+                  vm_info=vm_info)
 
         if not re.match('^[0-9A-Fa-f]+$', tag.group) or not re.match('^[0-9A-Fa-f]+$', tag.elem):
             continue
@@ -56,7 +163,7 @@ def list_tags() -> List[Tag]:
 def generate(out: IO[str]):
     tags = list_tags()
 
-    print("package dicomtag", file=out)
+    print("package tag", file=out)
     print("", file=out)
     print("// Code generated from generate_tag_definitions.py. DO NOT EDIT.", file=out)
     for t in tags:
@@ -64,7 +171,7 @@ def generate(out: IO[str]):
             continue
         print(f'var {t.name} = Tag{{0x{t.group}, 0x{t.elem}}}', file=out)
 
-    print("var tagDict map[Tag]TagInfo", file=out)
+    print("var tagDict map[Tag]Info", file=out)
     print("", file=out)
     print("func init() {", file=out)
     print("	maybeInitTagDict()", file=out)
@@ -73,9 +180,10 @@ def generate(out: IO[str]):
     print("	if len(tagDict) > 0 {", file=out)
     print("		return", file=out)
     print("	}", file=out)
-    print("	tagDict = make(map[Tag]TagInfo)", file=out)
+    print("	tagDict = make(map[Tag]Info)", file=out)
     for t in tags:
-        print(f'	tagDict[Tag{{0x{t.group}, 0x{t.elem}}}] = TagInfo{{Tag{{0x{t.group}, 0x{t.elem}}}, "{t.vr}", "{t.name}", "{t.vm}"}}', file=out)
+        vm_info = t.vm_info
+        print(f'	tagDict[Tag{{0x{t.group}, 0x{t.elem}}}] = Info{{Tag{{0x{t.group}, 0x{t.elem}}}, "{t.vr}", "{t.name}", "{t.vm}", VMInfo{{{vm_info.min}, {vm_info.max}, {vm_info.step}}}}}', file=out)
     print("}", file=out)
 
 

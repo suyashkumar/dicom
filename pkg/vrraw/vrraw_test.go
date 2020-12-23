@@ -8,7 +8,7 @@ import (
 // Tests that the VR consts are what we expect
 func TestVRRawValues(t *testing.T) {
 	type TestCase struct {
-		VR string
+		VR       string
 		Expected string
 	}
 
@@ -134,7 +134,7 @@ func TestVRRawValues(t *testing.T) {
 	var thisCase TestCase
 
 	runTest := func(t *testing.T) {
-		if thisCase.Expected !=  thisCase.VR {
+		if thisCase.Expected != thisCase.VR {
 			t.Errorf("expected %v, got %v", thisCase.Expected, thisCase.VR)
 		}
 	}

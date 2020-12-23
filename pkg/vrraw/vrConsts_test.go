@@ -62,19 +62,27 @@ func TestVRRawValues(t *testing.T) {
 			Expected: "LT",
 		},
 		{
-			VR:       vrraw.OtherByteString,
+			VR:       vrraw.OtherByte,
 			Expected: "OB",
 		},
 		{
-			VR:       vrraw.OtherDoubleString,
+			VR:       vrraw.OtherDouble,
 			Expected: "OD",
 		},
 		{
-			VR:       vrraw.OtherFloatString,
+			VR:       vrraw.OtherFloat,
 			Expected: "OF",
 		},
 		{
-			VR:       vrraw.OtherWordString,
+			VR:       vrraw.OtherLong,
+			Expected: "OL",
+		},
+		{
+			VR:       vrraw.OtherVeryLong,
+			Expected: "OV",
+		},
+		{
+			VR:       vrraw.OtherWord,
 			Expected: "OW",
 		},
 		{
@@ -102,8 +110,16 @@ func TestVRRawValues(t *testing.T) {
 			Expected: "ST",
 		},
 		{
+			VR:       vrraw.SignedVeryLong,
+			Expected: "SV",
+		},
+		{
 			VR:       vrraw.Time,
 			Expected: "TM",
+		},
+		{
+			VR:       vrraw.UnlimitedCharacters,
+			Expected: "UC",
 		},
 		{
 			VR:       vrraw.UniqueIdentifier,
@@ -112,6 +128,22 @@ func TestVRRawValues(t *testing.T) {
 		{
 			VR:       vrraw.UID,
 			Expected: "UI",
+		},
+		{
+			VR:       vrraw.UniversalResourceIdentifier,
+			Expected: "UR",
+		},
+		{
+			VR:       vrraw.UniversalResourceLocator,
+			Expected: "UR",
+		},
+		{
+			VR:       vrraw.URL,
+			Expected: "UR",
+		},
+		{
+			VR:       vrraw.URI,
+			Expected: "UR",
 		},
 		{
 			VR:       vrraw.UnsignedLong,
@@ -128,6 +160,10 @@ func TestVRRawValues(t *testing.T) {
 		{
 			VR:       vrraw.UnlimitedText,
 			Expected: "UT",
+		},
+		{
+			VR:       vrraw.UnsignedVeryLong,
+			Expected: "UV",
 		},
 	}
 

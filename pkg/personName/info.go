@@ -44,7 +44,7 @@ var ErrParsePersonName = errors.New("person name value does not match Dicom Spec
 
 // FromDicomValueString converts a string from a dicom element with a Value
 // Representation of PN to a parsed Info struct.
-func FromDicomValueString(pnString string) (name Info, err error) {
+func FromDicomValueString(pnString string) (Info, error) {
 	// Run the regex against the name.
 	matches := pnRegex.FindStringSubmatch(pnString)
 
@@ -52,12 +52,14 @@ func FromDicomValueString(pnString string) (name Info, err error) {
 	if len(matches) == 0 || matches[0] == "" {
 		return Info{}, ErrParsePersonName
 	}
-	
-	name.FamilyName = matches[1]
-	name.GivenName = matches[2]
-	name.MiddleName = matches[3]
-	name.NamePrefix = matches[4]
-	name.NameSuffix = matches[5]
 
-	return name, err
+	name := Info{
+		FamilyName: matches[1],
+		GivenName:  matches[2],
+		MiddleName: matches[3],
+		NamePrefix: matches[4],
+		NameSuffix: matches[5],
+	}
+
+	return name, nil
 }

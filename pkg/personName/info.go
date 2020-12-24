@@ -14,17 +14,17 @@ import (
 type Info struct {
 	// The person's family or last name.
 	FamilyName string
-	// The person's given or first names
+	// The person's given or first names.
 	GivenName string
-	// The person's middle names
+	// The person's middle names.
 	MiddleName string
-	// The person's name prefix
+	// The person's name prefix.
 	NamePrefix string
-	// The person's name suffix
+	// The person's name suffix.
 	NameSuffix string
 }
 
-// Returns dicom format PN string: '[Last]^[First]^[Middle]^[Prefix]^[Suffix]'
+// Returns dicom format PN string: '[Last]^[First]^[Middle]^[Prefix]^[Suffix]'.
 func (pn Info) String() string {
 	return pn.FamilyName +
 		"^" + pn.GivenName +
@@ -45,11 +45,14 @@ var ErrParsePersonName = errors.New("person name value does not match Dicom Spec
 // FromDicomValueString converts a string from a dicom element with a Value
 // Representation of PN to a parsed Info struct.
 func FromDicomValueString(pnString string) (name Info, err error) {
-	// Run the regex against the name
+	// Run the regex against the name.
 	matches := pnRegex.FindStringSubmatch(pnString)
+
+	// If the first match is empty or there are no matches, the value is malformed.
 	if len(matches) == 0 || matches[0] == "" {
 		return Info{}, ErrParsePersonName
 	}
+	
 	name.FamilyName = matches[1]
 	name.GivenName = matches[2]
 	name.MiddleName = matches[3]

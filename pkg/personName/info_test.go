@@ -1,4 +1,4 @@
-package pn
+package personName
 
 import (
 	"errors"
@@ -8,15 +8,15 @@ import (
 
 func TestNewPersonNameFromDicom(t *testing.T) {
 	type TestCase struct {
-		Raw string
-		Parsed PersonName
+		Raw    string
+		Parsed Info
 	}
 	
 	testCases := []TestCase{
 		// Full Name
 		{
 			Raw:    "CROUCH^BARTEMIUS^'BARTY'^MR^JR",
-			Parsed: PersonName{
+			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
 				MiddleName: "'BARTY'",
@@ -27,7 +27,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		// No Middle Name
 		{
 			Raw:    "CROUCH^BARTEMIUS^^MR^JR",
-			Parsed: PersonName{
+			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
 				MiddleName: "",
@@ -38,7 +38,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		// No Suffix
 		{
 			Raw:    "CROUCH^BARTEMIUS^'BARTY'^MR^",
-			Parsed: PersonName{
+			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
 				MiddleName: "'BARTY'",
@@ -49,7 +49,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		// No Prefix
 		{
 			Raw:    "CROUCH^BARTEMIUS^'BARTY'^^JR",
-			Parsed: PersonName{
+			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
 				MiddleName: "'BARTY'",
@@ -60,7 +60,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		// Only First and last
 		{
 			Raw:    "CROUCH^BARTEMIUS^^^",
-			Parsed: PersonName{
+			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
 				MiddleName: "",
@@ -71,7 +71,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		// No first
 		{
 			Raw:    "CROUCH^^'BARTY'^MR^JR",
-			Parsed: PersonName{
+			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "",
 				MiddleName: "'BARTY'",
@@ -82,7 +82,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		// Empty
 		{
 			Raw:    "^^^^",
-			Parsed: PersonName{
+			Parsed: Info{
 				FamilyName: "",
 				GivenName:  "",
 				MiddleName: "",
@@ -97,7 +97,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 	runParseTest := func(t *testing.T) {
 		assert := assert.New(t)
 
-		parsed, err := NewPersonNameFromDicom(thisCase.Raw)
+		parsed, err := FromDicomValueString(thisCase.Raw)
 		if !assert.NoError(err, "parse string") {
 			t.FailNow()
 		}
@@ -137,7 +137,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 
 func TestNewPersonNameFromDicom_Err(t *testing.T) {
 	badName := "Malfoy^Draco"
-	_, err := NewPersonNameFromDicom(badName)
+	_, err := FromDicomValueString(badName)
 
 	// Check that we get a ErrParsePersonName
 	assert.True(t, errors.Is(err, ErrParsePersonName))

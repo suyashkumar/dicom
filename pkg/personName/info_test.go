@@ -11,11 +11,11 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		Raw    string
 		Parsed Info
 	}
-	
+
 	testCases := []TestCase{
 		// Full Name
 		{
-			Raw:    "CROUCH^BARTEMIUS^'BARTY'^MR^JR",
+			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR^JR",
 			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
@@ -26,7 +26,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		},
 		// No Middle Name
 		{
-			Raw:    "CROUCH^BARTEMIUS^^MR^JR",
+			Raw: "CROUCH^BARTEMIUS^^MR^JR",
 			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
@@ -37,7 +37,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		},
 		// No Suffix
 		{
-			Raw:    "CROUCH^BARTEMIUS^'BARTY'^MR^",
+			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR^",
 			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
@@ -48,7 +48,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		},
 		// No Prefix
 		{
-			Raw:    "CROUCH^BARTEMIUS^'BARTY'^^JR",
+			Raw: "CROUCH^BARTEMIUS^'BARTY'^^JR",
 			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
@@ -59,7 +59,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		},
 		// Only First and last
 		{
-			Raw:    "CROUCH^BARTEMIUS^^^",
+			Raw: "CROUCH^BARTEMIUS^^^",
 			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "BARTEMIUS",
@@ -70,7 +70,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		},
 		// No first
 		{
-			Raw:    "CROUCH^^'BARTY'^MR^JR",
+			Raw: "CROUCH^^'BARTY'^MR^JR",
 			Parsed: Info{
 				FamilyName: "CROUCH",
 				GivenName:  "",
@@ -81,7 +81,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		},
 		// Empty
 		{
-			Raw:    "^^^^",
+			Raw: "^^^^",
 			Parsed: Info{
 				FamilyName: "",
 				GivenName:  "",
@@ -130,8 +130,8 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 	}
 
 	for _, thisCase = range testCases {
-		t.Run(thisCase.Raw + "_Parse", runParseTest)
-		t.Run(thisCase.Raw + "_String", runStringTest)
+		t.Run(thisCase.Raw+"_Parse", runParseTest)
+		t.Run(thisCase.Raw+"_String", runStringTest)
 	}
 }
 

@@ -1,7 +1,7 @@
 /*
 The personName package provides methods and data types for inspecting Person Name (PN)
 Value Representations.
- */
+*/
 package personName
 
 import (

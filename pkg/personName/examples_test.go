@@ -7,10 +7,11 @@ import (
 
 // How to parse an existing PN value.
 func ExampleParse() {
+	// A raw PN string value with alphabetic, ideographic, and phonetic information.
+	pnRaw := "Potter^Harry^James^^=哈利^波特^詹姆^^=hɛər.i^pɒ.tər^dʒeɪmz^^"
+
 	// To parse a PN value, use personName.Parse
-	pn, err := personName.Parse(
-		"Potter^Harry^James^^=哈利^波特^詹姆^^=hɛər.i^pɒ.tər^dʒeɪmz^^",
-	)
+	pn, err := personName.Parse(pnRaw)
 	if err != nil {
 		panic(err)
 	}

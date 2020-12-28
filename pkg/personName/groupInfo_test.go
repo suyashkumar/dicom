@@ -15,42 +15,42 @@ func checkGroupInfo(
 	assert := assert.New(t)
 
 	assert.Equal(
-		expected.FamilyName(),
-		received.familyName,
+		expected.FamilyName,
+		received.FamilyName,
 		"Family Name, group %v",
 		group,
 	)
 
 	assert.Equal(
-		expected.GivenName(),
-		received.givenName,
+		expected.GivenName,
+		received.GivenName,
 		"Given Name, group %v",
 		group,
 	)
 
 	assert.Equal(
-		expected.MiddleName(),
-		received.middleName,
+		expected.MiddleName,
+		received.MiddleName,
 		"Middle Name, group %v",
 		group,
 	)
 
 	assert.Equal(
-		expected.NamePrefix(),
-		received.namePrefix,
+		expected.NamePrefix,
+		received.NamePrefix,
 		"Name Prefix, group %v",
 		group,
 	)
 
 	assert.Equal(
-		expected.NameSuffix(),
-		received.nameSuffix,
+		expected.NameSuffix,
+		received.NameSuffix,
 		"Name Suffix, group %v",
 		group,
 	)
 
 	assert.Equal(
-		expected.raw,
+		expected.Raw,
 		received.String(),
 		"Formatted String, group %v",
 		group,
@@ -59,7 +59,7 @@ func checkGroupInfo(
 
 func TestNewPersonNameFromDicom(t *testing.T) {
 	type TestCase struct {
-		// The raw string to parse from
+		// The Raw string to parse from
 		Raw string
 		// The parsed information we expect.
 		Expected GroupInfo
@@ -75,77 +75,77 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR^JR",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "'BARTY'",
-				namePrefix: "MR",
-				nameSuffix: "JR",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "'BARTY'",
+				NamePrefix: "MR",
+				NameSuffix: "JR",
 			},
 		},
 		// No Middle Name
 		{
 			Raw: "CROUCH^BARTEMIUS^^MR^JR",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "",
-				namePrefix: "MR",
-				nameSuffix: "JR",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "",
+				NamePrefix: "MR",
+				NameSuffix: "JR",
 			},
 		},
 		// No Suffix
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR^",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "'BARTY'",
-				namePrefix: "MR",
-				nameSuffix: "",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "'BARTY'",
+				NamePrefix: "MR",
+				NameSuffix: "",
 			},
 		},
 		// No Prefix
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'^^JR",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "'BARTY'",
-				namePrefix: "",
-				nameSuffix: "JR",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "'BARTY'",
+				NamePrefix: "",
+				NameSuffix: "JR",
 			},
 		},
 		// Only First and last
 		{
 			Raw: "CROUCH^BARTEMIUS^^^",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "",
-				namePrefix: "",
-				nameSuffix: "",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "",
+				NamePrefix: "",
+				NameSuffix: "",
 			},
 		},
 		// No first
 		{
 			Raw: "CROUCH^^'BARTY'^MR^JR",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "",
-				middleName: "'BARTY'",
-				namePrefix: "MR",
-				nameSuffix: "JR",
+				FamilyName: "CROUCH",
+				GivenName:  "",
+				MiddleName: "'BARTY'",
+				NamePrefix: "MR",
+				NameSuffix: "JR",
 			},
 		},
 		// Empty
 		{
 			Raw: "^^^^",
 			Expected: GroupInfo{
-				familyName: "",
-				givenName:  "",
-				middleName: "",
-				namePrefix: "",
-				nameSuffix: "",
+				FamilyName: "",
+				GivenName:  "",
+				MiddleName: "",
+				NamePrefix: "",
+				NameSuffix: "",
 			},
 			IsEmpty: true,
 		},
@@ -153,11 +153,11 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "'BARTY'",
-				namePrefix: "MR",
-				nameSuffix: "",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "'BARTY'",
+				NamePrefix: "MR",
+				NameSuffix: "",
 			},
 			RemoveTrailingSeps: true,
 		},
@@ -165,11 +165,11 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "'BARTY'",
-				namePrefix: "",
-				nameSuffix: "",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "'BARTY'",
+				NamePrefix: "",
+				NameSuffix: "",
 			},
 			RemoveTrailingSeps: true,
 		},
@@ -177,11 +177,11 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "CROUCH^BARTEMIUS",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "BARTEMIUS",
-				middleName: "",
-				namePrefix: "",
-				nameSuffix: "",
+				FamilyName: "CROUCH",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "",
+				NamePrefix: "",
+				NameSuffix: "",
 			},
 			RemoveTrailingSeps: true,
 		},
@@ -189,11 +189,11 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "CROUCH",
 			Expected: GroupInfo{
-				familyName: "CROUCH",
-				givenName:  "",
-				middleName: "",
-				namePrefix: "",
-				nameSuffix: "",
+				FamilyName: "CROUCH",
+				GivenName:  "",
+				MiddleName: "",
+				NamePrefix: "",
+				NameSuffix: "",
 			},
 			RemoveTrailingSeps: true,
 		},
@@ -201,11 +201,11 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "",
 			Expected: GroupInfo{
-				familyName: "",
-				givenName:  "",
-				middleName: "",
-				namePrefix: "",
-				nameSuffix: "",
+				FamilyName: "",
+				GivenName:  "",
+				MiddleName: "",
+				NamePrefix: "",
+				NameSuffix: "",
 			},
 			RemoveTrailingSeps: true,
 			IsEmpty:            true,
@@ -216,11 +216,11 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 
 	runNewTest := func(t *testing.T) {
 		newGroup := NewGroupInfo(
-			thisCase.Expected.familyName,
-			thisCase.Expected.givenName,
-			thisCase.Expected.middleName,
-			thisCase.Expected.namePrefix,
-			thisCase.Expected.nameSuffix,
+			thisCase.Expected.FamilyName,
+			thisCase.Expected.GivenName,
+			thisCase.Expected.MiddleName,
+			thisCase.Expected.NamePrefix,
+			thisCase.Expected.NameSuffix,
 			thisCase.RemoveTrailingSeps,
 		)
 		assert.Equal(
@@ -234,7 +234,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 	runParseTest := func(t *testing.T) {
 		assert := assert.New(t)
 
-		parsed, err := groupFromValueString(thisCase.Raw, "alphabetic")
+		parsed, err := groupFromValueString(thisCase.Raw, "Alphabetic")
 		if !assert.NoError(err, "parse string") {
 			t.FailNow()
 		}
@@ -247,7 +247,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 	runIsEmptyTest := func(t *testing.T) {
 		assert := assert.New(t)
 
-		parsed, err := groupFromValueString(thisCase.Raw, "alphabetic")
+		parsed, err := groupFromValueString(thisCase.Raw, "Alphabetic")
 		if !assert.NoError(err, "parse string") {
 			t.FailNow()
 		}
@@ -256,7 +256,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 	}
 
 	for _, thisCase = range testCases {
-		thisCase.Expected.raw = thisCase.Raw
+		thisCase.Expected.Raw = thisCase.Raw
 		t.Run(thisCase.Raw+"_New", runNewTest)
 		t.Run(thisCase.Raw+"_Parse", runParseTest)
 		t.Run(thisCase.Raw+"_IsEmpty", runIsEmptyTest)
@@ -265,14 +265,14 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 
 func TestNewPersonNameFromDicom_Err(t *testing.T) {
 	badName := "Malfoy^Draco^^^^"
-	_, err := groupFromValueString(badName, "alphabetic")
+	_, err := groupFromValueString(badName, "Alphabetic")
 
 	// Check that we get a ErrParsePersonName
 	assert.True(t, errors.Is(err, ErrParsePersonName))
 	assert.EqualError(
 		t,
 		err,
-		"string contains to many segments for PN value: PN group alphabetic"+
+		"string contains to many segments for PN value: PN group Alphabetic"+
 			" contains 6 segments. No more than 5 segments with"+
 			" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
 	)

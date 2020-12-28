@@ -13,7 +13,7 @@ var ErrParsePersonName = errors.New(
 func newErrParsePersonNameTooManyGroups(groupsFound int) error {
 	return fmt.Errorf(
 		"%w: PN contains %v groups. No more than 3 groups with "+
-			"'[alphabetic]%v[ideographic]%v[phonetic]' format are allowed",
+			"'[Alphabetic]%v[Ideographic]%v[Phonetic]' format are allowed",
 		ErrParsePersonName,
 		groupsFound,
 		groupSep,

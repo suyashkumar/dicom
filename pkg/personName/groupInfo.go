@@ -6,71 +6,44 @@ const segmentSep = "^"
 
 // The dicom spec splits each PN value into 3 representation groups:
 //
-//	- alphabetic
-//	- ideographic
-//	- phonetic
+//	- Alphabetic
+//	- Ideographic
+//	- Phonetic
 //
 // GroupInfo holds the parsed information for any one of these groups.
 type GroupInfo struct {
-	// The original raw string which created this value.
-	raw string
+	// The original Raw string which created this value.
+	Raw string
 	// The person's family or last name.
-	familyName string
+	FamilyName string
 	// The person's given or first names.
-	givenName string
+	GivenName string
 	// The person's middle names.
-	middleName string
+	MiddleName string
 	// The person's name prefix.
-	namePrefix string
+	NamePrefix string
 	// The person's name suffix.
-	nameSuffix string
+	NameSuffix string
 }
 
-// FamilyName returns segment 1 of the PN: the person's family or last name.
-func (group GroupInfo) FamilyName() string {
-	return group.familyName
-}
-
-// GivenName returns segment 2 of the PN: the person's given or first names.
-func (group GroupInfo) GivenName() string {
-	return group.givenName
-}
-
-// MiddleName returns segment 3 of the PN: the person's middle names.
-func (group GroupInfo) MiddleName() string {
-	return group.middleName
-}
-
-// NamePrefix returns segment 4 of the PN: the person's name prefix: e.g., 'Mr' and
-// 'Mrs'.
-func (group GroupInfo) NamePrefix() string {
-	return group.namePrefix
-}
-
-// NameSuffix returns segment 5 of the PN: the person's name suffix, e.g. 'Jr' and
-// 'III'.
-func (group GroupInfo) NameSuffix() string {
-	return group.nameSuffix
-}
-
-// Returns original raw dicom format PN group string:
-// '[Last]^[First]^[Middle]^[Prefix]^[Suffix]'.
+// Returns original, formatted string in
+// '[FamilyName]^[GivenName]^[MiddleName]^[NamePrefix]^[NameSuffix]'.
 func (group GroupInfo) String() string {
-	return group.raw
+	return group.Raw
 }
 
-// Returns true if all group segments are empty, even if raw value was "^^^^".
+// Returns true if all group segments are empty, even if Raw value was "^^^^".
 func (group GroupInfo) IsEmpty() bool {
-	return group.familyName == "" &&
-		group.givenName == "" &&
-		group.middleName == "" &&
-		group.namePrefix == "" &&
-		group.nameSuffix == ""
+	return group.FamilyName == "" &&
+		group.GivenName == "" &&
+		group.MiddleName == "" &&
+		group.NamePrefix == "" &&
+		group.NameSuffix == ""
 }
 
 // NewGroupInfo returns a group info object with the given segments. If
 // removeTrailingSeparators is set to true, null trailing segments and their separators
-// will be removed for the raw field, so "Potter^Harry^James^^" will be rendered as
+// will be removed for the Raw field, so "Potter^Harry^James^^" will be rendered as
 // "Potter^Harry^James" instead.
 func NewGroupInfo(
 	familyName string,
@@ -81,12 +54,12 @@ func NewGroupInfo(
 	removeTrailingSeparators bool,
 ) GroupInfo {
 	info := GroupInfo{
-		raw:        "",
-		familyName: familyName,
-		givenName:  givenName,
-		middleName: middleName,
-		namePrefix: namePrefix,
-		nameSuffix: nameSuffix,
+		Raw:        "",
+		FamilyName: familyName,
+		GivenName:  givenName,
+		MiddleName: middleName,
+		NamePrefix: namePrefix,
+		NameSuffix: nameSuffix,
 	}
 
 	rawString := strings.Join(
@@ -98,7 +71,7 @@ func NewGroupInfo(
 		rawString = strings.TrimRight(rawString, segmentSep)
 	}
 
-	info.raw = rawString
+	info.Raw = rawString
 	return info
 }
 
@@ -124,21 +97,21 @@ func groupFromValueString(groupString string, group string) (GroupInfo, error) {
 		return GroupInfo{}, newErrParsePersonNameTooGroupSegments(group, len(segments))
 	}
 
-	groupInfo := GroupInfo{raw: groupString}
+	groupInfo := GroupInfo{Raw: groupString}
 
 	// Range over the groups and assign them based on index.
 	for i, groupValue := range segments {
 		switch i {
 		case 0:
-			groupInfo.familyName = groupValue
+			groupInfo.FamilyName = groupValue
 		case 1:
-			groupInfo.givenName = groupValue
+			groupInfo.GivenName = groupValue
 		case 2:
-			groupInfo.middleName = groupValue
+			groupInfo.MiddleName = groupValue
 		case 3:
-			groupInfo.namePrefix = groupValue
+			groupInfo.NamePrefix = groupValue
 		case 4:
-			groupInfo.nameSuffix = groupValue
+			groupInfo.NameSuffix = groupValue
 		}
 	}
 

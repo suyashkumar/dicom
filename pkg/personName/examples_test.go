@@ -7,7 +7,7 @@ import (
 
 // How to parse an existing PN value.
 func ExampleParse() {
-	// A raw PN string value with alphabetic, ideographic, and phonetic information.
+	// A Raw PN string value with Alphabetic, Ideographic, and Phonetic information.
 	rawPN := "Potter^Harry^James^^=哈利^波特^詹姆^^=hɛər.i^pɒ.tər^dʒeɪmz^^"
 
 	// To parse a PN value, use personName.Parse
@@ -18,18 +18,18 @@ func ExampleParse() {
 
 	// PN values are broken into three groups: Alphabetic, Phonetic, and Ideographic.
 	// which can be accessed through getter methods.
-	fmt.Println("ALPHABETIC:", parsedPN.Alphabetic().String())
-	fmt.Println("IDEOGRAPHIC:", parsedPN.Ideographic().String())
-	fmt.Println("PHONETIC:", parsedPN.Phonetic().String())
+	fmt.Println("ALPHABETIC:", parsedPN.Alphabetic.String())
+	fmt.Println("IDEOGRAPHIC:", parsedPN.Ideographic.String())
+	fmt.Println("PHONETIC:", parsedPN.Phonetic.String())
 
 	// Each Group info in turn has Getter methods for retrieving individual data.
-	fmt.Println("FAMILY NAME:", parsedPN.Alphabetic().FamilyName())
-	fmt.Println("GIVEN NAME: ", parsedPN.Alphabetic().GivenName())
-	fmt.Println("MIDDLE NAME:", parsedPN.Alphabetic().MiddleName())
-	fmt.Println("NAME PREFIX:", parsedPN.Alphabetic().NamePrefix())
-	fmt.Println("NAME SUFFIX:", parsedPN.Alphabetic().NameSuffix())
+	fmt.Println("FAMILY NAME:", parsedPN.Alphabetic.FamilyName)
+	fmt.Println("GIVEN NAME: ", parsedPN.Alphabetic.GivenName)
+	fmt.Println("MIDDLE NAME:", parsedPN.Alphabetic.MiddleName)
+	fmt.Println("NAME PREFIX:", parsedPN.Alphabetic.NamePrefix)
+	fmt.Println("NAME SUFFIX:", parsedPN.Alphabetic.NameSuffix)
 
-	// To print the original raw value, simply use the string method.
+	// To print the original Raw value, simply use the string method.
 	fmt.Println("ORIGINAL RAW:", parsedPN.String())
 }
 

@@ -18,56 +18,41 @@ const groupSep = "="
 // PN values are split into three groups which represent three different ways to
 // represent a name:
 //
-//	- Alphabetic: How a name is formally spelled using a phonetic alphabet.
+//	- Alphabetic: How a name is formally spelled using a Phonetic alphabet.
 //  - Ideographic: How a name is represented using ideograms / ideographs.
 //  - Phonetic: How a name is pronounced.
 //
 // Each of these groups can be inspected to access their individual segments (family
 // name, Given name, etc.)
 type Info struct {
-	// The original, raw PN value.
-	raw string
-	// Expected information about the alphabetic group.
-	alphabetic GroupInfo
-	// Expected information about the ideographic group.
-	ideographic GroupInfo
-	// Expected information about the phonetic group.
-	phonetic GroupInfo
+	// The original, Raw PN value.
+	Raw string
+	// Expected information about the Alphabetic group.
+	Alphabetic GroupInfo
+	// Expected information about the Ideographic group.
+	Ideographic GroupInfo
+	// Expected information about the Phonetic group.
+	Phonetic GroupInfo
 }
 
-// Returns PN value group 1: Alphabetic representation of the person's name.
-func (info Info) Alphabetic() GroupInfo {
-	return info.alphabetic
-}
-
-// Returns PN value group 2: Ideographic representation of the person's name.
-func (info Info) Ideographic() GroupInfo {
-	return info.ideographic
-}
-
-// Returns PN value group 3: Phonetic representation of the person's name.
-func (info Info) Phonetic() GroupInfo {
-	return info.phonetic
-}
-
-// Original raw representation of the PN value, in
-// '[alphabetic]===[ideographic]===[phonetic]' format.
+// Original Raw representation of the PN value, in
+// '[Alphabetic]===[Ideographic]===[Phonetic]' format.
 func (info Info) String() string {
-	return info.raw
+	return info.Raw
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method
 // ignores separator, so both '' and '^^^^=^^^^=^^^^' would return true.
 func (info Info) IsEmpty() bool {
-	return info.alphabetic.IsEmpty() &&
-		info.ideographic.IsEmpty() &&
-		info.phonetic.IsEmpty()
+	return info.Alphabetic.IsEmpty() &&
+		info.Ideographic.IsEmpty() &&
+		info.Phonetic.IsEmpty()
 }
 
 // Creates a new Info object detailing the individual data.
 //
 // If removeTrailingEmpty is set to true, null trailing groups and their separators
-// will be removed for the raw field if they contain no information, so
+// will be removed for the Raw field if they contain no information, so
 // "Potter^Harry^James^^=^^^^=^^^^" will be rendered as "Potter^Harry^James^^"
 // instead.
 func New(
@@ -77,13 +62,13 @@ func New(
 	removeTrailingEmpty bool,
 ) Info {
 	info := Info{
-		raw:         "",
-		alphabetic:  alphabetic,
-		ideographic: ideographic,
-		phonetic:    phonetic,
+		Raw:         "",
+		Alphabetic:  alphabetic,
+		Ideographic: ideographic,
+		Phonetic:    phonetic,
 	}
 
-	groups := []GroupInfo{info.Alphabetic(), info.Ideographic(), info.Phonetic()}
+	groups := []GroupInfo{info.Alphabetic, info.Ideographic, info.Phonetic}
 
 	// If we are removing trailing emtpy, we are going to check if the last group is
 	// empty, then trim it off the end if it is, until we hit a non-empty slice.
@@ -107,7 +92,7 @@ func New(
 		rawGroups[i] = groups[i].String()
 	}
 
-	info.raw = strings.Join(rawGroups, groupSep)
+	info.Raw = strings.Join(rawGroups, groupSep)
 
 	return info
 }
@@ -120,29 +105,29 @@ func Parse(valueString string) (Info, error) {
 		return Info{}, newErrParsePersonNameTooManyGroups(len(groups))
 	}
 
-	info := Info{raw: valueString}
+	info := Info{Raw: valueString}
 
 	// Range over the groups and assign them based on index.
 	for i, groupString := range groups {
 		switch i {
 		case 0:
-			groupInfo, err := groupFromValueString(groupString, "alphabetic")
+			groupInfo, err := groupFromValueString(groupString, "Alphabetic")
 			if err != nil {
 				return Info{}, err
 			}
-			info.alphabetic = groupInfo
+			info.Alphabetic = groupInfo
 		case 1:
-			groupInfo, err := groupFromValueString(groupString, "ideographic")
+			groupInfo, err := groupFromValueString(groupString, "Ideographic")
 			if err != nil {
 				return Info{}, err
 			}
-			info.ideographic = groupInfo
+			info.Ideographic = groupInfo
 		case 2:
-			groupInfo, err := groupFromValueString(groupString, "phonetic")
+			groupInfo, err := groupFromValueString(groupString, "Phonetic")
 			if err != nil {
 				return Info{}, err
 			}
-			info.phonetic = groupInfo
+			info.Phonetic = groupInfo
 		}
 	}
 

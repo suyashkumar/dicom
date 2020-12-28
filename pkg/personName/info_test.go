@@ -8,7 +8,7 @@ import (
 
 func TestInfo(t *testing.T) {
 	type TestCase struct {
-		// The raw string to parse from
+		// The Raw string to parse from
 		Raw string
 		// The parsed information we expect.
 		Expected Info
@@ -23,9 +23,9 @@ func TestInfo(t *testing.T) {
 
 	runNewTest := func(t *testing.T) {
 		newInfo := New(
-			thisCase.Expected.alphabetic,
-			thisCase.Expected.ideographic,
-			thisCase.Expected.phonetic,
+			thisCase.Expected.Alphabetic,
+			thisCase.Expected.Ideographic,
+			thisCase.Expected.Phonetic,
 			thisCase.RemoveTrailingEmpty,
 		)
 
@@ -36,27 +36,27 @@ func TestInfo(t *testing.T) {
 		assert := assert.New(t)
 
 		parsed, err := Parse(thisCase.Raw)
-		if !assert.NoError(err, "parse raw") {
+		if !assert.NoError(err, "parse Raw") {
 			t.FailNow()
 		}
 
 		checkGroupInfo(
 			t,
-			thisCase.Expected.alphabetic,
-			parsed.alphabetic,
-			"alphabetic",
+			thisCase.Expected.Alphabetic,
+			parsed.Alphabetic,
+			"Alphabetic",
 		)
 		checkGroupInfo(
 			t,
-			thisCase.Expected.ideographic,
-			parsed.ideographic,
-			"ideographic",
+			thisCase.Expected.Ideographic,
+			parsed.Ideographic,
+			"Ideographic",
 		)
 		checkGroupInfo(
 			t,
-			thisCase.Expected.phonetic,
-			parsed.phonetic,
-			"phonetic",
+			thisCase.Expected.Phonetic,
+			parsed.Phonetic,
+			"Phonetic",
 		)
 	}
 
@@ -64,7 +64,7 @@ func TestInfo(t *testing.T) {
 		assert := assert.New(t)
 
 		newInfo, err := Parse(thisCase.Raw)
-		if !assert.NoError(err, "parse raw") {
+		if !assert.NoError(err, "parse Raw") {
 			t.FailNow()
 		}
 
@@ -78,163 +78,163 @@ func TestInfo(t *testing.T) {
 				"iFamily^iGiven^iMiddle^iPrefix^iSuffix=" +
 				"pFamily^pGiven^pMiddle^pPrefix^pSuffix",
 			Expected: Info{
-				alphabetic: GroupInfo{
-					raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
-					familyName: "aFamily",
-					givenName:  "aGiven",
-					middleName: "aMiddle",
-					namePrefix: "aPrefix",
-					nameSuffix: "aSuffix",
+				Alphabetic: GroupInfo{
+					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
+					FamilyName: "aFamily",
+					GivenName:  "aGiven",
+					MiddleName: "aMiddle",
+					NamePrefix: "aPrefix",
+					NameSuffix: "aSuffix",
 				},
-				ideographic: GroupInfo{
-					raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
-					familyName: "iFamily",
-					givenName:  "iGiven",
-					middleName: "iMiddle",
-					namePrefix: "iPrefix",
-					nameSuffix: "iSuffix",
+				Ideographic: GroupInfo{
+					Raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
+					FamilyName: "iFamily",
+					GivenName:  "iGiven",
+					MiddleName: "iMiddle",
+					NamePrefix: "iPrefix",
+					NameSuffix: "iSuffix",
 				},
-				phonetic: GroupInfo{
-					raw:        "pFamily^pGiven^pMiddle^pPrefix^pSuffix",
-					familyName: "pFamily",
-					givenName:  "pGiven",
-					middleName: "pMiddle",
-					namePrefix: "pPrefix",
-					nameSuffix: "pSuffix",
+				Phonetic: GroupInfo{
+					Raw:        "pFamily^pGiven^pMiddle^pPrefix^pSuffix",
+					FamilyName: "pFamily",
+					GivenName:  "pGiven",
+					MiddleName: "pMiddle",
+					NamePrefix: "pPrefix",
+					NameSuffix: "pSuffix",
 				},
 			},
 			RemoveTrailingEmpty: false,
 			IsEmpty:             false,
 		},
-		// No phonetic
+		// No Phonetic
 		{
 			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
 				"iFamily^iGiven^iMiddle^iPrefix^iSuffix=" +
 				"",
 			Expected: Info{
-				alphabetic: GroupInfo{
-					raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
-					familyName: "aFamily",
-					givenName:  "aGiven",
-					middleName: "aMiddle",
-					namePrefix: "aPrefix",
-					nameSuffix: "aSuffix",
+				Alphabetic: GroupInfo{
+					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
+					FamilyName: "aFamily",
+					GivenName:  "aGiven",
+					MiddleName: "aMiddle",
+					NamePrefix: "aPrefix",
+					NameSuffix: "aSuffix",
 				},
-				ideographic: GroupInfo{
-					raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
-					familyName: "iFamily",
-					givenName:  "iGiven",
-					middleName: "iMiddle",
-					namePrefix: "iPrefix",
-					nameSuffix: "iSuffix",
+				Ideographic: GroupInfo{
+					Raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
+					FamilyName: "iFamily",
+					GivenName:  "iGiven",
+					MiddleName: "iMiddle",
+					NamePrefix: "iPrefix",
+					NameSuffix: "iSuffix",
 				},
-				phonetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Phonetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
 			},
 			RemoveTrailingEmpty: false,
 			IsEmpty:             false,
 		},
-		// No phonetic, no seps
+		// No Phonetic, no seps
 		{
 			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
 				"iFamily^iGiven^iMiddle^iPrefix^iSuffix" +
 				"",
 			Expected: Info{
-				alphabetic: GroupInfo{
-					raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
-					familyName: "aFamily",
-					givenName:  "aGiven",
-					middleName: "aMiddle",
-					namePrefix: "aPrefix",
-					nameSuffix: "aSuffix",
+				Alphabetic: GroupInfo{
+					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
+					FamilyName: "aFamily",
+					GivenName:  "aGiven",
+					MiddleName: "aMiddle",
+					NamePrefix: "aPrefix",
+					NameSuffix: "aSuffix",
 				},
-				ideographic: GroupInfo{
-					raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
-					familyName: "iFamily",
-					givenName:  "iGiven",
-					middleName: "iMiddle",
-					namePrefix: "iPrefix",
-					nameSuffix: "iSuffix",
+				Ideographic: GroupInfo{
+					Raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
+					FamilyName: "iFamily",
+					GivenName:  "iGiven",
+					MiddleName: "iMiddle",
+					NamePrefix: "iPrefix",
+					NameSuffix: "iSuffix",
 				},
-				phonetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Phonetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
 			},
 			RemoveTrailingEmpty: true,
 			IsEmpty:             false,
 		},
-		// No ideographic
+		// No Ideographic
 		{
 			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
 				"=" +
 				"",
 			Expected: Info{
-				alphabetic: GroupInfo{
-					raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
-					familyName: "aFamily",
-					givenName:  "aGiven",
-					middleName: "aMiddle",
-					namePrefix: "aPrefix",
-					nameSuffix: "aSuffix",
+				Alphabetic: GroupInfo{
+					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
+					FamilyName: "aFamily",
+					GivenName:  "aGiven",
+					MiddleName: "aMiddle",
+					NamePrefix: "aPrefix",
+					NameSuffix: "aSuffix",
 				},
-				ideographic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Ideographic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
-				phonetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Phonetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
 			},
 			RemoveTrailingEmpty: false,
 			IsEmpty:             false,
 		},
-		// No ideographic, no seps
+		// No Ideographic, no seps
 		{
 			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 			Expected: Info{
-				alphabetic: GroupInfo{
-					raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
-					familyName: "aFamily",
-					givenName:  "aGiven",
-					middleName: "aMiddle",
-					namePrefix: "aPrefix",
-					nameSuffix: "aSuffix",
+				Alphabetic: GroupInfo{
+					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
+					FamilyName: "aFamily",
+					GivenName:  "aGiven",
+					MiddleName: "aMiddle",
+					NamePrefix: "aPrefix",
+					NameSuffix: "aSuffix",
 				},
-				ideographic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Ideographic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
-				phonetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Phonetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
 			},
 			RemoveTrailingEmpty: true,
@@ -246,29 +246,29 @@ func TestInfo(t *testing.T) {
 				"=" +
 				"",
 			Expected: Info{
-				alphabetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Alphabetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
-				ideographic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Ideographic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
-				phonetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Phonetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
 			},
 			RemoveTrailingEmpty: false,
@@ -278,29 +278,29 @@ func TestInfo(t *testing.T) {
 		{
 			Raw: "",
 			Expected: Info{
-				alphabetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Alphabetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
-				ideographic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Ideographic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
-				phonetic: GroupInfo{
-					raw:        "",
-					familyName: "",
-					givenName:  "",
-					middleName: "",
-					namePrefix: "",
-					nameSuffix: "",
+				Phonetic: GroupInfo{
+					Raw:        "",
+					FamilyName: "",
+					GivenName:  "",
+					MiddleName: "",
+					NamePrefix: "",
+					NameSuffix: "",
 				},
 			},
 			RemoveTrailingEmpty: true,
@@ -309,7 +309,7 @@ func TestInfo(t *testing.T) {
 	}
 
 	for _, thisCase = range testCases {
-		thisCase.Expected.raw = thisCase.Raw
+		thisCase.Expected.Raw = thisCase.Raw
 
 		t.Run(thisCase.Raw+"_new", runNewTest)
 		t.Run(thisCase.Raw+"_parse", runParseTest)
@@ -344,24 +344,24 @@ func TestParse_Err(t *testing.T) {
 			Raw: "===",
 			ErrString: "string contains to many segments for PN value:" +
 				" PN contains 4 groups. No more than 3 groups with" +
-				" '[alphabetic]=[ideographic]=[phonetic]' format are allowed",
+				" '[Alphabetic]=[Ideographic]=[Phonetic]' format are allowed",
 		},
 		{
 			Raw: "^^^^^",
 			ErrString: "string contains to many segments for PN value: PN group" +
-				" alphabetic contains 6 segments. No more than 5 segments with" +
+				" Alphabetic contains 6 segments. No more than 5 segments with" +
 				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
 		},
 		{
 			Raw: "=^^^^^",
 			ErrString: "string contains to many segments for PN value: PN group" +
-				" ideographic contains 6 segments. No more than 5 segments with" +
+				" Ideographic contains 6 segments. No more than 5 segments with" +
 				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
 		},
 		{
 			Raw: "==^^^^^",
 			ErrString: "string contains to many segments for PN value: PN group" +
-				" phonetic contains 6 segments. No more than 5 segments with" +
+				" Phonetic contains 6 segments. No more than 5 segments with" +
 				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
 		},
 	}

@@ -47,7 +47,7 @@ func TestElement_String(t *testing.T) {
 		"  Tag: (0028,0010)\n" +
 		"  Tag Name: Rows\n" +
 		"  VR: VRInt32List\n" +
-		"  VR raw: US\n" +
+		"  VR Raw: US\n" +
 		"  VL: 0\n" +
 		"  Value: [100]\n" +
 		"]\n\n"

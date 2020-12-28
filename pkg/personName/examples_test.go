@@ -9,7 +9,7 @@ import (
 func ExampleParse() {
 	// To parse a PN value, use personName.Parse
 	pn, err := personName.Parse(
-		"Potter^Harry^James^^===哈利^波特^詹姆^^===hɛər.i^pɒ.tər^dʒeɪmz^^",
+		"Potter^Harry^James^^=哈利^波特^詹姆^^=hɛər.i^pɒ.tər^dʒeɪmz^^",
 	)
 	if err != nil {
 		panic(err)
@@ -77,6 +77,6 @@ func ExampleNew() {
 		false,
 	)
 
-	// This will render as 'Potter^Harry^James^^===^^^^===^^^^'
+	// This will render as 'Potter^Harry^James^^=^^^^=^^^^'
 	fmt.Println("PN:", pn.String())
 }

@@ -13,18 +13,24 @@ var ErrParsePersonName = errors.New(
 func newErrParsePersonNameTooManyGroups(groupsFound int) error {
 	return fmt.Errorf(
 		"%w: PN contains %v groups. No more than 3 groups with "+
-			"'[alphabetic]===[ideographic]===[phonetic]' format are allowed",
+			"'[alphabetic]%v[ideographic]%v[phonetic]' format are allowed",
 		ErrParsePersonName,
 		groupsFound,
+		groupSep,
+		groupSep,
 	)
 }
 
 func newErrParsePersonNameTooGroupSegments(group string, segmentsFound int) error {
 	return fmt.Errorf(
 		"%w: PN group %v contains %v segments. No more than 5 segments with "+
-			"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
+			"'[Last]%v[First]%v[Middle]%v[Prefix]%v[Suffix]' format are allowed",
 		ErrParsePersonName,
 		group,
 		segmentsFound,
+		segmentSep,
+		segmentSep,
+		segmentSep,
+		segmentSep,
 	)
 }

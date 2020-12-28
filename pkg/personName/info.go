@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const groupSep = "="
+
 // Expected Info value information from an element with a "PN" VR. See the "PN"
 // entry at: http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
 //
@@ -55,7 +57,7 @@ func (info Info) String() string {
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method
-// ignores separator, so both '' and '^^^^===^^^^===^^^^' would return true.
+// ignores separator, so both '' and '^^^^=^^^^=^^^^' would return true.
 func (info Info) IsEmpty() bool {
 	return info.alphabetic.IsEmpty() &&
 		info.ideographic.IsEmpty() &&
@@ -66,7 +68,7 @@ func (info Info) IsEmpty() bool {
 //
 // If removeTrailingEmpty is set to true, null trailing groups and their separators
 // will be removed for the raw field if they contain no information, so
-// "Potter^Harry^James^^===^^^^===^^^^" will be rendered as "Potter^Harry^James^^"
+// "Potter^Harry^James^^=^^^^=^^^^" will be rendered as "Potter^Harry^James^^"
 // instead.
 func New(
 	alphabetic GroupInfo,
@@ -105,14 +107,14 @@ func New(
 		rawGroups[i] = groups[i].String()
 	}
 
-	info.raw = strings.Join(rawGroups, "===")
+	info.raw = strings.Join(rawGroups, groupSep)
 
 	return info
 }
 
 // Parse PN dicom value into informational value.
 func Parse(valueString string) (Info, error) {
-	groups := strings.Split(valueString, "===")
+	groups := strings.Split(valueString, groupSep)
 
 	if len(groups) > 3 {
 		return Info{}, newErrParsePersonNameTooManyGroups(len(groups))

@@ -74,8 +74,8 @@ func TestInfo(t *testing.T) {
 	testCases := []TestCase{
 		// All groups
 		{
-			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix===" +
-				"iFamily^iGiven^iMiddle^iPrefix^iSuffix===" +
+			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
+				"iFamily^iGiven^iMiddle^iPrefix^iSuffix=" +
 				"pFamily^pGiven^pMiddle^pPrefix^pSuffix",
 			Expected: Info{
 				alphabetic: GroupInfo{
@@ -108,8 +108,8 @@ func TestInfo(t *testing.T) {
 		},
 		// No phonetic
 		{
-			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix===" +
-				"iFamily^iGiven^iMiddle^iPrefix^iSuffix===" +
+			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
+				"iFamily^iGiven^iMiddle^iPrefix^iSuffix=" +
 				"",
 			Expected: Info{
 				alphabetic: GroupInfo{
@@ -142,7 +142,7 @@ func TestInfo(t *testing.T) {
 		},
 		// No phonetic, no seps
 		{
-			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix===" +
+			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
 				"iFamily^iGiven^iMiddle^iPrefix^iSuffix" +
 				"",
 			Expected: Info{
@@ -176,8 +176,8 @@ func TestInfo(t *testing.T) {
 		},
 		// No ideographic
 		{
-			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix===" +
-				"===" +
+			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
+				"=" +
 				"",
 			Expected: Info{
 				alphabetic: GroupInfo{
@@ -242,8 +242,8 @@ func TestInfo(t *testing.T) {
 		},
 		// Empty with seps
 		{
-			Raw: "===" +
-				"===" +
+			Raw: "=" +
+				"=" +
 				"",
 			Expected: Info{
 				alphabetic: GroupInfo{
@@ -341,10 +341,10 @@ func TestParse_Err(t *testing.T) {
 
 	testCases := []TestCase{
 		{
-			Raw: "=========",
+			Raw: "===",
 			ErrString: "string contains to many segments for PN value:" +
 				" PN contains 4 groups. No more than 3 groups with" +
-				" '[alphabetic]===[ideographic]===[phonetic]' format are allowed",
+				" '[alphabetic]=[ideographic]=[phonetic]' format are allowed",
 		},
 		{
 			Raw: "^^^^^",
@@ -353,13 +353,13 @@ func TestParse_Err(t *testing.T) {
 				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
 		},
 		{
-			Raw: "===^^^^^",
+			Raw: "=^^^^^",
 			ErrString: "string contains to many segments for PN value: PN group" +
 				" ideographic contains 6 segments. No more than 5 segments with" +
 				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
 		},
 		{
-			Raw: "======^^^^^",
+			Raw: "==^^^^^",
 			ErrString: "string contains to many segments for PN value: PN group" +
 				" phonetic contains 6 segments. No more than 5 segments with" +
 				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",

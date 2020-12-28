@@ -2,6 +2,8 @@ package personName
 
 import "strings"
 
+const segmentSep = "^"
+
 // The dicom spec splits each PN value into 3 representation groups:
 //
 //	- alphabetic
@@ -89,11 +91,11 @@ func NewGroupInfo(
 
 	rawString := strings.Join(
 		[]string{familyName, givenName, middleName, namePrefix, nameSuffix},
-		"^",
+		segmentSep,
 	)
 
 	if removeTrailingSeparators {
-		rawString = strings.TrimRight(rawString, "^")
+		rawString = strings.TrimRight(rawString, segmentSep)
 	}
 
 	info.raw = rawString
@@ -116,7 +118,7 @@ func NewGroupEmpty(noSeps bool) GroupInfo {
 // groupFromValueString converts a string from a dicom element with a Value
 // Representation of PN to a parsed Info struct.
 func groupFromValueString(groupString string, group string) (GroupInfo, error) {
-	segments := strings.Split(groupString, "^")
+	segments := strings.Split(groupString, segmentSep)
 
 	if len(segments) > 5 {
 		return GroupInfo{}, newErrParsePersonNameTooGroupSegments(group, len(segments))

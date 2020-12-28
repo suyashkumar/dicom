@@ -7,61 +7,142 @@ http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
 package personName
 
 import (
-	"errors"
-	"regexp"
+	"strings"
 )
 
-// Parsed Info value information from an element with a "PN" VR. See the "PN"
+// Expected Info value information from an element with a "PN" VR. See the "PN"
 // entry at: http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
+//
+// PN values are split into three groups which represent three different ways to
+// represent a name:
+//
+//	- Alphabetic: How a name is formally spelled using a phonetic alphabet.
+//  - Ideographic: How a name is represented using ideograms / ideographs.
+//  - Phonetic: How a name is pronounced.
+//
+// Each of these groups can be inspected to access their individual segments (family
+// name, Given name, etc.)
 type Info struct {
-	// The person's family or last name.
-	FamilyName string
-	// The person's given or first names.
-	GivenName string
-	// The person's middle names.
-	MiddleName string
-	// The person's name prefix.
-	NamePrefix string
-	// The person's name suffix.
-	NameSuffix string
+	// The original, raw PN value.
+	raw string
+	// Expected information about the alphabetic group.
+	alphabetic GroupInfo
+	// Expected information about the ideographic group.
+	ideographic GroupInfo
+	// Expected information about the phonetic group.
+	phonetic GroupInfo
 }
 
-// Returns dicom format PN string: '[Last]^[First]^[Middle]^[Prefix]^[Suffix]'.
-func (pn Info) String() string {
-	return pn.FamilyName +
-		"^" + pn.GivenName +
-		"^" + pn.MiddleName +
-		"^" + pn.NamePrefix +
-		"^" + pn.NameSuffix
+// Returns PN value group 1: Alphabetic representation of the person's name.
+func (info Info) Alphabetic() GroupInfo {
+	return info.alphabetic
 }
 
-// Regex for parsing PN values.
-var pnRegex = regexp.MustCompile(
-	`(?P<Fist>.*)\^(?P<Last>.*)\^(?P<Middle>.*)\^(?P<Prefix>.*)\^(?P<Suffix>.*)`,
-)
+// Returns PN value group 2: Ideographic representation of the person's name.
+func (info Info) Ideographic() GroupInfo {
+	return info.ideographic
+}
 
-// ErrParsePersonName is returned when attempting to parse Info from a string.
-var ErrParsePersonName = errors.New("person name value does not match Dicom Spec" +
-	" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]'")
+// Returns PN value group 3: Phonetic representation of the person's name.
+func (info Info) Phonetic() GroupInfo {
+	return info.phonetic
+}
 
-// FromDicomValueString converts a string from a dicom element with a Value
-// Representation of PN to a parsed Info struct.
-func FromDicomValueString(pnString string) (Info, error) {
-	// Run the regex against the name.
-	matches := pnRegex.FindStringSubmatch(pnString)
+// Original raw representation of the PN value, in
+// '[alphabetic]===[ideographic]===[phonetic]' format.
+func (info Info) String() string {
+	return info.raw
+}
 
-	// If the first match is empty or there are no matches, the value is malformed.
-	if len(matches) == 0 || matches[0] == "" {
-		return Info{}, ErrParsePersonName
+// IsEmpty returns whether the PN value contains any actual information. This method
+// ignores separator, so both '' and '^^^^===^^^^===^^^^' would return true.
+func (info Info) IsEmpty() bool {
+	return info.alphabetic.IsEmpty() &&
+		info.ideographic.IsEmpty() &&
+		info.phonetic.IsEmpty()
+}
+
+// Creates a new Info object detailing the individual data.
+//
+// If removeTrailingEmpty is set to true, null trailing groups and their separators
+// will be removed for the raw field if they contain no information, so
+// "Potter^Harry^James^^===^^^^===^^^^" will be rendered as "Potter^Harry^James^^"
+// instead.
+func New(
+	alphabetic GroupInfo,
+	ideographic GroupInfo,
+	phonetic GroupInfo,
+	removeTrailingEmpty bool,
+) Info {
+	info := Info{
+		raw:         "",
+		alphabetic:  alphabetic,
+		ideographic: ideographic,
+		phonetic:    phonetic,
 	}
 
-	name := Info{
-		FamilyName: matches[1],
-		GivenName:  matches[2],
-		MiddleName: matches[3],
-		NamePrefix: matches[4],
-		NameSuffix: matches[5],
+	groups := []GroupInfo{info.Alphabetic(), info.Ideographic(), info.Phonetic()}
+
+	// If we are removing trailing emtpy, we are going to check if the last group is
+	// empty, then trim it off the end if it is, until we hit a non-empty slice.
+	if removeTrailingEmpty {
+		out := 3
+		for i := 2; i >= 0; i-- {
+			if groups[i].IsEmpty() {
+				out = i
+			} else {
+				break
+			}
+		}
+
+		// Trim the groups by getting a slice of our slice.
+		groups = groups[0:out]
 	}
 
-	return name, nil
+	rawGroups := make([]string, len(groups))
+
+	for i := 0; i < len(groups); i++ {
+		rawGroups[i] = groups[i].String()
+	}
+
+	info.raw = strings.Join(rawGroups, "===")
+
+	return info
+}
+
+// Parse PN dicom value into informational value.
+func Parse(valueString string) (Info, error) {
+	groups := strings.Split(valueString, "===")
+
+	if len(groups) > 3 {
+		return Info{}, newErrParsePersonNameTooManyGroups(len(groups))
+	}
+
+	info := Info{raw: valueString}
+
+	// Range over the groups and assign them based on index.
+	for i, groupString := range groups {
+		switch i {
+		case 0:
+			groupInfo, err := groupFromValueString(groupString, "alphabetic")
+			if err != nil {
+				return Info{}, err
+			}
+			info.alphabetic = groupInfo
+		case 1:
+			groupInfo, err := groupFromValueString(groupString, "ideographic")
+			if err != nil {
+				return Info{}, err
+			}
+			info.ideographic = groupInfo
+		case 2:
+			groupInfo, err := groupFromValueString(groupString, "phonetic")
+			if err != nil {
+				return Info{}, err
+			}
+			info.phonetic = groupInfo
+		}
+	}
+
+	return info, nil
 }

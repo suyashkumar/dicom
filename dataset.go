@@ -102,7 +102,7 @@ func (d *Dataset) String() string {
 		b.WriteString(fmt.Sprintf("%s  Tag: %s\n", tabs, elem.e.Tag))
 		b.WriteString(fmt.Sprintf("%s  Tag Name: %s\n", tabs, tagName))
 		b.WriteString(fmt.Sprintf("%s  VR: %s\n", tabs, elem.e.ValueRepresentation))
-		b.WriteString(fmt.Sprintf("%s  VR Raw: %s\n", tabs, elem.e.RawValueRepresentation))
+		b.WriteString(fmt.Sprintf("%s  VR raw: %s\n", tabs, elem.e.RawValueRepresentation))
 		b.WriteString(fmt.Sprintf("%s  VL: %d\n", tabs, elem.e.ValueLength))
 		b.WriteString(fmt.Sprintf("%s  Value: %d\n", tabs, elem.e.Value))
 		b.WriteString(fmt.Sprintf("%s]\n\n", tabs))

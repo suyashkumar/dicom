@@ -244,7 +244,7 @@ var uidMap = map[string]Info{
 	"1.2.840.10008.5.1.4.1.1.20":       {"1.2.840.10008.5.1.4.1.1.20", "Nuclear Medicine Image Storage", TypeSOPClass, "", ""},
 	"1.2.840.10008.5.1.4.1.1.30":       {"1.2.840.10008.5.1.4.1.1.30", "Parametric Map Storage", TypeSOPClass, "", ""},
 	"1.2.840.10008.5.1.4.1.1.40":       {"1.2.840.10008.5.1.4.1.1.40", "", TypeSOPClass, "", "Retired"},
-	"1.2.840.10008.5.1.4.1.1.66":       {"1.2.840.10008.5.1.4.1.1.66", "raw Data Storage", TypeSOPClass, "", ""},
+	"1.2.840.10008.5.1.4.1.1.66":       {"1.2.840.10008.5.1.4.1.1.66", "Raw Data Storage", TypeSOPClass, "", ""},
 	"1.2.840.10008.5.1.4.1.1.66.1":     {"1.2.840.10008.5.1.4.1.1.66.1", "Spatial Registration Storage", TypeSOPClass, "", ""},
 	"1.2.840.10008.5.1.4.1.1.66.2":     {"1.2.840.10008.5.1.4.1.1.66.2", "Spatial Fiducials Storage", TypeSOPClass, "", ""},
 	"1.2.840.10008.5.1.4.1.1.66.3":     {"1.2.840.10008.5.1.4.1.1.66.3", "Deformable Spatial Registration Storage", TypeSOPClass, "", ""},

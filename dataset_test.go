@@ -128,7 +128,7 @@ func ExampleDataset_String() {
 	//   Tag: (0028,0010)
 	//   Tag Name: Rows
 	//   VR: VRInt32List
-	//   VR raw: UL
+	//   VR Raw: UL
 	//   VL: 0
 	//   Value: &{[100]}
 	// ]
@@ -137,7 +137,7 @@ func ExampleDataset_String() {
 	//   Tag: (0028,0011)
 	//   Tag Name: Columns
 	//   VR: VRInt32List
-	//   VR raw: UL
+	//   VR Raw: UL
 	//   VL: 0
 	//   Value: &{[200]}
 	// ]

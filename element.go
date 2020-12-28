@@ -29,7 +29,7 @@ func (e *Element) String() string {
 	if tagInfo, err := tag.Find(e.Tag); err == nil {
 		tagName = tagInfo.Name
 	}
-	return fmt.Sprintf("[\n  Tag: %s\n  Tag Name: %s\n  VR: %s\n  VR raw: %s\n  VL: %d\n  Value: %s\n]\n\n",
+	return fmt.Sprintf("[\n  Tag: %s\n  Tag Name: %s\n  VR: %s\n  VR Raw: %s\n  VL: %d\n  Value: %s\n]\n\n",
 		e.Tag.String(),
 		tagName,
 		e.ValueRepresentation.String(),

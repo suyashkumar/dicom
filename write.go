@@ -524,6 +524,10 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 						if err := binary.Write(buf, binary.LittleEndian, uint16(image.Frames[frame].NativeData.Data[pixel][value])); err != nil {
 							return err
 						}
+					} else if image.Frames[frame].NativeData.BitsPerSample == 32 {
+						if err := binary.Write(buf, binary.LittleEndian, uint32(image.Frames[frame].NativeData.Data[pixel][value])); err != nil {
+							return err
+						}
 					} else {
 						return ErrorUnsupportedBitsPerSample
 					}

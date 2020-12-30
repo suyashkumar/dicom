@@ -3,7 +3,7 @@
 // ftp://medical.nema.org/medical/dicom/2011/11_06pu.pdf
 package tag
 
-//go:generate go run ./pkg/tag/codegen
+//go:generate go run ./codegen
 //go:generate stringer -type VRKind
 
 // Parses and populates the tag info dict from serialized spec information.

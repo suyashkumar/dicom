@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const dimseCSVPath = "./pkg/tag/codegen/dimse.csv"
+const dimseCSVPath = "./codegen/dimse.csv"
 
 const dimseTagRecordIndex = 0
 const dimseVRRecordIndex = 1

@@ -204,15 +204,3 @@ func parseTag(tag string) (Tag, error) {
 	}
 	return Tag{Group: uint16(group), Element: uint16(elem)}, nil
 }
-
-// Returns list info for all known tags parsed from the dicom spec.
-func AllKnown() []Info {
-	tags := make([]Info, len(tagDict))
-	i := 0
-	for _, thisInfo := range tagDict {
-		tags[i] = thisInfo
-		i++
-	}
-
-	return tags
-}

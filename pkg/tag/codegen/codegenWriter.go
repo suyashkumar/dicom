@@ -10,7 +10,6 @@ const codegenWarning = "// Code generated from './pkg/tag/codegen'. " +
 	"DO NOT EDIT.\n\n"
 
 const GeneratedFileLeader = packageName + codegenWarning
-const CodeIndent = "\t"
 
 // CodeWriter is an interface for writing to a codegen file.
 type CodeWriter interface {

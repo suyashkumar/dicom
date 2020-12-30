@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const tagDictPath = "./pkg/tag/tagDict.go"
+const tagDictPath = "./tagDict.go"
 
 type TagDictCodeWriter struct {
 	fileWriter *os.File

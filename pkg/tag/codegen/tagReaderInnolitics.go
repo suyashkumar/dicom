@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const innoliticsJSONPath = "./pkg/tag/dicom-standard/standard/attributes.json"
+const innoliticsJSONPath = "./dicom-standard/standard/attributes.json"
 
 // Data model to unmarshal innolitics json.
 type innoliticsTagInfo struct {
@@ -43,7 +43,18 @@ func infoFromInnolitics(tagSpec innoliticsTagInfo) (TagInfo, error) {
 	// now we should use only one of them, but it may be worth in the future including
 	// both in a slice and having a helper function for IsVR(vr string) for testing
 	// whether a tag is a VR.
+	//
+	// The CSV from our previous method of generation seemed to favor the second value,
+	// so that's what we will do here as well..
 	vrList := strings.Split(tagSpec.ValueRepresentation, " or ")
+	vr := vrList[len(vrList)-1]
+
+	// Some vrs have values like that are ill-defined, like "See Note 2". This affects
+	// tags like ItemDelimitationItem. The previous CSV we used defined these VR's as
+	// 'na', so we will do the same here.
+	if vr == "See Note 2" {
+		vr = "na"
+	}
 
 	// By default, we will set the name equal to the Attribute Keyword
 	name := tagSpec.Keyword
@@ -59,7 +70,7 @@ func infoFromInnolitics(tagSpec innoliticsTagInfo) (TagInfo, error) {
 
 	info := TagInfo{
 		Tag:  tag,
-		VR:   vrList[len(vrList)-1],
+		VR:   vr,
 		Name: tagSpec.Keyword,
 		VM:   tagSpec.ValueMultiplicity,
 	}

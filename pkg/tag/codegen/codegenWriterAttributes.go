@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const attributesFilePath = "./pkg/tag/attributes.go"
+const attributesFilePath = "./attributes.go"
 
 // Writes codegen to attributes.go via CodegenWriter interface.
 type AttributeCodeWriter struct {

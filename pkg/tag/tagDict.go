@@ -38747,7 +38747,7 @@ func initTagDicts() {
 	thisInfo = Info{
 		Tag:  Tag{0xfffe, 0xe000},
 		Name: "Item",
-		VR:   "See Note 2",
+		VR:   "na",
 		VM:   "1",
 	}
 	tagDict[thisInfo.Tag] = thisInfo
@@ -38756,7 +38756,7 @@ func initTagDicts() {
 	thisInfo = Info{
 		Tag:  Tag{0xfffe, 0xe00d},
 		Name: "ItemDelimitationItem",
-		VR:   "See Note 2",
+		VR:   "na",
 		VM:   "1",
 	}
 	tagDict[thisInfo.Tag] = thisInfo
@@ -38765,7 +38765,7 @@ func initTagDicts() {
 	thisInfo = Info{
 		Tag:  Tag{0xfffe, 0xe0dd},
 		Name: "SequenceDelimitationItem",
-		VR:   "See Note 2",
+		VR:   "na",
 		VM:   "1",
 	}
 	tagDict[thisInfo.Tag] = thisInfo

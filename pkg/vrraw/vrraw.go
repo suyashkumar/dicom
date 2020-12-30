@@ -34,16 +34,12 @@ const (
 	Time                = "TM"
 	UnlimitedCharacters = "UC"
 
-	// The spec uses both UniqueIdentifier AND UID in the VR Name column for UI, so
-	// we include both here.
+	// NOTE: UniqueIdentifier is also referred to as UID.
 	UniqueIdentifier = "UI"
-	UID              = UniqueIdentifier
 
-	// Like UID, the spec offers several human-readable versions for the UR VR.
+	// NOTE: UniversalResourceIdentifier is also referred to as
+	// UniversalResourceLocator, URI and  URL.
 	UniversalResourceIdentifier = "UR"
-	UniversalResourceLocator    = UniversalResourceIdentifier
-	URI                         = UniversalResourceIdentifier
-	URL                         = UniversalResourceIdentifier
 
 	UnsignedLong     = "UL"
 	Unknown          = "UN"

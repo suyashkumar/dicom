@@ -154,12 +154,10 @@ func TestVMInfo_IsSingleValue_True(t *testing.T) {
 
 // Tests that when min or max is not 1 VMInfo.IsSingleValue() returns false.
 func TestVMInfo_IsSingleValue_False(t *testing.T) {
-	type TestCase struct {
+	testCases := []struct {
 		Min int
 		Max int
-	}
-
-	testCases := []TestCase{
+	}{
 		{
 			2,
 			2,
@@ -174,29 +172,23 @@ func TestVMInfo_IsSingleValue_False(t *testing.T) {
 		},
 	}
 
-	var thisCase TestCase
-
-	runTest := func(t *testing.T) {
-		vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
-		if vmInfo.IsSingleValue() {
-			t.Error("IsSingleValue returned true")
-		}
-	}
-
-	for _, thisCase = range testCases {
-		t.Run(fmt.Sprintf("min_%v_max_%v", thisCase.Min, thisCase.Max), runTest)
+	for _, thisCase := range testCases {
+		t.Run(fmt.Sprintf("min_%v_max_%v", thisCase.Min, thisCase.Max), func(t *testing.T) {
+			vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
+			if vmInfo.IsSingleValue() {
+				t.Error("IsSingleValue returned true")
+			}
+		})
 	}
 }
 
 // Tests that when max is -1 VMInfo.IsUnbounded() returns true.
 func TestVMInfo_IsUnbounded_True(t *testing.T) {
-	type TestCase struct {
+	testCases := []struct {
 		Min  int
 		Max  int
 		Step int
-	}
-
-	testCases := []TestCase{
+	}{
 		{
 			1,
 			-1,
@@ -214,16 +206,7 @@ func TestVMInfo_IsUnbounded_True(t *testing.T) {
 		},
 	}
 
-	var thisCase TestCase
-
-	runTest := func(t *testing.T) {
-		vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
-		if !vmInfo.IsUnbounded() {
-			t.Error("IsUnbounded returned false")
-		}
-	}
-
-	for _, thisCase = range testCases {
+	for _, thisCase := range testCases {
 		t.Run(
 			fmt.Sprintf(
 				"min_%v_max_%v_step_%v",
@@ -231,20 +214,23 @@ func TestVMInfo_IsUnbounded_True(t *testing.T) {
 				thisCase.Max,
 				thisCase.Step,
 			),
-			runTest,
+			func(t *testing.T) {
+				vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
+				if !vmInfo.IsUnbounded() {
+					t.Error("IsUnbounded returned false")
+				}
+			},
 		)
 	}
 }
 
 // Tests that when max is not -1 VMInfo.IsUnbounded() returns false.
 func TestVMInfo_IsUnbounded_False(t *testing.T) {
-	type TestCase struct {
+	testCases := []struct {
 		Min  int
 		Max  int
 		Step int
-	}
-
-	testCases := []TestCase{
+	}{
 		{
 			1,
 			1,
@@ -267,16 +253,7 @@ func TestVMInfo_IsUnbounded_False(t *testing.T) {
 		},
 	}
 
-	var thisCase TestCase
-
-	runTest := func(t *testing.T) {
-		vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
-		if vmInfo.IsUnbounded() {
-			t.Error("IsUnbounded returned true")
-		}
-	}
-
-	for _, thisCase = range testCases {
+	for _, thisCase := range testCases {
 		t.Run(
 			fmt.Sprintf(
 				"min_%v_max_%v_step_%v",
@@ -284,7 +261,12 @@ func TestVMInfo_IsUnbounded_False(t *testing.T) {
 				thisCase.Max,
 				thisCase.Step,
 			),
-			runTest,
+			func(t *testing.T) {
+				vmInfo := VMInfo{Minimum: thisCase.Min, Maximum: thisCase.Max, Step: 1}
+				if vmInfo.IsUnbounded() {
+					t.Error("IsUnbounded returned true")
+				}
+			},
 		)
 	}
 }

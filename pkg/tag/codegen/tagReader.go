@@ -16,6 +16,7 @@ type TagReader interface {
 	Close() error
 }
 
+// Reads tags from multiple TagReader implementations until all readers are exhausted.
 type MasterTagReader struct {
 	tagReaders []TagReader
 }

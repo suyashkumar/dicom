@@ -11,7 +11,7 @@ const codegenWarning = "// Code generated from './pkg/tag/codegen'. " +
 
 const GeneratedFileLeader = packageName + codegenWarning
 
-// CodeWriter is an interface for writing to a codegen file.
+// CodeWriter is an interface for writing to a dicom tag codegen file.
 type CodeWriter interface {
 	// Name to use in error messages related to this writer.
 	Name() string

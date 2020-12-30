@@ -1,4 +1,4 @@
-package personName
+package pn
 
 import (
 	"errors"
@@ -58,7 +58,7 @@ func checkGroupInfo(
 }
 
 func TestNewPersonNameFromDicom(t *testing.T) {
-	type TestCase struct {
+	testCases := []struct {
 		// The Raw string to parse from
 		Raw string
 		// The parsed information we expect.
@@ -68,9 +68,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		RemoveTrailingSeps bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
-	}
-
-	testCases := []TestCase{
+	}{
 		// Full Name
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR^JR",
@@ -212,54 +210,52 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		},
 	}
 
-	var thisCase TestCase
-
-	runNewTest := func(t *testing.T) {
-		newGroup := NewGroupInfo(
-			thisCase.Expected.FamilyName,
-			thisCase.Expected.GivenName,
-			thisCase.Expected.MiddleName,
-			thisCase.Expected.NamePrefix,
-			thisCase.Expected.NameSuffix,
-			thisCase.RemoveTrailingSeps,
-		)
-		assert.Equal(
-			t,
-			thisCase.Raw,
-			newGroup.String(),
-			"convert to string",
-		)
-	}
-
-	runParseTest := func(t *testing.T) {
-		assert := assert.New(t)
-
-		parsed, err := groupFromValueString(thisCase.Raw, "Alphabetic")
-		if !assert.NoError(err, "parse string") {
-			t.FailNow()
-		}
-
-		checkGroupInfo(t, thisCase.Expected, parsed, "")
-
-		assert.Equal(thisCase.Raw, parsed.String(), "convert to string")
-	}
-
-	runIsEmptyTest := func(t *testing.T) {
-		assert := assert.New(t)
-
-		parsed, err := groupFromValueString(thisCase.Raw, "Alphabetic")
-		if !assert.NoError(err, "parse string") {
-			t.FailNow()
-		}
-
-		assert.Equal(thisCase.IsEmpty, parsed.IsEmpty(), "IsEmpty()")
-	}
-
-	for _, thisCase = range testCases {
+	for _, thisCase := range testCases {
 		thisCase.Expected.Raw = thisCase.Raw
-		t.Run(thisCase.Raw+"_New", runNewTest)
-		t.Run(thisCase.Raw+"_Parse", runParseTest)
-		t.Run(thisCase.Raw+"_IsEmpty", runIsEmptyTest)
+
+		// Test creating a new GroupInfo object
+		t.Run(thisCase.Raw+"_New", func(t *testing.T) {
+			newGroup := NewGroupInfo(
+				thisCase.Expected.FamilyName,
+				thisCase.Expected.GivenName,
+				thisCase.Expected.MiddleName,
+				thisCase.Expected.NamePrefix,
+				thisCase.Expected.NameSuffix,
+				thisCase.RemoveTrailingSeps,
+			)
+			assert.Equal(
+				t,
+				thisCase.Raw,
+				newGroup.String(),
+				"convert to string",
+			)
+		})
+
+		// Test parsing a group string.
+		t.Run(thisCase.Raw+"_Parse", func(t *testing.T) {
+			assert := assert.New(t)
+
+			parsed, err := groupFromValueString(thisCase.Raw, "Alphabetic")
+			if !assert.NoError(err, "parse string") {
+				t.FailNow()
+			}
+
+			checkGroupInfo(t, thisCase.Expected, parsed, "")
+
+			assert.Equal(thisCase.Raw, parsed.String(), "convert to string")
+		})
+
+		// Test .IsEmpty() method.
+		t.Run(thisCase.Raw+"_IsEmpty", func(t *testing.T) {
+			assert := assert.New(t)
+
+			parsed, err := groupFromValueString(thisCase.Raw, "Alphabetic")
+			if !assert.NoError(err, "parse string") {
+				t.FailNow()
+			}
+
+			assert.Equal(thisCase.IsEmpty, parsed.IsEmpty(), "IsEmpty()")
+		})
 	}
 }
 

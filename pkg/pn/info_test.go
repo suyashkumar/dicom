@@ -1,4 +1,4 @@
-package personName
+package pn
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestInfo(t *testing.T) {
-	type TestCase struct {
+	testCases := []struct {
 		// The Raw string to parse from
 		Raw string
 		// The parsed information we expect.
@@ -17,61 +17,7 @@ func TestInfo(t *testing.T) {
 		RemoveTrailingEmpty bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
-	}
-
-	var thisCase TestCase
-
-	runNewTest := func(t *testing.T) {
-		newInfo := New(
-			thisCase.Expected.Alphabetic,
-			thisCase.Expected.Ideographic,
-			thisCase.Expected.Phonetic,
-			thisCase.RemoveTrailingEmpty,
-		)
-
-		assert.Equal(t, thisCase.Raw, newInfo.String())
-	}
-
-	runParseTest := func(t *testing.T) {
-		assert := assert.New(t)
-
-		parsed, err := Parse(thisCase.Raw)
-		if !assert.NoError(err, "parse Raw") {
-			t.FailNow()
-		}
-
-		checkGroupInfo(
-			t,
-			thisCase.Expected.Alphabetic,
-			parsed.Alphabetic,
-			"Alphabetic",
-		)
-		checkGroupInfo(
-			t,
-			thisCase.Expected.Ideographic,
-			parsed.Ideographic,
-			"Ideographic",
-		)
-		checkGroupInfo(
-			t,
-			thisCase.Expected.Phonetic,
-			parsed.Phonetic,
-			"Phonetic",
-		)
-	}
-
-	runIsEmptyTest := func(t *testing.T) {
-		assert := assert.New(t)
-
-		newInfo, err := Parse(thisCase.Raw)
-		if !assert.NoError(err, "parse Raw") {
-			t.FailNow()
-		}
-
-		assert.Equal(thisCase.IsEmpty, newInfo.IsEmpty())
-	}
-
-	testCases := []TestCase{
+	}{
 		// All groups
 		{
 			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=" +
@@ -308,38 +254,69 @@ func TestInfo(t *testing.T) {
 		},
 	}
 
-	for _, thisCase = range testCases {
+	for _, thisCase := range testCases {
 		thisCase.Expected.Raw = thisCase.Raw
 
-		t.Run(thisCase.Raw+"_new", runNewTest)
-		t.Run(thisCase.Raw+"_parse", runParseTest)
-		t.Run(thisCase.Raw+"_isEmpty", runIsEmptyTest)
+		// Test creating a new Info object.
+		t.Run(thisCase.Raw+"_new", func(t *testing.T) {
+			newInfo := New(
+				thisCase.Expected.Alphabetic,
+				thisCase.Expected.Ideographic,
+				thisCase.Expected.Phonetic,
+				thisCase.RemoveTrailingEmpty,
+			)
+
+			assert.Equal(t, thisCase.Raw, newInfo.String())
+		})
+
+		// Test pasring a full PN value.
+		t.Run(thisCase.Raw+"_parse", func(t *testing.T) {
+			assert := assert.New(t)
+
+			parsed, err := Parse(thisCase.Raw)
+			if !assert.NoError(err, "parse Raw") {
+				t.FailNow()
+			}
+
+			checkGroupInfo(
+				t,
+				thisCase.Expected.Alphabetic,
+				parsed.Alphabetic,
+				"Alphabetic",
+			)
+			checkGroupInfo(
+				t,
+				thisCase.Expected.Ideographic,
+				parsed.Ideographic,
+				"Ideographic",
+			)
+			checkGroupInfo(
+				t,
+				thisCase.Expected.Phonetic,
+				parsed.Phonetic,
+				"Phonetic",
+			)
+		})
+
+		// Test the .IsEmpty() method.
+		t.Run(thisCase.Raw+"_isEmpty", func(t *testing.T) {
+			assert := assert.New(t)
+
+			newInfo, err := Parse(thisCase.Raw)
+			if !assert.NoError(err, "parse Raw") {
+				t.FailNow()
+			}
+
+			assert.Equal(thisCase.IsEmpty, newInfo.IsEmpty())
+		})
 	}
 }
 
 func TestParse_Err(t *testing.T) {
-	type TestCase struct {
+	testCases := []struct {
 		Raw       string
 		ErrString string
-	}
-
-	var thisCase TestCase
-
-	runTest := func(t *testing.T) {
-		assert := assert.New(t)
-
-		_, err := Parse(thisCase.Raw)
-		assert.True(
-			errors.Is(err, ErrParsePersonName),
-			"error unwraps to ErrParsePersonName",
-		)
-		assert.EqualError(
-			err,
-			thisCase.ErrString,
-		)
-	}
-
-	testCases := []TestCase{
+	}{
 		{
 			Raw: "===",
 			ErrString: "string contains to many segments for PN value:" +
@@ -366,7 +343,23 @@ func TestParse_Err(t *testing.T) {
 		},
 	}
 
-	for _, thisCase = range testCases {
-		t.Run(thisCase.Raw, runTest)
+	for _, thisCase := range testCases {
+		t.Run(thisCase.Raw, func(t *testing.T) {
+			assert := assert.New(t)
+
+			_, err := Parse(thisCase.Raw)
+
+			// Test errors.Is() with ErrParsePersonName
+			assert.True(
+				errors.Is(err, ErrParsePersonName),
+				"error unwraps to ErrParsePersonName",
+			)
+
+			// Test full error string is correct.
+			assert.EqualError(
+				err,
+				thisCase.ErrString,
+			)
+		})
 	}
 }

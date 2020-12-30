@@ -1,4 +1,4 @@
-package personName
+package pn
 
 import "strings"
 

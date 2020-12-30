@@ -1,8 +1,8 @@
-package personName_test
+package pn_test
 
 import (
 	"fmt"
-	"github.com/suyashkumar/dicom/pkg/personName"
+	"github.com/suyashkumar/dicom/pkg/pn"
 )
 
 // How to parse an existing PN value.
@@ -11,7 +11,7 @@ func ExampleParse() {
 	rawPN := "Potter^Harry^James^^=哈利^波特^詹姆^^=hɛər.i^pɒ.tər^dʒeɪmz^^"
 
 	// To parse a PN value, use personName.Parse
-	parsedPN, err := personName.Parse(rawPN)
+	parsedPN, err := pn.Parse(rawPN)
 	if err != nil {
 		panic(err)
 	}
@@ -36,8 +36,8 @@ func ExampleParse() {
 // How to create new PN value.
 func ExampleNew() {
 	// Create a new PN like so
-	pnVal := personName.New(
-		personName.NewGroupInfo(
+	pnVal := pn.New(
+		pn.NewGroupInfo(
 			"Potter",
 			"Harry",
 			"James",
@@ -47,9 +47,9 @@ func ExampleNew() {
 			false,
 		),
 		// Add empty group that will render its separators.
-		personName.NewGroupEmpty(false),
+		pn.NewGroupEmpty(false),
 		// Add empty group that will render its separators.
-		personName.NewGroupEmpty(false),
+		pn.NewGroupEmpty(false),
 		// Remove groups from string render that do not add information.
 		true,
 	)
@@ -60,8 +60,8 @@ func ExampleNew() {
 	fmt.Println("PN 1:", pnVal.String())
 
 	// Now let's make one that still renders empty groups with String().
-	pnVal = personName.New(
-		personName.NewGroupInfo(
+	pnVal = pn.New(
+		pn.NewGroupInfo(
 			"Potter",
 			"Harry",
 			"James",
@@ -71,9 +71,9 @@ func ExampleNew() {
 			false,
 		),
 		// Add empty group that will render it's separators.
-		personName.NewGroupEmpty(false),
+		pn.NewGroupEmpty(false),
 		// Add empty group that will render it's separators.
-		personName.NewGroupEmpty(false),
+		pn.NewGroupEmpty(false),
 		// Do not remove groups from string render that do not add information.
 		false,
 	)

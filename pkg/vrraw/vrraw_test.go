@@ -124,23 +124,7 @@ func TestVRRawValues(t *testing.T) {
 			Expected: "UI",
 		},
 		{
-			VR:       vrraw.UID,
-			Expected: "UI",
-		},
-		{
 			VR:       vrraw.UniversalResourceIdentifier,
-			Expected: "UR",
-		},
-		{
-			VR:       vrraw.UniversalResourceLocator,
-			Expected: "UR",
-		},
-		{
-			VR:       vrraw.URL,
-			Expected: "UR",
-		},
-		{
-			VR:       vrraw.URI,
 			Expected: "UR",
 		},
 		{

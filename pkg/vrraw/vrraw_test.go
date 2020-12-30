@@ -7,12 +7,10 @@ import (
 
 // Tests that the VR consts are what we expect
 func TestVRRawValues(t *testing.T) {
-	type TestCase struct {
+	testCases := []struct{
 		VR       string
 		Expected string
-	}
-
-	testCases := []TestCase{
+	}{
 		{
 			VR:       vrraw.ApplicationEntity,
 			Expected: "AE",
@@ -167,15 +165,11 @@ func TestVRRawValues(t *testing.T) {
 		},
 	}
 
-	var thisCase TestCase
-
-	runTest := func(t *testing.T) {
-		if thisCase.Expected != thisCase.VR {
-			t.Errorf("expected %v, got %v", thisCase.Expected, thisCase.VR)
-		}
-	}
-
-	for _, thisCase = range testCases {
-		t.Run(thisCase.Expected, runTest)
+	for _, thisCase := range testCases {
+		t.Run(thisCase.Expected, func(t *testing.T) {
+			if thisCase.Expected != thisCase.VR {
+				t.Errorf("expected %v, got %v", thisCase.Expected, thisCase.VR)
+			}
+		})
 	}
 }

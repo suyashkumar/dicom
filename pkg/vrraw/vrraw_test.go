@@ -7,7 +7,7 @@ import (
 
 // Tests that the VR consts are what we expect
 func TestVRRawValues(t *testing.T) {
-	testCases := []struct{
+	testCases := []struct {
 		VR       string
 		Expected string
 	}{

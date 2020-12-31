@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/suyashkumar/dicom/pkg/frame"
+
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/google/go-cmp/cmp"
@@ -155,6 +157,129 @@ func TestWrite(t *testing.T) {
 			extraElems:    []*Element{mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})},
 			expectedError: nil,
 			opts:          []WriteOption{DefaultMissingTransferSyntax()},
+		},
+		{
+			name: "native PixelData: 8bit",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: false,
+					Frames: []frame.Frame{
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 8,
+								Rows:          2,
+								Cols:          2,
+								Data:          [][]int{{1}, {2}, {3}, {4}},
+							},
+						},
+					},
+				}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "native PixelData: 16bit",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: false,
+					Frames: []frame.Frame{
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 16,
+								Rows:          2,
+								Cols:          2,
+								Data:          [][]int{{1}, {2}, {3}, {4}},
+							},
+						},
+					},
+				}),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "native PixelData: 32bit",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.BitsAllocated, []int{32}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: false,
+					Frames: []frame.Frame{
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 32,
+								Rows:          2,
+								Cols:          2,
+								Data:          [][]int{{1}, {2}, {3}, {4}},
+							},
+						},
+					},
+				}),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "native PixelData: 2 SamplesPerPixel, 2 frames",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.BitsAllocated, []int{32}),
+				mustNewElement(tag.NumberOfFrames, []string{"2"}),
+				mustNewElement(tag.SamplesPerPixel, []int{2}),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: false,
+					Frames: []frame.Frame{
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 32,
+								Rows:          2,
+								Cols:          2,
+								Data:          [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+							},
+						},
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 32,
+								Rows:          2,
+								Cols:          2,
+								Data:          [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+							},
+						},
+					},
+				}),
+			}},
+			expectedError: nil,
 		},
 	}
 	for _, tc := range cases {

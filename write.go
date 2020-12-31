@@ -516,19 +516,21 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 		for frame := 0; frame < numFrames; frame++ {
 			for pixel := 0; pixel < numPixels; pixel++ {
 				for value := 0; value < numValues; value++ {
-					if image.Frames[frame].NativeData.BitsPerSample == 8 {
-						if err := binary.Write(buf, binary.LittleEndian, uint8(image.Frames[frame].NativeData.Data[pixel][value])); err != nil {
+					pixelValue := image.Frames[frame].NativeData.Data[pixel][value]
+					switch image.Frames[frame].NativeData.BitsPerSample {
+					case 8:
+						if err := binary.Write(buf, binary.LittleEndian, uint8(pixelValue)); err != nil {
 							return err
 						}
-					} else if image.Frames[frame].NativeData.BitsPerSample == 16 {
-						if err := binary.Write(buf, binary.LittleEndian, uint16(image.Frames[frame].NativeData.Data[pixel][value])); err != nil {
+					case 16:
+						if err := binary.Write(buf, binary.LittleEndian, uint16(pixelValue)); err != nil {
 							return err
 						}
-					} else if image.Frames[frame].NativeData.BitsPerSample == 32 {
-						if err := binary.Write(buf, binary.LittleEndian, uint32(image.Frames[frame].NativeData.Data[pixel][value])); err != nil {
+					case 32:
+						if err := binary.Write(buf, binary.LittleEndian, uint32(pixelValue)); err != nil {
 							return err
 						}
-					} else {
+					default:
 						return ErrorUnsupportedBitsPerSample
 					}
 				}

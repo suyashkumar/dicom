@@ -509,9 +509,10 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 		numFrames := len(image.Frames)
 		numPixels := len(image.Frames[0].NativeData.Data)
 		numValues := len(image.Frames[0].NativeData.Data[0])
-		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8 // length in bytes
+		// Total required buffer length in bytes:
+		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8
 
-		buf := new(bytes.Buffer)
+		buf := &bytes.Buffer{}
 		buf.Grow(length)
 		for frame := 0; frame < numFrames; frame++ {
 			for pixel := 0; pixel < numPixels; pixel++ {

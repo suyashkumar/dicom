@@ -81,6 +81,8 @@ func infoFromInnolitics(tagSpec innoliticsTagInfo) (TagInfo, error) {
 // Sentinel error to signal to main parsing loop that this tag should be skipped.
 var errSkipTag = errors.New("skip tag")
 
+// InnoliticsTagReader is a TagReader implementation for the Innolitics attributes.json
+// file.
 type InnoliticsTagReader struct {
 	// Closes underlying file reader
 	fileCloser io.Closer

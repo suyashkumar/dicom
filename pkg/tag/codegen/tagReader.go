@@ -26,10 +26,12 @@ func (reader *MasterTagReader) Name() string {
 }
 
 func (reader *MasterTagReader) Next() (TagInfo, error) {
+	// If there are no readers left to process, we are done.
 	if len(reader.tagReaders) == 0 {
 		return TagInfo{}, io.EOF
 	}
 
+	// The current reader will be the first in the slice.
 	currentReader := reader.tagReaders[0]
 
 	// Try to read the next tag from the current reader.
@@ -67,6 +69,7 @@ func (reader *MasterTagReader) Close() (err error) {
 	return err
 }
 
+// Creates master TagReader we can use to read from all of our child readers.
 func NewMasterTagReader(
 	tagReaderCreators []func() (TagReader, error),
 ) (reader TagReader, err error) {

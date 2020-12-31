@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Holds tag group and element
+// Holds tag group and element.
 type Tag struct {
 	Group   uint16
 	Element uint16
@@ -19,7 +19,7 @@ type TagInfo struct {
 	VM   string
 }
 
-// parse tag value from string.
+// Parse tag value from string.
 func ParseTag(tag string) (Tag, error) {
 	parts := strings.Split(strings.Trim(tag, "()"), ",")
 	group, err := strconv.ParseInt(parts[0], 16, 0)

@@ -6,28 +6,30 @@ import (
 	"log"
 )
 
-var tagReaderCreators = []func() (TagReader, error){
+// Functions that generate our tag readers.
+var tagReaderFactories = []func() (TagReader, error){
 	NewDimseReader,
 	NewInnoliticsReader,
 }
 
-var codegenWriterCreators = []func() (CodeWriter, error){
+// Functions that generate our tag writers.
+var codegenWriterFactories = []func() (CodeWriter, error){
 	NewAttributesCodeWriter,
 	NewTagDictCodeWriter,
 }
 
 func main() {
 	log.Println("creating tag readers")
-	// Creates reader object which can read tag info from multiple sources in sequence.
-	tagReader, err := NewMasterTagReader(tagReaderCreators)
+	// Create reader object which can read tag info from multiple sources in sequence.
+	tagReader, err := NewMasterTagReader(tagReaderFactories)
 	if err != nil {
 		log.Fatal("error creating tag readers:", err)
 	}
 	defer tagReader.Close()
 
 	log.Println("creating code writers")
-	// Creates writer object which can write codegen to multiple targets.
-	codeWriter, err := NewMasterCodegenWriter(codegenWriterCreators)
+	// Create writer object which can write codegen to multiple targets.
+	codeWriter, err := NewMasterCodegenWriter(codegenWriterFactories)
 	if err != nil {
 		log.Fatalln("error creating code writers:", err)
 	}
@@ -47,11 +49,13 @@ func main() {
 	for i = 0; true; i++ {
 		thisInfo, err = tagReader.Next()
 		if errors.Is(err, io.EOF) {
+			// On EOF error, we are done.
 			break
 		} else if err != nil {
 			log.Fatalln("error reading tag:", err)
 		}
 
+		// Write the tag.
 		err = codeWriter.WriteTag(thisInfo)
 		if err != nil {
 			log.Fatalf("error writing tag %+v: %v\n", thisInfo.Tag, err)

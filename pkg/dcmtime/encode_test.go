@@ -18,10 +18,10 @@ var fullDateTime = time.Date(
 
 func TestTimeToDA(t *testing.T) {
 	testCases := []struct{
-		TimeVal    time.Time
-		Expected   string
-		Truncation TruncationLimit
-		NoOffset bool
+		TimeVal   time.Time
+		Expected  string
+		Precision PrecisionLevel
+		NoOffset  bool
 	}{
 		{
 			TimeVal:    time.Date(
@@ -34,15 +34,15 @@ func TestTimeToDA(t *testing.T) {
 				456789000,
 				time.FixedZone("", -3720),
 			),
-			Expected:   "10100203040506.456789000-0102",
-			Truncation: Truncation.None,
-			NoOffset:   false,
+			Expected:  "10100203040506.456789000-0102",
+			Precision: Precision.None,
+			NoOffset:  false,
 		},
 	}
 	
-	for _, thisCase := range testCases {
-		t.Run(thisCase.Expected, func(t *testing.T) {
-			
+	for _, tc := range testCases {
+		t.Run(tc.Expected, func(t *testing.T) {
+			TimeToDA(tc.TimeVal, tc.Precision)
 		})
 	}
 }

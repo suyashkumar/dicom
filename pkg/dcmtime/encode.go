@@ -5,19 +5,19 @@ import (
 	"time"
 )
 
-type TruncationLimit int
+type PrecisionLevel int
 
-// Truncation tells encoding methods how many segments of the value to render
+// Precision tells encoding methods how many segments of the value to render
 // to the DICOM format string, as the spec allows eliding segments to communicate the
 // precision.
 //
-// For instance: when rendering a DA (date) value, using a truncation of Truncation.Year
+// For instance: when rendering a DA (date) value, using a truncation of Precision.Year
 // would render the entire date as 'YYYY'.
 //
-// Using Truncation.Month would render 'YYYYMM'.
+// Using Precision.Month would render 'YYYYMM'.
 //
-// Using truncation.Day or Truncation.None would render a full 'YYYYMMDD'.
-var Truncation = struct {
+// Using Precision.Day or Precision.None would render a full 'YYYYMMDD'.
+var Precision = struct {
 	Year,
 	Month,
 	Day,
@@ -29,7 +29,7 @@ var Truncation = struct {
 	Ms3Places,
 	Ms4Places,
 	Ms5Places,
-	None TruncationLimit
+	None PrecisionLevel
 }{
 	Year:      0,
 	Month:     1,
@@ -48,23 +48,23 @@ var Truncation = struct {
 // Returns whether `check` is included in `limit`.
 //
 // Example: to test whether seconds should be included, you would:
-//	isIncluded(Truncation.Seconds, [caller-passed-limit])
-func isIncluded(check TruncationLimit, limit TruncationLimit) bool {
-	return check <= limit
+//	isIncluded(Precision.Seconds, [caller-passed-limit])
+func isIncluded(check PrecisionLevel, precision PrecisionLevel) bool {
+	return check <= precision
 }
 
 // Converts time.Time value to dicom DA string. Allows truncation through passing
 // a truncation setting.
-func TimeToDA(val time.Time, truncation TruncationLimit) string {
+func TimeToDA(val time.Time, precision PrecisionLevel) string {
 	year, month, day := val.Date()
 
 	daVal := fmt.Sprintf("%04d", year)
-	if !isIncluded(Truncation.Month, truncation) {
+	if !isIncluded(Precision.Month, precision) {
 		return daVal
 	}
 
 	daVal += fmt.Sprintf("%02d", month)
-	if !isIncluded(Truncation.Day, truncation) {
+	if !isIncluded(Precision.Day, precision) {
 		return daVal
 	}
 
@@ -76,43 +76,43 @@ const nanoToMillisecondDivisor = 1000
 
 // Truncate nanosecond time.Time value to arbitrary precision.
 func truncateMilliseconds(
-	nanoSeconds int, truncation TruncationLimit,
+	nanoSeconds int, precision PrecisionLevel,
 ) (milliseconds int) {
 	// The first thing we need to do to truncate the value is create the divisor for
-	// it. If there is no truncations, this value will be 0.
-	truncatePower := int(Truncation.None - truncation)
+	// it. If there is no precision limit, this value will be 0.
+	precisionPower := int(Precision.None - precision)
 
-	// Raise 10 to our truncation power then multiply by 1000 to convert nanoseconds to
+	// Raise 10 to our precision power then multiply by 1000 to convert nanoseconds to
 	// milliseconds.
 	//
-	// If there is no truncation, this will be 10^0 * 1000, or 1000 -- just converting
+	// If there is no precision, this will be 10^0 * 1000, or 1000 -- just converting
 	// nanoseconds to milliseconds.
-	truncateDivisor := 10^truncatePower * nanoToMillisecondDivisor
+	precisionDivisor := 10^ precisionPower* nanoToMillisecondDivisor
 
 	// Truncate the nanoseconds to whatever precision we are using.
-	milliSeconds := nanoSeconds / truncateDivisor
+	milliSeconds := nanoSeconds / precisionDivisor
 	return milliSeconds
 }
 
 // Converts time.Time value to dicom TM string. Allows truncation through passing
 // a truncation setting.
-func TimeToTM(val time.Time, truncation TruncationLimit) string {
+func TimeToTM(val time.Time, precision PrecisionLevel) string {
 	tmVal := fmt.Sprintf("%02d", val.Hour())
-	if !isIncluded(Truncation.Minutes, truncation) {
+	if !isIncluded(Precision.Minutes, precision) {
 		return tmVal
 	}
 
 	tmVal += fmt.Sprintf("%02d", val.Minute())
-	if !isIncluded(Truncation.Seconds, truncation) {
+	if !isIncluded(Precision.Seconds, precision) {
 		return tmVal
 	}
 
 	tmVal += fmt.Sprintf("%02d", val.Second())
-	if !isIncluded(Truncation.Ms1Places, truncation) {
+	if !isIncluded(Precision.Ms1Places, precision) {
 		return tmVal
 	}
 
-	milliseconds := truncateMilliseconds(val.Nanosecond(), truncation)
+	milliseconds := truncateMilliseconds(val.Nanosecond(), precision)
 	tmVal += fmt.Sprintf(".%02d", milliseconds)
 
 	return tmVal
@@ -124,15 +124,15 @@ func TimeToTM(val time.Time, truncation TruncationLimit) string {
 // If noOffset is true, no offset will be encoded.
 func TimeToDT(
 	val time.Time,
-	truncation TruncationLimit,
+	precision PrecisionLevel,
 	noOffset bool,
 ) string {
 	// We start by using the existing DA and TM formatters, since the bulk of datetime
 	// is just those two formats slammed together.
-	dtVal := TimeToDA(val, truncation)
+	dtVal := TimeToDA(val, precision)
 	// Check that at lead
-	if isIncluded(Truncation.Hours, truncation) {
-		dtVal += TimeToTM(val, truncation)
+	if isIncluded(Precision.Hours, precision) {
+		dtVal += TimeToTM(val, precision)
 	}
 
 	// If we are not rendering the offset, return the current value

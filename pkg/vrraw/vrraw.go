@@ -43,7 +43,6 @@ const (
 	DecimalString = "DS"
 
 	// DateTime (DT): A concatenated date-time character string in the format:
-	//
 	// YYYYMMDDHHMMSS.FFFFFF&ZZXX
 	//
 	// For further detail, see DICOM spec.

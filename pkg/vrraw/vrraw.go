@@ -38,7 +38,7 @@ const (
 	UniqueIdentifier = "UI"
 
 	// NOTE: UniversalResourceIdentifier is also referred to as
-	// UniversalResourceLocator, URI and  URL.
+	// UniversalResourceLocator, URI and URL.
 	UniversalResourceIdentifier = "UR"
 
 	UnsignedLong     = "UL"

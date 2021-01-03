@@ -11,6 +11,7 @@ var daRegex = regexp.MustCompile(
 var daRegexNema = regexp.MustCompile(
 	`(?P<YEAR>[0-9]{4})(?:\.(?P<MONTH>[0-9]{2}))?(?:\.(?P<DAY>[0-9]{2}))?`,
 )
+
 // Sub-match group indexes for DA
 const daRegexYear = 1
 const daRegexMonth = 2
@@ -18,8 +19,16 @@ const daRegexDay = 3
 
 // Parses dicom DT (datetime) value of YYYYMMDDHHMMSS.FFFFFF&ZZXX
 var dtRegex = regexp.MustCompile(
-	`(?P<YEAR>[0-9]{4})(?P<MONTH>[0-9]{2})?(?P<DAY>[0-9]{2})?(?P<HOURS>[0-9]{2})?(?P<MINUTES>[0-9]{2})?(?P<SECONDS>[0-9]{2})?(:?\.(?P<FRACTAL>[0-9]+))?(:?(?P<OFFSET_SIGN>[-+])(?P<OFFSET_HOURS>[0-9]{2})(?P<OFFSET_SECONDS>[0-9]{2}))?`,
+	`(?P<YEAR>[0-9]{4})` +
+		`(?P<MONTH>[0-9]{2})?` +
+		`(?P<DAY>[0-9]{2})?` +
+		`(?P<HOURS>[0-9]{2})?` +
+		`(?P<MINUTES>[0-9]{2})?` +
+		`(?P<SECONDS>[0-9]{2})?` +
+		`(:?\.(?P<FRACTAL>[0-9]+))?(:?(?P<OFFSET_SIGN>[-+])` +
+		`(?P<OFFSET_HOURS>[0-9]{2})(?P<OFFSET_SECONDS>[0-9]{2}))?`,
 )
+
 // Sub-match group indexes for DT
 const dtRegexYear = 1
 const dtRegexMonth = 2
@@ -36,6 +45,7 @@ const dtRegexOffsetMinutes = 12
 var tmRegex = regexp.MustCompile(
 	`(?P<HOURS>[0-9]{2})?(?P<MINUTES>[0-9]{2})?(?P<SECONDS>[0-9]{2})?(?:\.(?P<FRACTAL>[0-9]+))?`,
 )
+
 // Sub-match group indexes for TM
 const tmRegexHours = 1
 const tmRegexMinutes = 2

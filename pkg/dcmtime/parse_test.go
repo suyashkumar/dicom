@@ -6,15 +6,16 @@ import (
 	"time"
 )
 
-func TestTMToTime(t *testing.T) {
-	testCases := []struct{
-		TMValue  string
-		Expected time.Time
+func TestParseTM(t *testing.T) {
+	testCases := []struct {
+		TMValue           string
+		ExpectedTime      time.Time
+		ExpectedPrecision PrecisionLevel
 	}{
 		// Full value, leading zeros
 		{
 			TMValue: "010203.456789",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -24,11 +25,12 @@ func TestTMToTime(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Full,
 		},
 		// Remove one millisecond
 		{
 			TMValue: "010203.45678",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -38,11 +40,12 @@ func TestTMToTime(t *testing.T) {
 				456780000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS5,
 		},
 		// Remove one millisecond
 		{
 			TMValue: "010203.4567",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -52,11 +55,12 @@ func TestTMToTime(t *testing.T) {
 				456700000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS4,
 		},
 		// Remove one millisecond
 		{
 			TMValue: "010203.456",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -66,11 +70,12 @@ func TestTMToTime(t *testing.T) {
 				456000000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS3,
 		},
 		// Remove one millisecond
 		{
 			TMValue: "010203.45",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -80,11 +85,12 @@ func TestTMToTime(t *testing.T) {
 				450000000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS2,
 		},
 		// Remove one millisecond
 		{
 			TMValue: "010203.4",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -94,11 +100,12 @@ func TestTMToTime(t *testing.T) {
 				400000000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS1,
 		},
 		// No milliseconds
 		{
 			TMValue: "010203",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -108,11 +115,12 @@ func TestTMToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Seconds,
 		},
 		// No seconds
 		{
 			TMValue: "0102",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -122,11 +130,12 @@ func TestTMToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Minutes,
 		},
 		// No minutes
 		{
 			TMValue: "01",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -136,11 +145,12 @@ func TestTMToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Hours,
 		},
 		// No leading zeroes
 		{
 			TMValue: "102030.456789",
-			Expected: time.Date(
+			ExpectedTime: time.Date(
 				0,
 				0,
 				0,
@@ -150,6 +160,7 @@ func TestTMToTime(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Full,
 		},
 	}
 
@@ -157,31 +168,40 @@ func TestTMToTime(t *testing.T) {
 		t.Run(thisCase.TMValue, func(t *testing.T) {
 			assert := assert.New(t)
 
-			parsed, err := TMToTime(thisCase.TMValue)
+			parsed, err := ParseTM(thisCase.TMValue)
 			if !assert.NoError(err, "parse TM value") {
 				t.FailNow()
 			}
 
 			assert.Truef(
-				thisCase.Expected.Equal(parsed),
-				"parsed (%v) equals expected (%v)",
+				thisCase.ExpectedTime.Equal(parsed.Time),
+				"parsed time (%v) equals expected (%v)",
 				parsed,
-				thisCase.Expected,
+				thisCase.ExpectedTime,
+			)
+
+			assert.Equalf(
+				thisCase.ExpectedPrecision,
+				parsed.Precision,
+				"precision. expected %v, got %v",
+				thisCase.ExpectedPrecision.String(),
+				parsed.Precision.String(),
 			)
 		})
 	}
 }
 
-func TestDAToTime(t *testing.T) {
-	testCases := []struct{
-		DAValue  string
-		Expected time.Time
-		AllowNema bool
+func TestParseDA(t *testing.T) {
+	testCases := []struct {
+		DAValue           string
+		Expected          time.Time
+		ExpectedPrecision PrecisionLevel
+		AllowNema         bool
 	}{
 		// DICOM full date
 		{
-			DAValue:   "20200304",
-			Expected:  time.Date(
+			DAValue: "20200304",
+			Expected: time.Date(
 				2020,
 				3,
 				4,
@@ -191,12 +211,13 @@ func TestDAToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			AllowNema: false,
+			ExpectedPrecision: Precision.Full,
+			AllowNema:         false,
 		},
 		// DICOM no day
 		{
-			DAValue:   "202003",
-			Expected:  time.Date(
+			DAValue: "202003",
+			Expected: time.Date(
 				2020,
 				3,
 				0,
@@ -206,12 +227,13 @@ func TestDAToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			AllowNema: false,
+			ExpectedPrecision: Precision.Month,
+			AllowNema:         false,
 		},
 		// DICOM no month
 		{
-			DAValue:   "2020",
-			Expected:  time.Date(
+			DAValue: "2020",
+			Expected: time.Date(
 				2020,
 				0,
 				0,
@@ -221,12 +243,13 @@ func TestDAToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			AllowNema: false,
+			ExpectedPrecision: Precision.Year,
+			AllowNema:         false,
 		},
 		// NEMA full date
 		{
-			DAValue:   "2020.03.04",
-			Expected:  time.Date(
+			DAValue: "2020.03.04",
+			Expected: time.Date(
 				2020,
 				3,
 				4,
@@ -236,12 +259,13 @@ func TestDAToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			AllowNema: true,
+			ExpectedPrecision: Precision.Full,
+			AllowNema:         true,
 		},
 		// NEMA no day
 		{
-			DAValue:   "2020.03",
-			Expected:  time.Date(
+			DAValue: "2020.03",
+			Expected: time.Date(
 				2020,
 				3,
 				0,
@@ -251,12 +275,13 @@ func TestDAToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			AllowNema: true,
+			ExpectedPrecision: Precision.Month,
+			AllowNema:         true,
 		},
 		// NEMA no month
 		{
-			DAValue:   "2020",
-			Expected:  time.Date(
+			DAValue: "2020",
+			Expected: time.Date(
 				2020,
 				0,
 				0,
@@ -266,7 +291,8 @@ func TestDAToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			AllowNema: true,
+			ExpectedPrecision: Precision.Year,
+			AllowNema:         true,
 		},
 	}
 
@@ -274,25 +300,35 @@ func TestDAToTime(t *testing.T) {
 		t.Run(thisCase.DAValue, func(t *testing.T) {
 			assert := assert.New(t)
 
-			parsed, err := DAToTime(thisCase.DAValue, thisCase.AllowNema)
+			parsed, err := ParseDA(thisCase.DAValue, thisCase.AllowNema)
 			if !assert.NoError(err, "parse DA value") {
 				t.FailNow()
 			}
 
 			assert.Truef(
-				thisCase.Expected.Equal(parsed),
-				"parsed (%v) equals expected (%v)",
+				thisCase.Expected.Equal(parsed.Time),
+				"parsed time (%v) equals expected (%v)",
 				parsed,
 				thisCase.Expected,
+			)
+
+			assert.Equalf(
+				thisCase.ExpectedPrecision,
+				parsed.Precision,
+				"precision. expected %v, got %v",
+				thisCase.ExpectedPrecision.String(),
+				parsed.Precision.String(),
 			)
 		})
 	}
 }
 
-func TestDDTToTime(t *testing.T) {
-	testCases := []struct{
-		DTValue  string
-		Expected time.Time
+func TestParseDT(t *testing.T) {
+	testCases := []struct {
+		DTValue           string
+		Expected          time.Time
+		ExpectedPrecision PrecisionLevel
+		HasOffset         bool
 	}{
 		// Full value, positive offset
 		{
@@ -307,6 +343,8 @@ func TestDDTToTime(t *testing.T) {
 				456789000,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.Full,
+			HasOffset:         true,
 		},
 		// Full value, minus 1 millisecond places, positive offset
 		{
@@ -321,6 +359,8 @@ func TestDDTToTime(t *testing.T) {
 				456780000,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.MS5,
+			HasOffset:         true,
 		},
 		// Full value, minus 2 millisecond places, positive offset
 		{
@@ -335,6 +375,8 @@ func TestDDTToTime(t *testing.T) {
 				456700000,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.MS4,
+			HasOffset:         true,
 		},
 		// Full value, minus 3 millisecond places, positive offset
 		{
@@ -349,6 +391,8 @@ func TestDDTToTime(t *testing.T) {
 				456000000,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.MS3,
+			HasOffset:         true,
 		},
 		// Full value, minus 4 millisecond places, positive offset
 		{
@@ -363,6 +407,8 @@ func TestDDTToTime(t *testing.T) {
 				450000000,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.MS2,
+			HasOffset:         true,
 		},
 		// Full value, minus 5 millisecond places, positive offset
 		{
@@ -377,6 +423,8 @@ func TestDDTToTime(t *testing.T) {
 				400000000,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.MS1,
+			HasOffset:         true,
 		},
 		// Full value, no millisecond, positive offset
 		{
@@ -391,6 +439,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.Seconds,
+			HasOffset:         true,
 		},
 		// Full value, no seconds, positive offset
 		{
@@ -405,6 +455,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.Minutes,
+			HasOffset:         true,
 		},
 		// Full value, no minutes, positive offset
 		{
@@ -419,6 +471,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.Hours,
+			HasOffset:         true,
 		},
 		// Full value, no hours, positive offset
 		{
@@ -433,6 +487,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.Day,
+			HasOffset:         true,
 		},
 		// Full value, no hours, positive offset
 		{
@@ -447,6 +503,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.Month,
+			HasOffset:         true,
 		},
 		// Full value, no hours, positive offset
 		{
@@ -461,6 +519,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
+			ExpectedPrecision: Precision.Year,
+			HasOffset:         true,
 		},
 		// Full value, negative offset
 		{
@@ -475,6 +535,8 @@ func TestDDTToTime(t *testing.T) {
 				456789000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.Full,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 1 millisecond places
 		{
@@ -489,6 +551,8 @@ func TestDDTToTime(t *testing.T) {
 				456780000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.MS5,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 2 millisecond places
 		{
@@ -503,6 +567,8 @@ func TestDDTToTime(t *testing.T) {
 				456700000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.MS4,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 3 millisecond places
 		{
@@ -517,6 +583,8 @@ func TestDDTToTime(t *testing.T) {
 				456000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.MS3,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 4 millisecond places
 		{
@@ -531,6 +599,8 @@ func TestDDTToTime(t *testing.T) {
 				450000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.MS2,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 5 millisecond places
 		{
@@ -545,6 +615,8 @@ func TestDDTToTime(t *testing.T) {
 				400000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.MS1,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, no milliseconds
 		{
@@ -559,6 +631,8 @@ func TestDDTToTime(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.Seconds,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, no seconds
 		{
@@ -573,6 +647,8 @@ func TestDDTToTime(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.Minutes,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, no minutes
 		{
@@ -587,6 +663,8 @@ func TestDDTToTime(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.Hours,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, no hours
 		{
@@ -601,6 +679,8 @@ func TestDDTToTime(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.Day,
+			HasOffset:         true,
 		},
 		// Full value, negative offset, no days
 		{
@@ -615,22 +695,10 @@ func TestDDTToTime(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.Month,
+			HasOffset:         true,
 		},
-		// Full value, negative offset, no hours
-		{
-			DTValue: "101002-0102",
-			Expected: time.Date(
-				1010,
-				2,
-				0,
-				0,
-				0,
-				0,
-				000000000,
-				time.FixedZone("", -3720),
-			),
-		},
-		// Full value, negative offset, no hours
+		// Full value, negative offset, no month
 		{
 			DTValue: "1010-0102",
 			Expected: time.Date(
@@ -643,6 +711,8 @@ func TestDDTToTime(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
+			ExpectedPrecision: Precision.Year,
+			HasOffset:         true,
 		},
 		// Full value, no offset
 		{
@@ -657,6 +727,8 @@ func TestDDTToTime(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Full,
+			HasOffset:         false,
 		},
 		// Full value, no offset, minus 1 millisecond place
 		{
@@ -671,6 +743,8 @@ func TestDDTToTime(t *testing.T) {
 				456780000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS5,
+			HasOffset:         false,
 		},
 		// Full value, no offset, minus 2 millisecond place
 		{
@@ -685,6 +759,8 @@ func TestDDTToTime(t *testing.T) {
 				456700000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS4,
+			HasOffset:         false,
 		},
 		// Full value, no offset, minus 3 millisecond place
 		{
@@ -699,6 +775,8 @@ func TestDDTToTime(t *testing.T) {
 				456000000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS3,
+			HasOffset:         false,
 		},
 		// Full value, no offset, minus 4 millisecond place
 		{
@@ -713,6 +791,8 @@ func TestDDTToTime(t *testing.T) {
 				450000000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS2,
+			HasOffset:         false,
 		},
 		// Full value, no offset, minus 5 millisecond place
 		{
@@ -727,6 +807,8 @@ func TestDDTToTime(t *testing.T) {
 				400000000,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.MS1,
+			HasOffset:         false,
 		},
 		// Full value, no offset, no milliseconds
 		{
@@ -741,6 +823,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Seconds,
+			HasOffset:         false,
 		},
 		// Full value, no offset, no seconds
 		{
@@ -755,6 +839,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Minutes,
+			HasOffset:         false,
 		},
 		// Full value, no offset, no minutes
 		{
@@ -769,6 +855,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Hours,
+			HasOffset:         false,
 		},
 		// Full value, no offset, no seconds
 		{
@@ -783,6 +871,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Day,
+			HasOffset:         false,
 		},
 		// Full value, no offset, no days
 		{
@@ -797,6 +887,8 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Month,
+			HasOffset:         false,
 		},
 		// Full value, no offset, no month
 		{
@@ -811,23 +903,39 @@ func TestDDTToTime(t *testing.T) {
 				0,
 				time.UTC,
 			),
+			ExpectedPrecision: Precision.Year,
+			HasOffset:         false,
 		},
 	}
 
-	for _, thisCase := range testCases {
-		t.Run(thisCase.DTValue, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.DTValue, func(t *testing.T) {
 			assert := assert.New(t)
 
-			parsed, err := DTToTime(thisCase.DTValue)
+			parsed, err := ParseDT(tc.DTValue)
 			if !assert.NoError(err, "parse DT value") {
 				t.FailNow()
 			}
 
 			assert.Truef(
-				thisCase.Expected.Equal(parsed),
-				"parsed (%v) equals expected (%v)",
+				tc.Expected.Equal(parsed.Time),
+				"parsed time (%v) equals expected (%v)",
 				parsed,
-				thisCase.Expected,
+				tc.Expected,
+			)
+
+			assert.Equal(
+				tc.ExpectedPrecision,
+				parsed.Precision,
+				"precision. expected %v, got %v",
+				tc.ExpectedPrecision,
+				parsed.Precision,
+			)
+
+			assert.Equal(
+				tc.HasOffset,
+				parsed.IgnoreOffset,
+				"offset specified",
 			)
 		})
 	}

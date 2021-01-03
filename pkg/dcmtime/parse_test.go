@@ -16,9 +16,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "010203.456789",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				3,
@@ -31,9 +31,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "010203.45678",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				3,
@@ -46,9 +46,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "010203.4567",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				3,
@@ -61,9 +61,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "010203.456",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				3,
@@ -76,9 +76,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "010203.45",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				3,
@@ -91,9 +91,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "010203.4",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				3,
@@ -106,9 +106,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "010203",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				3,
@@ -121,9 +121,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "0102",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				2,
 				0,
@@ -136,9 +136,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "01",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				1,
 				0,
 				0,
@@ -151,9 +151,9 @@ func TestParseTM(t *testing.T) {
 		{
 			TMValue: "102030.456789",
 			ExpectedTime: time.Date(
-				0,
-				0,
-				0,
+				1,
+				1,
+				1,
 				10,
 				20,
 				30,
@@ -164,27 +164,27 @@ func TestParseTM(t *testing.T) {
 		},
 	}
 
-	for _, thisCase := range testCases {
-		t.Run(thisCase.TMValue, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.TMValue, func(t *testing.T) {
 			assert := assert.New(t)
 
-			parsed, err := ParseTM(thisCase.TMValue)
+			parsed, err := ParseTM(tc.TMValue)
 			if !assert.NoError(err, "parse TM value") {
 				t.FailNow()
 			}
 
 			assert.Truef(
-				thisCase.ExpectedTime.Equal(parsed.Time),
+				tc.ExpectedTime.Equal(parsed.Time),
 				"parsed time (%v) equals expected (%v)",
 				parsed,
-				thisCase.ExpectedTime,
+				tc.ExpectedTime,
 			)
 
 			assert.Equalf(
-				thisCase.ExpectedPrecision,
+				tc.ExpectedPrecision,
 				parsed.Precision,
 				"precision. expected %v, got %v",
-				thisCase.ExpectedPrecision.String(),
+				tc.ExpectedPrecision.String(),
 				parsed.Precision.String(),
 			)
 		})
@@ -220,7 +220,7 @@ func TestParseDA(t *testing.T) {
 			Expected: time.Date(
 				2020,
 				3,
-				0,
+				1,
 				0,
 				0,
 				0,
@@ -235,8 +235,8 @@ func TestParseDA(t *testing.T) {
 			DAValue: "2020",
 			Expected: time.Date(
 				2020,
-				0,
-				0,
+				1,
+				1,
 				0,
 				0,
 				0,
@@ -268,7 +268,7 @@ func TestParseDA(t *testing.T) {
 			Expected: time.Date(
 				2020,
 				3,
-				0,
+				1,
 				0,
 				0,
 				0,
@@ -283,8 +283,8 @@ func TestParseDA(t *testing.T) {
 			DAValue: "2020",
 			Expected: time.Date(
 				2020,
-				0,
-				0,
+				1,
+				1,
 				0,
 				0,
 				0,
@@ -308,7 +308,7 @@ func TestParseDA(t *testing.T) {
 			assert.Truef(
 				thisCase.Expected.Equal(parsed.Time),
 				"parsed time (%v) equals expected (%v)",
-				parsed,
+				parsed.Time,
 				thisCase.Expected,
 			)
 
@@ -496,7 +496,7 @@ func TestParseDT(t *testing.T) {
 			Expected: time.Date(
 				1010,
 				2,
-				0,
+				1,
 				0,
 				0,
 				0,
@@ -511,8 +511,8 @@ func TestParseDT(t *testing.T) {
 			DTValue: "1010+0102",
 			Expected: time.Date(
 				1010,
-				0,
-				0,
+				1,
+				1,
 				0,
 				0,
 				0,
@@ -688,7 +688,7 @@ func TestParseDT(t *testing.T) {
 			Expected: time.Date(
 				1010,
 				2,
-				0,
+				1,
 				0,
 				0,
 				0,
@@ -703,8 +703,8 @@ func TestParseDT(t *testing.T) {
 			DTValue: "1010-0102",
 			Expected: time.Date(
 				1010,
-				0,
-				0,
+				1,
+				1,
 				0,
 				0,
 				0,
@@ -880,7 +880,7 @@ func TestParseDT(t *testing.T) {
 			Expected: time.Date(
 				1010,
 				2,
-				0,
+				1,
 				0,
 				0,
 				0,
@@ -895,8 +895,8 @@ func TestParseDT(t *testing.T) {
 			DTValue: "1010",
 			Expected: time.Date(
 				1010,
-				0,
-				0,
+				1,
+				1,
 				0,
 				0,
 				0,
@@ -934,7 +934,7 @@ func TestParseDT(t *testing.T) {
 
 			assert.Equal(
 				tc.HasOffset,
-				parsed.IgnoreOffset,
+				parsed.HasOffset,
 				"offset specified",
 			)
 		})

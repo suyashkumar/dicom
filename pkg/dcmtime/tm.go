@@ -14,12 +14,12 @@ type TM struct {
 	Precision PrecisionLevel
 }
 
-// String converts internal time.Time value to dicom TM string, truncating the output
+// DCM converts internal time.Time value to dicom TM string, truncating the output
 // to the DA value's Precision.
 //
 // NOTE: Time zones are ignored in this operation, as TM does not support encoding them.
 // Make sure values are converted to UTC before passing if that is the desired output.
-func (tm TM) String() string {
+func (tm TM) DCM() string {
 	tmVal := fmt.Sprintf("%02d", tm.Time.Hour())
 	if !isIncluded(Precision.Minutes, tm.Precision) {
 		return tmVal
@@ -40,9 +40,14 @@ func (tm TM) String() string {
 	return tmVal
 }
 
+// String implements fmt.Stringer.
+func (tm TM) String() string {
+	return tm.DCM()
+}
+
 // NewTM creates new TM value from a given time.Time.
 //
-// precision is the last element to be included in the DICOM .String() value.
+// precision is the last element to be included in the DICOM TM.DCM() value.
 // Precision.Full will include all possible values.
 func NewTM(timeVal time.Time, precision PrecisionLevel) TM {
 	return TM{

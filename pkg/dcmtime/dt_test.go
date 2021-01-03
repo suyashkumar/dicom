@@ -32,6 +32,44 @@ func TestDT_String(t *testing.T) {
 			Precision:    Precision.Full,
 			IgnoreOffset: false,
 		},
+		// Full Precision, with offset, fractal leading zero
+		{
+			TimeVal: time.Date(
+				1010,
+				2,
+				3,
+				4,
+				5,
+				6,
+				456789,
+				time.FixedZone(
+					"",
+					-3720,
+				),
+			),
+			Expected:     "10100203040506.000456-0102",
+			Precision:    Precision.Full,
+			IgnoreOffset: false,
+		},
+		// Full Precision, truncate trailing nanos
+		{
+			TimeVal: time.Date(
+				1010,
+				2,
+				3,
+				4,
+				5,
+				6,
+				456789999,
+				time.FixedZone(
+					"",
+					-3720,
+				),
+			),
+			Expected:     "10100203040506.456789-0102",
+			Precision:    Precision.Full,
+			IgnoreOffset: false,
+		},
 		// Full Precision, no offset
 		{
 			TimeVal: time.Date(
@@ -481,7 +519,7 @@ func TestDT_String(t *testing.T) {
 
 			daVal := NewDT(tc.TimeVal, tc.Precision, tc.IgnoreOffset)
 			assert.Equal(
-				tc.Expected, daVal.String(), "output equals expected",
+				tc.Expected, daVal.DCM(), "output equals expected",
 			)
 		})
 	}

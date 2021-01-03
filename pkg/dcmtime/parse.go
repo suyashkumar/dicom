@@ -84,6 +84,76 @@ func hasMatches(matches []string, original string) bool {
 	return true
 }
 
+// Holds group indexes for a given source types regex.
+type dateRegexGroups struct {
+	Year  int
+	Month int
+	Day   int
+}
+
+// Cached info on DA date regex groups.
+var dateRegexGroupsDA = dateRegexGroups{
+	Year:  daRegexGroupYear,
+	Month: daRegexGroupMonth,
+	Day:   daRegexGroupDay,
+}
+
+// Cached info on DT date regex groups.
+var dateRegexGroupsDT = dateRegexGroups{
+	Year:  dtRegexGroupYear,
+	Month: dtRegexGroupMonth,
+	Day:   dtRegexGroupDay,
+}
+
+// extracts the date info from a DA or DT regex match.
+func extractDate(
+	matches []string,
+	precisionIn PrecisionLevel,
+	isDA bool,
+) (
+	year durationInfo,
+	month durationInfo,
+	day durationInfo,
+	precisionOut PrecisionLevel,
+	err error,
+) {
+	regexGroups := dateRegexGroupsDA
+	if !isDA {
+		regexGroups = dateRegexGroupsDT
+	}
+
+	// The year MUST be present in all DA and DT values or the regex will not pass.
+	year, err = extractDurationInfo(matches, regexGroups.Year, false)
+	if err != nil {
+		return year, month, day, precisionOut, err
+	}
+	precisionOut = updatePrecision(precisionIn, year, Precision.Year, false)
+
+	month, err = extractDurationInfo(matches, regexGroups.Month, false)
+	if err != nil {
+		return year, month, day, precisionOut, err
+	}
+	// If there is no month, we need to set it to 1 instead of zero, otherwise the year
+	// will roll back 1.
+	if !month.Present {
+		month.Value = 1
+	}
+	precisionOut = updatePrecision(precisionOut, month, Precision.Month, false)
+
+	day, err = extractDurationInfo(matches, regexGroups.Day, false)
+	if err != nil {
+		return year, month, day, precisionOut, err
+	}
+	// If there is no day, we need to set it to 1 instead of zero, otherwise the month
+	// will roll back 1, ie December -> November.
+	if !day.Present {
+		day.Value = 1
+	}
+	precisionOut = updatePrecision(precisionOut, day, Precision.Day, isDA)
+
+	return year, month, day, precisionOut, err
+}
+
 // Converts DICOM DA (date) value to time.Time as UTC.
 //
 // If allowNEMA is true, the old NEMA 300 specification of YYYY.MM.DD will also be
@@ -110,26 +180,10 @@ func ParseDA(daString string, allowNEMA bool) (DA, error) {
 		return DA{}, ErrParseDA
 	}
 
-	var precision PrecisionLevel
-
-	// The year has to be present, if it isn't, it will not pass the regex.
-	year, err := extractDurationInfo(matches, daRegexYear, false)
+	year, month, day, precision, err := extractDate(matches, Precision.Full, true)
 	if err != nil {
-		return DA{}, ErrParseDA
+		return DA{}, err
 	}
-	precision = updatePrecision(precision, year, Precision.Year, false)
-
-	month, err := extractDurationInfo(matches, daRegexMonth, false)
-	if err != nil {
-		return DA{}, ErrParseDA
-	}
-	precision = updatePrecision(precision, month, Precision.Month, false)
-
-	day, err := extractDurationInfo(matches, daRegexDay, false)
-	if err != nil {
-		return DA{}, ErrParseDA
-	}
-	precision = updatePrecision(precision, day, Precision.Day, true)
 
 	// Return a new time.Time with the given values and UTC encoding.
 	parsed := time.Date(
@@ -140,10 +194,115 @@ func ParseDA(daString string, allowNEMA bool) (DA, error) {
 		0,
 		0,
 		0,
-		time.UTC,
+		zeroTimezone,
 	)
 
 	return DA{
+		Time:      parsed,
+		Precision: precision,
+	}, nil
+}
+
+// Holds group indexes for a given source types regex.
+type timeRegexGroups struct {
+	Hours   int
+	Minutes int
+	Seconds int
+	Fractal int
+}
+
+// Cached info on TM time regex groups.
+var timeRegexGroupsTM = timeRegexGroups{
+	Hours:   tmRegexGroupHours,
+	Minutes: tmRegexGroupMinutes,
+	Seconds: tmRegexGroupSeconds,
+	Fractal: tmRegexGroupFractal,
+}
+
+// Cached info on DT time regex groups.
+var timeRegexGroupsDT = timeRegexGroups{
+	Hours:   dtRegexGroupHours,
+	Minutes: dtRegexGroupMinutes,
+	Seconds: dtRegexGroupSeconds,
+	Fractal: dtRegexGroupFractal,
+}
+
+func extractTime(
+	matches []string,
+	precisionIn PrecisionLevel,
+	isTM bool,
+) (
+	hours durationInfo,
+	minutes durationInfo,
+	seconds durationInfo,
+	nanos durationInfo,
+	precisionOut PrecisionLevel,
+	err error,
+) {
+	groupIndexes := timeRegexGroupsTM
+	if !isTM {
+		groupIndexes = timeRegexGroupsDT
+	}
+
+	hours, err = extractDurationInfo(matches, groupIndexes.Hours, false)
+	if err != nil {
+		return hours, minutes, seconds, nanos, precisionOut, err
+	}
+	precisionOut = updatePrecision(precisionIn, hours, Precision.Hours, false)
+
+	minutes, err = extractDurationInfo(matches, groupIndexes.Minutes, false)
+	if err != nil {
+		return hours, minutes, seconds, nanos, precisionOut, err
+	}
+	precisionOut = updatePrecision(precisionOut, minutes, Precision.Minutes, false)
+
+	seconds, err = extractDurationInfo(matches, groupIndexes.Seconds, false)
+	if err != nil {
+		return hours, minutes, seconds, nanos, precisionOut, err
+	}
+	precisionOut = updatePrecision(precisionOut, seconds, Precision.Seconds, false)
+
+	nanos, err = extractDurationInfo(matches, groupIndexes.Fractal, true)
+	if err != nil {
+		return hours, minutes, seconds, nanos, precisionOut, err
+	} else if nanos.Present {
+		precisionOut = nanos.FractalPrecision
+	}
+
+	return hours, minutes, seconds, nanos, precisionOut, err
+}
+
+// Converts DICOM TM (time) value to time.Time as UTC.
+func ParseTM(tmString string) (TM, error) {
+	matches := tmRegex.FindStringSubmatch(tmString)
+	// If no full match is found, return an error
+	if !hasMatches(matches, tmString) {
+		return TM{}, ErrParseTM
+	}
+
+	hours, minutes, seconds, nanos, precision, err := extractTime(
+		matches, Precision.Full, true,
+	)
+	if err != nil {
+		return TM{}, err
+	}
+
+	// Return a new time.Time with the given values and UTC encoding.
+	parsed := time.Date(
+		// If these are set to 0, they try to roll back to the last
+		// date that makes sense, so we are going to set all
+		// of them to 1.
+		1,
+		1,
+		1,
+		hours.Value,
+		minutes.Value,
+		seconds.Value,
+		nanos.Value,
+		zeroTimezone,
+	)
+
+	return TM{
 		Time:      parsed,
 		Precision: precision,
 	}, nil
@@ -156,71 +315,38 @@ func ParseDT(dtString string) (DT, error) {
 		return DT{}, ErrParseDT
 	}
 
-	precision := Precision.Full
-
-	year, err := extractDurationInfo(matches, dtRegexYear, false)
+	year, month, day, precision, err := extractDate(matches, Precision.Full, false)
 	if err != nil {
-		return DT{}, ErrParseDT
-	}
-	precision = updatePrecision(precision, year, Precision.Year, false)
-
-	month, err := extractDurationInfo(matches, dtRegexMonth, false)
-	if err != nil {
-		return DT{}, ErrParseDT
-	}
-	precision = updatePrecision(precision, month, Precision.Month, false)
-
-	day, err := extractDurationInfo(matches, dtRegexDay, false)
-	if err != nil {
-		return DT{}, ErrParseDT
-	}
-	precision = updatePrecision(precision, day, Precision.Day, false)
-
-	hours, err := extractDurationInfo(matches, dtRegexHours, false)
-	if err != nil {
-		return DT{}, ErrParseDT
-	}
-	precision = updatePrecision(precision, hours, Precision.Hours, false)
-
-	minutes, err := extractDurationInfo(matches, dtRegexMinutes, false)
-	if err != nil {
-		return DT{}, ErrParseDT
-	}
-	precision = updatePrecision(precision, minutes, Precision.Minutes, false)
-
-	seconds, err := extractDurationInfo(matches, dtRegexSeconds, false)
-	if err != nil {
-		return DT{}, ErrParseDT
-	}
-	precision = updatePrecision(precision, seconds, Precision.Seconds, false)
-
-	nanos, err := extractDurationInfo(matches, dtRegexFractal, true)
-	if err != nil {
-		return DT{}, ErrParseDT
-	} else if nanos.Present {
-		precision = nanos.FractalPrecision
+		return DT{}, err
 	}
 
-	var offsetSpecified bool
+	hours, minutes, seconds, nanos, precision, err := extractTime(
+		matches, precision, false,
+	)
+	if err != nil {
+		return DT{}, err
+	}
 
-	offsetHours, err := extractDurationInfo(matches, dtRegexOffsetHours, false)
+	var hasOffet bool
+
+	offsetHours, err := extractDurationInfo(matches, dtRegexGroupOffsetHours, false)
 	if err != nil {
 		return DT{}, ErrParseDT
 	}
 	// If hours are not present, there is either no offset or the regex will fail,
 	// so we only need to check this here.
 	if offsetHours.Present {
-		offsetSpecified = true
+		hasOffet = true
 	}
 
-	offsetMinutes, err := extractDurationInfo(matches, dtRegexOffsetMinutes, false)
+	offsetMinutes, err := extractDurationInfo(matches, dtRegexGroupOffsetMinutes, false)
 	if err != nil {
 		return DT{}, ErrParseDT
 	}
 
 	// If the zone sign is '-', then we need to multiply the offset by -1
 	var offsetSign int
-	switch matches[dtRegexOffsetSign] {
+	switch matches[dtRegexGroupOffsetSign] {
 	case "-":
 		offsetSign = -1
 	default:
@@ -243,62 +369,8 @@ func ParseDT(dtString string) (DT, error) {
 	)
 
 	return DT{
-		Time:         parsed,
-		Precision:    precision,
-		IgnoreOffset: offsetSpecified,
-	}, nil
-}
-
-// Converts DICOM TM (time) value to time.Time as UTC.
-func ParseTM(tmString string) (TM, error) {
-	matches := tmRegex.FindStringSubmatch(tmString)
-	// If no full match is found, return an error
-	if !hasMatches(matches, tmString) {
-		return TM{}, ErrParseTM
-	}
-
-	var precision PrecisionLevel
-
-	// Hours has to be present, if it is not, the regex will not pass.
-	hours, err := extractDurationInfo(matches, tmRegexHours, false)
-	if err != nil {
-		return TM{}, ErrParseTM
-	}
-	precision = updatePrecision(precision, hours, Precision.Hours, false)
-
-	minutes, err := extractDurationInfo(matches, tmRegexMinutes, false)
-	if err != nil {
-		return TM{}, ErrParseTM
-	}
-	precision = updatePrecision(precision, minutes, Precision.Minutes, false)
-
-	seconds, err := extractDurationInfo(matches, tmRegexSeconds, false)
-	if err != nil {
-		return TM{}, ErrParseTM
-	}
-	precision = updatePrecision(precision, seconds, Precision.Seconds, false)
-
-	nanos, err := extractDurationInfo(matches, tmRegexFractal, true)
-	if err != nil {
-		return TM{}, ErrParseTM
-	} else if nanos.Present {
-		precision = nanos.FractalPrecision
-	}
-
-	// Return a new time.Time with the given values and UTC encoding.
-	parsed := time.Date(
-		0,
-		0,
-		0,
-		hours.Value,
-		minutes.Value,
-		seconds.Value,
-		nanos.Value,
-		time.UTC,
-	)
-
-	return TM{
 		Time:      parsed,
 		Precision: precision,
+		HasOffset: hasOffet,
 	}, nil
 }

@@ -13,9 +13,9 @@ var daRegexNema = regexp.MustCompile(
 )
 
 // Sub-match group indexes for DA
-const daRegexYear = 1
-const daRegexMonth = 2
-const daRegexDay = 3
+const daRegexGroupYear = 1
+const daRegexGroupMonth = 2
+const daRegexGroupDay = 3
 
 // Parses dicom DT (datetime) value of YYYYMMDDHHMMSS.FFFFFF&ZZXX
 var dtRegex = regexp.MustCompile(
@@ -30,16 +30,16 @@ var dtRegex = regexp.MustCompile(
 )
 
 // Sub-match group indexes for DT
-const dtRegexYear = 1
-const dtRegexMonth = 2
-const dtRegexDay = 3
-const dtRegexHours = 4
-const dtRegexMinutes = 5
-const dtRegexSeconds = 6
-const dtRegexFractal = 8
-const dtRegexOffsetSign = 10
-const dtRegexOffsetHours = 11
-const dtRegexOffsetMinutes = 12
+const dtRegexGroupYear = 1
+const dtRegexGroupMonth = 2
+const dtRegexGroupDay = 3
+const dtRegexGroupHours = 4
+const dtRegexGroupMinutes = 5
+const dtRegexGroupSeconds = 6
+const dtRegexGroupFractal = 8
+const dtRegexGroupOffsetSign = 10
+const dtRegexGroupOffsetHours = 11
+const dtRegexGroupOffsetMinutes = 12
 
 // Parses dicom TM (time) value of HHMMSS.FFFFFF.
 var tmRegex = regexp.MustCompile(
@@ -47,7 +47,7 @@ var tmRegex = regexp.MustCompile(
 )
 
 // Sub-match group indexes for TM
-const tmRegexHours = 1
-const tmRegexMinutes = 2
-const tmRegexSeconds = 3
-const tmRegexFractal = 4
+const tmRegexGroupHours = 1
+const tmRegexGroupMinutes = 2
+const tmRegexGroupSeconds = 3
+const tmRegexGroupFractal = 4

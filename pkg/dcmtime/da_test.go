@@ -77,7 +77,7 @@ func TestDA_String(t *testing.T) {
 
 			da := NewDA(tc.Time, tc.Precision)
 
-			assert.Equal(da.String(), tc.Expected)
+			assert.Equal(da.DCM(), tc.Expected)
 		})
 	}
 }

@@ -2,6 +2,7 @@ package dcmtime
 
 import (
 	"fmt"
+	"time"
 )
 
 // Returns whether `check` is included in `limit`.
@@ -22,3 +23,7 @@ func truncateMilliseconds(
 
 	return millisecondsStr
 }
+
+// Const for time.Time timezone. We don't want a timezone because we don't REALLY know
+// that a TM or DA value is UTC, so we don't want UTC to be made explicit.
+var zeroTimezone = time.FixedZone("", 0)

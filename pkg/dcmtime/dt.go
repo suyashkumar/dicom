@@ -13,24 +13,24 @@ type DT struct {
 	// precision of Precision.Year ONLY stored the year.
 	Precision PrecisionLevel
 	// If true, offset information was specifically included in the DT string.
-	IgnoreOffset bool
+	HasOffset bool
 }
 
-// String converts time.Time value to dicom TM string. Allows truncation through passing
-// a truncation setting.
+// DCM converts time.Time value to dicom DT string. Values are truncated to the
+// DT.Precision value.
 //
-// If noOffset is true, no offset will be encoded.
-func (dt DT) String() string {
+// If DT.HasOffset is false, no offset will be encoded.
+func (dt DT) DCM() string {
 	// We start by using the existing DA and TM formatters, since the bulk of datetime
 	// is just those two formats slammed together.
-	dtVal := NewDA(dt.Time, dt.Precision).String()
+	dtVal := NewDA(dt.Time, dt.Precision).DCM()
 	// Check that at lead
 	if isIncluded(Precision.Hours, dt.Precision) {
-		dtVal += NewTM(dt.Time, dt.Precision).String()
+		dtVal += NewTM(dt.Time, dt.Precision).DCM()
 	}
 
 	// If we are not rendering the offset, return the current value
-	if dt.IgnoreOffset {
+	if !dt.HasOffset {
 		return dtVal
 	}
 
@@ -56,17 +56,22 @@ func (dt DT) String() string {
 	return dtVal
 }
 
+// String implements fmt.Stringer.
+func (dt DT) String() string {
+	return dt.DCM()
+}
+
 // NewDT creates new DT value from a given time.Time.
 //
-// precision is the last element to be included in the DICOM .String() value.
+// precision is the last element to be included in the DICOM DT.DCM() value.
 // Precision.Full will include all possible values.
 //
-// if ignoreOffset is true, the offset will be not included in the DICOM .String()
+// if ignoreOffset is true, the offset will be not included in the DICOM DT.DCM()
 // value.
 func NewDT(timeVal time.Time, precision PrecisionLevel, ignoreOffset bool) DT {
 	return DT{
-		Time:         timeVal,
-		Precision:    precision,
-		IgnoreOffset: ignoreOffset,
+		Time:      timeVal,
+		Precision: precision,
+		HasOffset: !ignoreOffset,
 	}
 }

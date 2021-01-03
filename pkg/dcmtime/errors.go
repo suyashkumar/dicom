@@ -17,7 +17,7 @@ var ErrParseDT = errors.New(
 		"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#table_6.2-1",
 )
 
-// ErrParseTM is a sentinel error returned from ParseTM..
+// ErrParseTM is a sentinel error returned from ParseTM.
 var ErrParseTM = errors.New(
 	"error parsing dicom TM (time) value, but expected format is 'HHMMSS.FFFFFF'. " +
 		"for more details on proper TM value formatting, see here: " +

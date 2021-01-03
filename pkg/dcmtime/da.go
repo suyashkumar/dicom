@@ -14,12 +14,12 @@ type DA struct {
 	Precision PrecisionLevel
 }
 
-// String converts time.Time value to dicom DA string. Values are truncated to the
-// Precision of the DA value.
+// DCM converts time.Time value to dicom DA string. Values are truncated to the
+// DA.Precision value.
 //
 // NOTE: Time zones are ignored in this operation, as DA does not support encoding them.
 // Make sure values are converted to UTC before passing if that is the desired output.
-func (da DA) String() string {
+func (da DA) DCM() string {
 	year, month, day := da.Time.Date()
 
 	daVal := fmt.Sprintf("%04d", year)
@@ -36,9 +36,14 @@ func (da DA) String() string {
 	return daVal
 }
 
+// String implements fmt.Stringer.
+func (da DA) String() string {
+	return da.DCM()
+}
+
 // NewDA creates new DA value from a given time.Time.
 //
-// precision is the last element to be included in the DICOM .String() value.
+// precision is the last element to be included in the DICOM DA.String() value.
 // Precision.Full will include all possible values.
 func NewDA(timeVal time.Time, precision PrecisionLevel) DA {
 	return DA{

@@ -254,60 +254,60 @@ func TestInfo(t *testing.T) {
 		},
 	}
 
-	for _, thisCase := range testCases {
-		thisCase.Expected.Raw = thisCase.Raw
+	for _, tc := range testCases {
+		tc.Expected.Raw = tc.Raw
 
 		// Test creating a new Info object.
-		t.Run(thisCase.Raw+"_new", func(t *testing.T) {
+		t.Run(tc.Raw+"_new", func(t *testing.T) {
 			newInfo := New(
-				thisCase.Expected.Alphabetic,
-				thisCase.Expected.Ideographic,
-				thisCase.Expected.Phonetic,
-				thisCase.RemoveTrailingEmpty,
+				tc.Expected.Alphabetic,
+				tc.Expected.Ideographic,
+				tc.Expected.Phonetic,
+				tc.RemoveTrailingEmpty,
 			)
 
-			assert.Equal(t, thisCase.Raw, newInfo.String())
+			assert.Equal(t, tc.Raw, newInfo.String())
 		})
 
 		// Test pasring a full PN value.
-		t.Run(thisCase.Raw+"_parse", func(t *testing.T) {
+		t.Run(tc.Raw+"_parse", func(t *testing.T) {
 			assert := assert.New(t)
 
-			parsed, err := Parse(thisCase.Raw)
+			parsed, err := Parse(tc.Raw)
 			if !assert.NoError(err, "parse Raw") {
 				t.FailNow()
 			}
 
 			checkGroupInfo(
 				t,
-				thisCase.Expected.Alphabetic,
+				tc.Expected.Alphabetic,
 				parsed.Alphabetic,
 				"Alphabetic",
 			)
 			checkGroupInfo(
 				t,
-				thisCase.Expected.Ideographic,
+				tc.Expected.Ideographic,
 				parsed.Ideographic,
 				"Ideographic",
 			)
 			checkGroupInfo(
 				t,
-				thisCase.Expected.Phonetic,
+				tc.Expected.Phonetic,
 				parsed.Phonetic,
 				"Phonetic",
 			)
 		})
 
 		// Test the .IsEmpty() method.
-		t.Run(thisCase.Raw+"_isEmpty", func(t *testing.T) {
+		t.Run(tc.Raw+"_isEmpty", func(t *testing.T) {
 			assert := assert.New(t)
 
-			newInfo, err := Parse(thisCase.Raw)
+			newInfo, err := Parse(tc.Raw)
 			if !assert.NoError(err, "parse Raw") {
 				t.FailNow()
 			}
 
-			assert.Equal(thisCase.IsEmpty, newInfo.IsEmpty())
+			assert.Equal(tc.IsEmpty, newInfo.IsEmpty())
 		})
 	}
 }
@@ -343,11 +343,11 @@ func TestParse_Err(t *testing.T) {
 		},
 	}
 
-	for _, thisCase := range testCases {
-		t.Run(thisCase.Raw, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.Raw, func(t *testing.T) {
 			assert := assert.New(t)
 
-			_, err := Parse(thisCase.Raw)
+			_, err := Parse(tc.Raw)
 
 			// Test errors.Is() with ErrParsePersonName
 			assert.True(
@@ -358,7 +358,7 @@ func TestParse_Err(t *testing.T) {
 			// Test full error string is correct.
 			assert.EqualError(
 				err,
-				thisCase.ErrString,
+				tc.ErrString,
 			)
 		})
 	}

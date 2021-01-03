@@ -12,7 +12,7 @@ import (
 
 const groupSep = "="
 
-// Expected Info value information from an element with a "PN" VR. See the "PN"
+// Info holds information from an element with a "PN" VR. See the "PN"
 // entry at: http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
 //
 // PN values are split into three groups which represent three different ways to
@@ -35,7 +35,7 @@ type Info struct {
 	Phonetic GroupInfo
 }
 
-// Original Raw representation of the PN value, in
+// String returns the original Raw representation of the PN value, in
 // '[Alphabetic]===[Ideographic]===[Phonetic]' format.
 func (info Info) String() string {
 	return info.Raw
@@ -49,7 +49,7 @@ func (info Info) IsEmpty() bool {
 		info.Phonetic.IsEmpty()
 }
 
-// Creates a new Info object detailing the individual data.
+// instead creates a new Info object detailing the individual data.
 //
 // If removeTrailingEmpty is set to true, null trailing groups and their separators
 // will be removed for the Raw field if they contain no information, so

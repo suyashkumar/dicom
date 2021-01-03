@@ -31,6 +31,17 @@ func ExampleParse() {
 
 	// To print the original Raw value, simply use the string method.
 	fmt.Println("ORIGINAL RAW:", parsedPN.String())
+
+	// Output (comparison here is busted, maybe due to ideographs?):
+	// ALPHABETIC: Potter^Harry^James^^
+	// IDEOGRAPHIC: 哈利^波特^詹姆^^
+	// PHONETIC: hɛər.i^pɒ.tər^dʒeɪmz^^
+	// FAMILY NAME: Potter
+	// GIVEN NAME:  Harry
+	// MIDDLE NAME: James
+	// NAME PREFIX:
+	// NAME SUFFIX:
+	// ORIGINAL RAW: Potter^Harry^James^^=哈利^波特^詹姆^^=hɛər.i^pɒ.tər^dʒeɪmz^^
 }
 
 // How to create new PN value.
@@ -80,4 +91,8 @@ func ExampleNew() {
 
 	// This will render as 'Potter^Harry^James^^=^^^^=^^^^'
 	fmt.Println("PN 2:", pnVal.String())
+
+	// Output:
+	// PN 1: Potter^Harry^James^^
+	// PN 2: Potter^Harry^James^^=^^^^=^^^^
 }

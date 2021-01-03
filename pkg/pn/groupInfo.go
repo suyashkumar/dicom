@@ -4,13 +4,12 @@ import "strings"
 
 const segmentSep = "^"
 
-// The dicom spec splits each PN value into 3 representation groups:
+// GroupInfo holds the parsed information for any one of these groups the person name
+// groups specified in the DICOM spec:
 //
 //	- Alphabetic
 //	- Ideographic
 //	- Phonetic
-//
-// GroupInfo holds the parsed information for any one of these groups.
 type GroupInfo struct {
 	// The original Raw string which created this value.
 	Raw string
@@ -26,13 +25,13 @@ type GroupInfo struct {
 	NameSuffix string
 }
 
-// Returns original, formatted string in
+// String Returns original, formatted string in
 // '[FamilyName]^[GivenName]^[MiddleName]^[NamePrefix]^[NameSuffix]'.
 func (group GroupInfo) String() string {
 	return group.Raw
 }
 
-// Returns true if all group segments are empty, even if Raw value was "^^^^".
+// IsEmpty returns true if all group segments are empty, even if Raw value was "^^^^".
 func (group GroupInfo) IsEmpty() bool {
 	return group.FamilyName == "" &&
 		group.GivenName == "" &&
@@ -75,8 +74,8 @@ func NewGroupInfo(
 	return info
 }
 
-// Returns an empty GroupInfo value, if noSeps is false, returned String() value
-// will be "^^^^", otherwise it will be "".
+// NewGroupEmpty returns an empty GroupInfo value, if noSeps is false, returned
+// GroupInfo.String() value will be "^^^^", otherwise it will be "".
 func NewGroupEmpty(noSeps bool) GroupInfo {
 	return NewGroupInfo(
 		"",

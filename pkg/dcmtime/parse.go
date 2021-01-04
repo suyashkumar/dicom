@@ -273,18 +273,18 @@ func extractTime(
 }
 
 // Converts DICOM TM (time) value to time.Time as UTC.
-func ParseTM(tmString string) (TM, error) {
+func ParseTM(tmString string) (Time, error) {
 	matches := tmRegex.FindStringSubmatch(tmString)
 	// If no full match is found, return an error
 	if !hasMatches(matches, tmString) {
-		return TM{}, ErrParseTM
+		return Time{}, ErrParseTM
 	}
 
 	hours, minutes, seconds, nanos, precision, err := extractTime(
 		matches, Precision.Full, true,
 	)
 	if err != nil {
-		return TM{}, err
+		return Time{}, err
 	}
 
 	// Return a new time.Time with the given values and UTC encoding.
@@ -302,7 +302,7 @@ func ParseTM(tmString string) (TM, error) {
 		zeroTimezone,
 	)
 
-	return TM{
+	return Time{
 		Time:      parsed,
 		Precision: precision,
 	}, nil

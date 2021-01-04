@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestDT_String(t *testing.T) {
+func TestDatetime_DCM(t *testing.T) {
 	testCases := []struct {
 		TimeVal      time.Time
 		Expected     string

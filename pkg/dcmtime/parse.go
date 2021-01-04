@@ -309,29 +309,29 @@ func ParseTM(tmString string) (TM, error) {
 }
 
 // Converts DICOM DT (datetime) value to time.Time as UTC.
-func ParseDT(dtString string) (DT, error) {
+func ParseDT(dtString string) (Datetime, error) {
 	matches := dtRegex.FindStringSubmatch(dtString)
 	if !hasMatches(matches, dtString) {
-		return DT{}, ErrParseDT
+		return Datetime{}, ErrParseDT
 	}
 
 	year, month, day, precision, err := extractDate(matches, Precision.Full, false)
 	if err != nil {
-		return DT{}, err
+		return Datetime{}, err
 	}
 
 	hours, minutes, seconds, nanos, precision, err := extractTime(
 		matches, precision, false,
 	)
 	if err != nil {
-		return DT{}, err
+		return Datetime{}, err
 	}
 
 	var hasOffet bool
 
 	offsetHours, err := extractDurationInfo(matches, dtRegexGroupOffsetHours, false)
 	if err != nil {
-		return DT{}, ErrParseDT
+		return Datetime{}, ErrParseDT
 	}
 	// If hours are not present, there is either no offset or the regex will fail,
 	// so we only need to check this here.
@@ -341,7 +341,7 @@ func ParseDT(dtString string) (DT, error) {
 
 	offsetMinutes, err := extractDurationInfo(matches, dtRegexGroupOffsetMinutes, false)
 	if err != nil {
-		return DT{}, ErrParseDT
+		return Datetime{}, ErrParseDT
 	}
 
 	// If the zone sign is '-', then we need to multiply the offset by -1
@@ -368,7 +368,7 @@ func ParseDT(dtString string) (DT, error) {
 		time.FixedZone("", offset),
 	)
 
-	return DT{
+	return Datetime{
 		Time:      parsed,
 		Precision: precision,
 		HasOffset: hasOffet,

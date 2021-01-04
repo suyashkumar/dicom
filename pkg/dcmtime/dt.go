@@ -5,14 +5,15 @@ import (
 	"time"
 )
 
-// DT holds data for a parsed DICOM datetime (DT value).
-type DT struct {
-	// Value as a native go time.Time value.
+// Datetime holds data for a parsed DICOM datetime (DT) value.
+type Datetime struct {
+	// Time is a native go time.Time value.
 	Time time.Time
-	// The precision with this value was stored. For instance, a DT value with a
+	// Precision with this value was stored. For instance, a DT value with a
 	// precision of Precision.Year ONLY stored the year.
 	Precision PrecisionLevel
-	// If true, offset information was specifically included in the DT string.
+	// HasOffset: if true, offset information was specifically included in the
+	// original DT string.
 	HasOffset bool
 }
 
@@ -20,7 +21,7 @@ type DT struct {
 // DT.Precision value.
 //
 // If DT.HasOffset is false, no offset will be encoded.
-func (dt DT) DCM() string {
+func (dt Datetime) DCM() string {
 	// We start by using the existing DA and TM formatters, since the bulk of datetime
 	// is just those two formats slammed together.
 	dtVal := NewDA(dt.Time, dt.Precision).DCM()
@@ -57,7 +58,7 @@ func (dt DT) DCM() string {
 }
 
 // String implements fmt.Stringer.
-func (dt DT) String() string {
+func (dt Datetime) String() string {
 	return dt.DCM()
 }
 
@@ -68,8 +69,8 @@ func (dt DT) String() string {
 //
 // if ignoreOffset is true, the offset will be not included in the DICOM DT.DCM()
 // value.
-func NewDT(timeVal time.Time, precision PrecisionLevel, ignoreOffset bool) DT {
-	return DT{
+func NewDT(timeVal time.Time, precision PrecisionLevel, ignoreOffset bool) Datetime {
+	return Datetime{
 		Time:      timeVal,
 		Precision: precision,
 		HasOffset: !ignoreOffset,

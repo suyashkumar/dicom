@@ -9,7 +9,7 @@ import (
 type Datetime struct {
 	// Time is the underlying time.Time value.
 	Time time.Time
-	// Precision with this value was stored. For instance, a DT value with a
+	// Precision with which this value was stored. For instance, a DT value with a
 	// precision of PrecisionYear ONLY stored the year.
 	Precision PrecisionLevel
 	// NoOffset: if true, offset information was not specifically included in the

@@ -5,6 +5,189 @@ import (
 	"time"
 )
 
+func TestParseTime(t *testing.T) {
+	testCases := []struct {
+		TMValue           string
+		ExpectedTime      time.Time
+		ExpectedPrecision PrecisionLevel
+	}{
+		// Full value, leading zeros
+		{
+			TMValue: "010203.456789",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				3,
+				456789000,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionFull,
+		},
+		// Remove one millisecond
+		{
+			TMValue: "010203.45678",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				3,
+				456780000,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMS5,
+		},
+		// Remove one millisecond
+		{
+			TMValue: "010203.4567",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				3,
+				456700000,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMS4,
+		},
+		// Remove one millisecond
+		{
+			TMValue: "010203.456",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				3,
+				456000000,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMS3,
+		},
+		// Remove one millisecond
+		{
+			TMValue: "010203.45",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				3,
+				450000000,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMS2,
+		},
+		// Remove one millisecond
+		{
+			TMValue: "010203.4",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				3,
+				400000000,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMS1,
+		},
+		// No milliseconds
+		{
+			TMValue: "010203",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				3,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionSeconds,
+		},
+		// No seconds
+		{
+			TMValue: "0102",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				2,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMinutes,
+		},
+		// No minutes
+		{
+			TMValue: "01",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				1,
+				0,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionHours,
+		},
+		// No leading zeroes
+		{
+			TMValue: "102030.456789",
+			ExpectedTime: time.Date(
+				1,
+				1,
+				1,
+				10,
+				20,
+				30,
+				456789000,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionFull,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TMValue, func(t *testing.T) {
+
+			parsed, err := ParseTime(tc.TMValue)
+			if err != nil {
+				t.Fatal("parse error:", err)
+			}
+
+			if !tc.ExpectedTime.Equal(parsed.Time) {
+				t.Errorf(
+					"parsed time (%v) != expected (%v)", parsed, tc.ExpectedTime,
+				)
+			}
+
+			if parsed.Precision != tc.ExpectedPrecision {
+				t.Errorf(
+					"precision: expected %v, got %v",
+					tc.ExpectedPrecision.String(),
+					parsed.Precision.String(),
+				)
+			}
+		})
+	}
+}
+
 func TestTime_DCM(t *testing.T) {
 	testCases := []struct {
 		Time      time.Time

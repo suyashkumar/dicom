@@ -12,7 +12,7 @@ func ExampleParseDA() {
 	daString := "20201210"
 
 	// We are parsing the date string without allowing nema
-	da, err := ParseDA(daString, false)
+	da, err := ParseDate(daString, false)
 	if err != nil {
 		panic(err)
 	}
@@ -31,7 +31,7 @@ func ExampleParseDA_lessPrecision() {
 	daString := "202012"
 
 	// We are parsing the date string without allowing nema.
-	da, err := ParseDA(daString, false)
+	da, err := ParseDate(daString, false)
 	if err != nil {
 		panic(err)
 	}
@@ -54,7 +54,7 @@ func ExampleParseDA_nema() {
 
 	// We are parsing the date string without allowing nema. This will result in an
 	// error.
-	_, err := ParseDA(daString, false)
+	_, err := ParseDate(daString, false)
 	if err == nil {
 		panic("should have error")
 	}
@@ -66,7 +66,7 @@ func ExampleParseDA_nema() {
 	}
 
 	// But if we allow NEMA-formatted values...
-	da, err := ParseDA(daString, true)
+	da, err := ParseDate(daString, true)
 	if err != nil {
 		panic(err)
 	}
@@ -121,7 +121,7 @@ func ExampleParseTM() {
 	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
 	tmString := "123001.000431"
 
-	tm, err := ParseTM(tmString)
+	tm, err := ParseTime(tmString)
 	if err != nil {
 		panic(err)
 	}
@@ -138,7 +138,7 @@ func ExampleParseTM_precisionMS() {
 	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
 	tmString := "123001.431"
 
-	tm, err := ParseTM(tmString)
+	tm, err := ParseTime(tmString)
 	if err != nil {
 		panic(err)
 	}
@@ -155,7 +155,7 @@ func ExampleParseTM_precisionHour() {
 	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
 	tmString := "12"
 
-	tm, err := ParseTM(tmString)
+	tm, err := ParseTime(tmString)
 	if err != nil {
 		panic(err)
 	}
@@ -243,7 +243,7 @@ func ExampleParseDT() {
 	daString := "20201210123001.000431+0100"
 
 	// We are parsing the date string without allowing nema
-	dt, err := ParseDT(daString)
+	dt, err := ParseDatetime(daString)
 	if err != nil {
 		panic(err)
 	}
@@ -264,7 +264,7 @@ func ExampleParseDT_noTimezone() {
 	daString := "20201210123001.000431"
 
 	// We are parsing the date string without allowing nema
-	dt, err := ParseDT(daString)
+	dt, err := ParseDatetime(daString)
 	if err != nil {
 		panic(err)
 	}
@@ -285,7 +285,7 @@ func ExampleParseDT_precisionHour() {
 	daString := "2020121012"
 
 	// We are parsing the date string without allowing nema
-	dt, err := ParseDT(daString)
+	dt, err := ParseDatetime(daString)
 	if err != nil {
 		panic(err)
 	}

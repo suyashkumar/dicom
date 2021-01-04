@@ -5,6 +5,138 @@ import (
 	"time"
 )
 
+func TestParseDate(t *testing.T) {
+	testCases := []struct {
+		DAValue           string
+		Expected          time.Time
+		ExpectedPrecision PrecisionLevel
+		AllowNema         bool
+	}{
+		// DICOM full date
+		{
+			DAValue: "20200304",
+			Expected: time.Date(
+				2020,
+				3,
+				4,
+				0,
+				0,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionFull,
+			AllowNema:         false,
+		},
+		// DICOM no day
+		{
+			DAValue: "202003",
+			Expected: time.Date(
+				2020,
+				3,
+				1,
+				0,
+				0,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMonth,
+			AllowNema:         false,
+		},
+		// DICOM no month
+		{
+			DAValue: "2020",
+			Expected: time.Date(
+				2020,
+				1,
+				1,
+				0,
+				0,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionYear,
+			AllowNema:         false,
+		},
+		// NEMA full date
+		{
+			DAValue: "2020.03.04",
+			Expected: time.Date(
+				2020,
+				3,
+				4,
+				0,
+				0,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionFull,
+			AllowNema:         true,
+		},
+		// NEMA no day
+		{
+			DAValue: "2020.03",
+			Expected: time.Date(
+				2020,
+				3,
+				1,
+				0,
+				0,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionMonth,
+			AllowNema:         true,
+		},
+		// NEMA no month
+		{
+			DAValue: "2020",
+			Expected: time.Date(
+				2020,
+				1,
+				1,
+				0,
+				0,
+				0,
+				0,
+				time.UTC,
+			),
+			ExpectedPrecision: PrecisionYear,
+			AllowNema:         true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.DAValue, func(t *testing.T) {
+			parsed, err := ParseDate(tc.DAValue, tc.AllowNema)
+			if err != nil {
+				t.Fatal("parse err:", err)
+			}
+
+			if !tc.Expected.Equal(parsed.Time) {
+				t.Errorf(
+					"parsed time (%v) != expected (%v)",
+					parsed.Time,
+					tc.Expected,
+				)
+
+			}
+
+			if parsed.Precision != tc.ExpectedPrecision {
+				t.Errorf(
+					"precision: expected %v, got %v",
+					tc.ExpectedPrecision.String(),
+					parsed.Precision.String(),
+				)
+			}
+		})
+	}
+}
+
 func TestDate_DCM(t *testing.T) {
 	testCases := []struct {
 		Time      time.Time

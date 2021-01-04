@@ -62,3 +62,71 @@ func (dt Datetime) DCM() string {
 func (dt Datetime) String() string {
 	return dt.DCM()
 }
+
+// ParseDatetime converts DICOM DT (datetime) value to time.Time, PrecisionLevel, and
+// offset presence as UTC.
+func ParseDatetime(dtString string) (Datetime, error) {
+	matches := dtRegex.FindStringSubmatch(dtString)
+	if !hasMatches(matches, dtString) {
+		return Datetime{}, ErrParseDT
+	}
+
+	year, month, day, precision, err := extractDate(matches, PrecisionFull, false)
+	if err != nil {
+		return Datetime{}, err
+	}
+
+	hours, minutes, seconds, nanos, precision, err := extractTime(
+		matches, precision, false,
+	)
+	if err != nil {
+		return Datetime{}, err
+	}
+
+	var hasOffet bool
+
+	offsetHours, err := extractDurationInfo(matches, dtRegexGroupOffsetHours, false)
+	if err != nil {
+		return Datetime{}, ErrParseDT
+	}
+	// If hours are not present, there is either no offset or the regex will fail,
+	// so we only need to check this here.
+	if offsetHours.Present {
+		hasOffet = true
+	}
+
+	offsetMinutes, err := extractDurationInfo(matches, dtRegexGroupOffsetMinutes, false)
+	if err != nil {
+		return Datetime{}, ErrParseDT
+	}
+
+	// If the zone sign is '-', then we need to multiply the offset by -1
+	var offsetSign int
+	switch matches[dtRegexGroupOffsetSign] {
+	case "-":
+		offsetSign = -1
+	default:
+		offsetSign = 1
+	}
+
+	// Get zone offset in seconds.
+	offset := (offsetHours.Value*3600 + offsetMinutes.Value*60) * offsetSign
+
+	// Return a new time.Time with the given values and UTC encoding.
+	parsed := time.Date(
+		year.Value,
+		time.Month(month.Value),
+		day.Value,
+		hours.Value,
+		minutes.Value,
+		seconds.Value,
+		nanos.Value,
+		time.FixedZone("", offset),
+	)
+
+	return Datetime{
+		Time:      parsed,
+		Precision: precision,
+		NoOffset:  hasOffet,
+	}, nil
+}

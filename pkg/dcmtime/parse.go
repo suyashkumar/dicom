@@ -158,7 +158,7 @@ func extractDate(
 //
 // If allowNEMA is true, the old NEMA 300 specification of YYYY.MM.DD will also be
 // checked if parsing as YYYYMMDD fails.
-func ParseDA(daString string, allowNEMA bool) (DA, error) {
+func ParseDA(daString string, allowNEMA bool) (Date, error) {
 	var matches []string
 
 	// Iterate over our two regexes and attempt them.
@@ -177,12 +177,12 @@ func ParseDA(daString string, allowNEMA bool) (DA, error) {
 	}
 
 	if !matchesFound {
-		return DA{}, ErrParseDA
+		return Date{}, ErrParseDA
 	}
 
 	year, month, day, precision, err := extractDate(matches, Precision.Full, true)
 	if err != nil {
-		return DA{}, err
+		return Date{}, err
 	}
 
 	// Return a new time.Time with the given values and UTC encoding.
@@ -197,7 +197,7 @@ func ParseDA(daString string, allowNEMA bool) (DA, error) {
 		zeroTimezone,
 	)
 
-	return DA{
+	return Date{
 		Time:      parsed,
 		Precision: precision,
 	}, nil

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestDA_String(t *testing.T) {
+func TestDate_DCM(t *testing.T) {
 	testCases := []struct {
 		Time      time.Time
 		Precision PrecisionLevel

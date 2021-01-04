@@ -63,14 +63,16 @@ func (info Info) WithoutNullSeparators() Info {
 // String returns the original Raw representation of the PN value, in
 // '[Alphabetic]=[Ideographic]=[Phonetic]' format.
 func (info Info) String() string {
-	groups := []GroupInfo{info.Alphabetic, info.Ideographic, info.Phonetic}
+	groupStrings := []string{
+		info.Alphabetic.String(), info.Ideographic.String(), info.Phonetic.String(),
+	}
 
 	// If we are removing trailing emtpy, we are going to check if the last group is
 	// empty, then trim it off the end if it is, until we hit a non-empty slice.
 	if info.NoNullSeparators {
 		out := 3
 		for i := 2; i >= 0; i-- {
-			if groups[i].IsEmpty() {
+			if groupStrings[i] == "" {
 				out = i
 			} else {
 				break
@@ -78,16 +80,10 @@ func (info Info) String() string {
 		}
 
 		// Trim the groups by getting a slice of our slice.
-		groups = groups[0:out]
+		groupStrings = groupStrings[0:out]
 	}
 
-	rawGroups := make([]string, len(groups))
-
-	for i := 0; i < len(groups); i++ {
-		rawGroups[i] = groups[i].String()
-	}
-
-	return strings.Join(rawGroups, groupSep)
+	return strings.Join(groupStrings, groupSep)
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method

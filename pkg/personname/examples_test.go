@@ -53,11 +53,15 @@ func ExampleNew() {
 			GivenName:  "Harry",
 			MiddleName: "James",
 		},
-		// Add empty group that will render its separators.
-		Ideographic: personname.GroupInfo{},
-		// Add empty group that will render its separators.
-		Phonetic: personname.GroupInfo{},
-		// This will remove trailing separators
+		// Add empty group that will not render its separators.
+		Ideographic: personname.GroupInfo{
+			NoNullSeparators: true,
+		},
+		// Add empty group that will not render its separators.
+		Phonetic: personname.GroupInfo{
+			NoNullSeparators: true,
+		},
+		// This will remove trailing '=' separators
 		NoNullSeparators: true,
 	}
 

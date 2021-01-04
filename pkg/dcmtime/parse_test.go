@@ -934,7 +934,7 @@ func TestParseDT(t *testing.T) {
 
 			assert.Equal(
 				tc.HasOffset,
-				parsed.HasOffset,
+				parsed.NoOffset,
 				"offset specified",
 			)
 		})

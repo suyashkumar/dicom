@@ -371,6 +371,6 @@ func ParseDT(dtString string) (Datetime, error) {
 	return Datetime{
 		Time:      parsed,
 		Precision: precision,
-		HasOffset: hasOffet,
+		NoOffset:  hasOffet,
 	}, nil
 }

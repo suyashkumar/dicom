@@ -40,14 +40,3 @@ func (da Date) DCM() string {
 func (da Date) String() string {
 	return da.DCM()
 }
-
-// NewDA creates new DA value from a given time.Time.
-//
-// precision is the last element to be included in the DICOM DA.String() value.
-// Precision.Full will include all possible values.
-func NewDA(timeVal time.Time, precision PrecisionLevel) Date {
-	return Date{
-		Time:      timeVal,
-		Precision: precision,
-	}
-}

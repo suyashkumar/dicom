@@ -75,7 +75,10 @@ func TestDate_DCM(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			da := NewDA(tc.Time, tc.Precision)
+			da := Date{
+				Time:      tc.Time,
+				Precision: tc.Precision,
+			}
 
 			assert.Equal(da.DCM(), tc.Expected)
 		})

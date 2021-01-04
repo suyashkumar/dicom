@@ -80,7 +80,7 @@ func ExampleParseDA_nema() {
 	// PRECISION :  FULL
 }
 
-func ExampleNewDA() {
+func ExampleDate() {
 	// We'll use the reference date as our date
 	date, err := time.Parse(
 		"Mon Jan 2, 2006",
@@ -91,7 +91,7 @@ func ExampleNewDA() {
 	}
 
 	// Create a nw DA object like so:
-	da := NewDA(date, Precision.Full)
+	da := Date{Time: date, Precision: Precision.Full}
 
 	// Get the DICOM string value
 	fmt.Println("DA:", da.DCM())
@@ -100,7 +100,7 @@ func ExampleNewDA() {
 	// DA: 20060102
 }
 
-func ExampleNewDA_precisionYear() {
+func ExampleDate_precisionYear() {
 	// We'll use the reference date as our date
 	date, err := time.Parse("2006-01", "2006-01")
 	if err != nil {
@@ -108,7 +108,7 @@ func ExampleNewDA_precisionYear() {
 	}
 
 	// Create a nw DA object that only represent the year like so:
-	da := NewDA(date, Precision.Month)
+	da := Date{Time: date, Precision: Precision.Month}
 
 	// Get the DICOM string value
 	fmt.Println("DA:", da.DCM())
@@ -241,7 +241,7 @@ func ExampleParseDT() {
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.HasOffset)
+	fmt.Println("HAS OFFSET:", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:30:01.000431 +0100 +0100
@@ -262,7 +262,7 @@ func ExampleParseDT_noTimezone() {
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.HasOffset)
+	fmt.Println("HAS OFFSET:", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:30:01.000431 +0000 +0000
@@ -283,7 +283,7 @@ func ExampleParseDT_precisionHour() {
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.HasOffset)
+	fmt.Println("HAS OFFSET:", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:00:00 +0000 +0000
@@ -291,7 +291,7 @@ func ExampleParseDT_precisionHour() {
 	// HAS OFFSET: false
 }
 
-func ExampleNewDT() {
+func ExampleDatetime() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"2006-01-02T15:04:05.000000-07:00",
@@ -302,7 +302,11 @@ func ExampleNewDT() {
 	}
 
 	// Create a nw TM object like so:
-	dt := NewDT(timeVal, Precision.Full, false)
+	dt := Datetime{
+		Time: timeVal,
+		Precision: Precision.Full,
+		NoOffset: false,
+	}
 
 	// Get the DICOM string value
 	fmt.Println("DT:", dt.DCM())
@@ -311,7 +315,7 @@ func ExampleNewDT() {
 	// DT: 20060102150405.123456+0100
 }
 
-func ExampleNewDT_noOffset() {
+func ExampleDatetime_noOffset() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"2006-01-02T15:04:05.000000",
@@ -322,7 +326,11 @@ func ExampleNewDT_noOffset() {
 	}
 
 	// Create a nw TM object like so:
-	dt := NewDT(timeVal, Precision.Full, true)
+	dt := Datetime{
+		Time: timeVal,
+		Precision: Precision.Full,
+		NoOffset: true,
+	}
 
 	// Get the DICOM string value
 	fmt.Println("DT:", dt.DCM())
@@ -331,7 +339,7 @@ func ExampleNewDT_noOffset() {
 	// DT: 20060102150405.123456
 }
 
-func ExampleNewDT_precisionMinute() {
+func ExampleDatetime_precisionMinute() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"2006-01-02T15:04",
@@ -342,7 +350,11 @@ func ExampleNewDT_precisionMinute() {
 	}
 
 	// Create a nw TM object like so:
-	dt := NewDT(timeVal, Precision.Minutes, true)
+	dt := Datetime{
+		Time:      timeVal,
+		Precision: Precision.Minutes,
+		NoOffset:  true,
+	}
 
 	// Get the DICOM string value
 	fmt.Println("DT:", dt.DCM())
@@ -351,7 +363,7 @@ func ExampleNewDT_precisionMinute() {
 	// DT: 200601021504
 }
 
-func ExampleNewDT_precisionMinuteWithOffset() {
+func ExampleDatetime_precisionMinuteWithOffset() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"2006-01-02T15:04-07:00",
@@ -362,7 +374,11 @@ func ExampleNewDT_precisionMinuteWithOffset() {
 	}
 
 	// Create a nw TM object like so:
-	dt := NewDT(timeVal, Precision.Minutes, false)
+	dt := Datetime{
+		Time:      timeVal,
+		Precision: Precision.Minutes,
+		NoOffset:  false,
+	}
 
 	// Get the DICOM string value
 	fmt.Println("DT:", dt.DCM())

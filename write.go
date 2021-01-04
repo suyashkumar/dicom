@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/suyashkumar/dicom/pkg/vrraw"
+
 	"github.com/suyashkumar/dicom/pkg/uid"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -241,7 +243,7 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 func verifyVROrDefault(t tag.Tag, vr string) (string, error) {
 	tagInfo, err := tag.Find(t)
 	if err != nil {
-		return "UN", nil
+		return vrraw.Unknown, nil
 	}
 	if vr == "" {
 		return tagInfo.VR, nil
@@ -258,19 +260,19 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 	valueType := value.ValueType()
 	var ok bool
 	switch vr {
-	case "US", "UL", "SL", "SS", "AT":
+	case vrraw.UnsignedShort, vrraw.UnsignedLong, vrraw.SignedLong, vrraw.SignedShort, vrraw.AttributeTag:
 		ok = valueType == Ints
-	case "SQ":
+	case vrraw.Sequence:
 		ok = valueType == Sequences
 	case "NA":
 		ok = valueType == SequenceItem
-	case "OW", "OB":
+	case vrraw.OtherWord, vrraw.OtherByte:
 		if t == tag.PixelData {
 			ok = valueType == PixelData
 		} else {
 			ok = valueType == Bytes
 		}
-	case "FL", "FD":
+	case vrraw.FloatingPointSingle, vrraw.FloatingPointDouble:
 		ok = valueType == Floats
 	default:
 		ok = valueType == Strings
@@ -319,7 +321,10 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 			return err
 		}
 		switch vr {
-		case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
+		case "NA", vrraw.OtherByte, vrraw.OtherDouble, vrraw.OtherFloat,
+			vrraw.OtherLong, vrraw.OtherWord, vrraw.Sequence, vrraw.Unknown,
+			vrraw.UnlimitedCharacters, vrraw.UniversalResourceIdentifier,
+			vrraw.UnlimitedText:
 			if err := w.WriteZeros(2); err != nil {
 				return err
 			}
@@ -416,7 +421,10 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 	}
 	if len(s)%2 == 1 {
 		switch vr {
-		case "DT", "LO", "LT", "PN", "SH", "ST", "UT", "DS", "CS", "TM", "IS", "UN":
+		case vrraw.DateTime, vrraw.LongString, vrraw.LongText, vrraw.PersonName,
+			vrraw.ShortString, vrraw.ShortText, vrraw.UnlimitedText,
+			vrraw.DecimalString, vrraw.CodeString, vrraw.Time,
+			vrraw.IntegerString, vrraw.Unknown:
 			if err := w.WriteString(" "); err != nil { // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 				return err
 			}
@@ -432,9 +440,9 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
 	switch vr {
-	case "OW":
+	case vrraw.OtherWord:
 		err = writeOtherWordString(w, values)
-	case "OB":
+	case vrraw.OtherByte:
 		err = writeOtherByteString(w, values)
 	default:
 		return ErrorMismatchValueTypeAndVR
@@ -449,11 +457,11 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
 		// TODO(suyashkumar): consider additional validation of VR=AT elements.
-		case "US", "SS", "AT":
+		case vrraw.UnsignedShort, vrraw.SignedShort, vrraw.AttributeTag:
 			if err := w.WriteUInt16(uint16(value)); err != nil {
 				return err
 			}
-		case "UL", "SL":
+		case vrraw.UnsignedLong, vrraw.SignedLong:
 			if err := w.WriteUInt32(uint32(value)); err != nil {
 				return err
 			}
@@ -471,7 +479,7 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 	floats := MustGetFloats(v)
 	for _, fl := range floats {
 		switch vr {
-		case "FL":
+		case vrraw.FloatingPointSingle:
 			// NOTE: this is a conversion from float64 -> float32 which may lead to a loss in precision. The assumption
 			// is that the value sitting in the float64 was originally at float32 precision if the VR is FL for this
 			// element. We will need to revisit this. Maybe we can detect if there will be a loss of precision and if so
@@ -480,7 +488,7 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 			if err != nil {
 				return err
 			}
-		case "FD":
+		case vrraw.FloatingPointDouble:
 			err := w.WriteFloat64(fl)
 			if err != nil {
 				return err

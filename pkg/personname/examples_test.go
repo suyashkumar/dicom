@@ -49,9 +49,9 @@ func ExampleNew() {
 	// Create a new PN like so
 	pnVal := personname.Info{
 		Alphabetic: personname.GroupInfo{
-			FamilyName:     "Potter",
-			GivenName:      "Harry",
-			MiddleName:     "James",
+			FamilyName: "Potter",
+			GivenName:  "Harry",
+			MiddleName: "James",
 		},
 		// Add empty group that will render its separators.
 		Ideographic: personname.GroupInfo{},

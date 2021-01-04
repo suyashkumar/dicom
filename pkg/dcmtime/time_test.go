@@ -185,7 +185,7 @@ func TestTime_DCM(t *testing.T) {
 
 			tm := NewTM(tc.Time, tc.Precision)
 
-			assert.Equal(tc.Expected, tm.DCM(), ".String()")
+			assert.Equal(tc.Expected, tm.DCM(), ".DCM()")
 		})
 	}
 }

@@ -102,7 +102,7 @@ func Parse(valueString string) (Info, error) {
 	groups := strings.Split(valueString, groupSep)
 
 	if len(groups) > 3 {
-		return Info{}, newErrParsePersonNameTooManyGroups(len(groups))
+		return Info{}, newErrTooManyGroups(len(groups))
 	}
 
 	info := Info{Raw: valueString}

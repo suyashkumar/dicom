@@ -10,7 +10,7 @@ var ErrParsePersonName = errors.New(
 	"string contains to many segments for PN value",
 )
 
-func newErrParsePersonNameTooManyGroups(groupsFound int) error {
+func newErrTooManyGroups(groupsFound int) error {
 	return fmt.Errorf(
 		"%w: PN contains %v groups. No more than 3 groups with "+
 			"'[Alphabetic]%v[Ideographic]%v[Phonetic]' format are allowed",
@@ -21,7 +21,7 @@ func newErrParsePersonNameTooManyGroups(groupsFound int) error {
 	)
 }
 
-func newErrParsePersonNameTooGroupSegments(group string, segmentsFound int) error {
+func newErrTooManyGroupSegments(group string, segmentsFound int) error {
 	return fmt.Errorf(
 		"%w: PN group %v contains %v segments. No more than 5 segments with "+
 			"'[Last]%v[First]%v[Middle]%v[Prefix]%v[Suffix]' format are allowed",

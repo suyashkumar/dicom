@@ -93,7 +93,7 @@ func groupFromValueString(groupString string, group string) (GroupInfo, error) {
 	segments := strings.Split(groupString, segmentSep)
 
 	if len(segments) > 5 {
-		return GroupInfo{}, newErrParsePersonNameTooGroupSegments(group, len(segments))
+		return GroupInfo{}, newErrTooManyGroupSegments(group, len(segments))
 	}
 
 	groupInfo := GroupInfo{Raw: groupString}

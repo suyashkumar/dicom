@@ -11,6 +11,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/suyashkumar/dicom/pkg/vrraw"
+
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
@@ -58,14 +60,20 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 	// More details here: http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1.2
 	switch vr {
 	// TODO: Parsed VR should be an enum. Will require refactors of tag pkg.
-	case "NA", "OB", "OD", "OF", "OL", "OW", "SQ", "UN", "UC", "UR", "UT":
+	case "NA", vrraw.OtherByte, vrraw.OtherDouble, vrraw.OtherFloat,
+		vrraw.OtherLong, vrraw.OtherWord, vrraw.Sequence, vrraw.Unknown,
+		vrraw.UnlimitedCharacters, vrraw.UniversalResourceIdentifier,
+		vrraw.UnlimitedText:
 		_ = r.Skip(2) // ignore two reserved bytes (0000H)
 		vl, err := r.ReadUInt32()
 		if err != nil {
 			return 0, err
 		}
 
-		if vl == tag.VLUndefinedLength && (vr == "UC" || vr == "UR" || vr == "UT") {
+		if vl == tag.VLUndefinedLength &&
+			(vr == vrraw.UnlimitedCharacters ||
+				vr == vrraw.UniversalResourceIdentifier ||
+				vr == vrraw.UnlimitedText) {
 			return 0, errors.New("UC, UR and UT may not have an Undefined Length, i.e.,a Value Length of FFFFFFFFH")
 		}
 		return vl, nil
@@ -351,11 +359,11 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 
 func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add special handling of PixelData
-	if vr == "OB" {
+	if vr == vrraw.OtherByte {
 		data := make([]byte, vl)
 		_, err := io.ReadFull(r, data)
 		return &bytesValue{value: data}, err
-	} else if vr == "OW" {
+	} else if vr == vrraw.OtherWord {
 		// OW -> stream of 16 bit words
 		if vl%2 != 0 {
 			return nil, ErrorOWRequiresEvenVL
@@ -407,7 +415,7 @@ func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 	retVal := &floatsValue{value: make([]float64, 0, vl/2)}
 	for !r.IsLimitExhausted() {
 		switch vr {
-		case "FL":
+		case vrraw.FloatingPointSingle:
 			val, err := r.ReadFloat32()
 			if err != nil {
 				return nil, err
@@ -421,7 +429,7 @@ func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 			}
 			retVal.value = append(retVal.value, pval)
 			break
-		case "FD":
+		case vrraw.FloatingPointDouble:
 			val, err := r.ReadFloat64()
 			if err != nil {
 				return nil, err
@@ -456,28 +464,28 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	retVal := &intsValue{value: make([]int, 0, vl/2)}
 	for !r.IsLimitExhausted() {
 		switch vr {
-		case "US", "AT":
+		case vrraw.UnsignedShort, vrraw.AttributeTag:
 			val, err := r.ReadUInt16()
 			if err != nil {
 				return nil, err
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
-		case "UL":
+		case vrraw.UnsignedLong:
 			val, err := r.ReadUInt32()
 			if err != nil {
 				return nil, err
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
-		case "SL":
+		case vrraw.SignedLong:
 			val, err := r.ReadInt32()
 			if err != nil {
 				return nil, err
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
-		case "SS":
+		case vrraw.SignedShort:
 			val, err := r.ReadInt16()
 			if err != nil {
 				return nil, err

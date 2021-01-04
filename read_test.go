@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/suyashkumar/dicom/pkg/vrraw"
+
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/frame"
 
@@ -51,7 +53,7 @@ func TestReadFloat_float64(t *testing.T) {
 		{
 			name:        "float64",
 			floats:      []float64{20.1, 32.22},
-			VR:          "FD",
+			VR:          vrraw.FloatingPointDouble,
 			want:        &floatsValue{value: []float64{20.1, 32.22}},
 			expectedErr: nil,
 		},
@@ -100,7 +102,7 @@ func TestReadFloat_float32(t *testing.T) {
 		{
 			name:        "float32",
 			floats:      []float32{20.1001, 32.22},
-			VR:          "FL",
+			VR:          vrraw.FloatingPointSingle,
 			want:        &floatsValue{value: []float64{20.1001, 32.22}},
 			expectedErr: nil,
 		},

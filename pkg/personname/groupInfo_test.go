@@ -2,7 +2,6 @@ package personname
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -13,49 +12,61 @@ func checkGroupInfo(
 	received GroupInfo,
 	group string,
 ) {
-	assert := assert.New(t)
 
-	assert.Equal(
-		expected.FamilyName,
-		received.FamilyName,
-		"Family Name, group %v",
-		group,
-	)
+	if expected.FamilyName != received.FamilyName {
+		t.Errorf(
+			"FamilyName: expected '%v', got '%v'. Group '%v'",
+			expected.FamilyName,
+			received.FamilyName,
+			group,
+		)
+	}
 
-	assert.Equal(
-		expected.GivenName,
-		received.GivenName,
-		"Given Name, group %v",
-		group,
-	)
+	if expected.GivenName != received.GivenName {
+		t.Errorf(
+			"GivenName: expected '%v', got '%v'. Group '%v'",
+			expected.GivenName,
+			received.GivenName,
+			group,
+		)
+	}
 
-	assert.Equal(
-		expected.MiddleName,
-		received.MiddleName,
-		"Middle Name, group %v",
-		group,
-	)
+	if expected.MiddleName != received.MiddleName {
+		t.Errorf(
+			"MiddleName: expected '%v', got '%v'. Group '%v'",
+			expected.MiddleName,
+			received.MiddleName,
+			group,
+		)
+	}
 
-	assert.Equal(
-		expected.NamePrefix,
-		received.NamePrefix,
-		"Name Prefix, group %v",
-		group,
-	)
+	if expected.NamePrefix != received.NamePrefix {
+		t.Errorf(
+			"MiddleName: expected '%v', got '%v'. Group '%v'",
+			expected.NamePrefix,
+			received.NamePrefix,
+			group,
+		)
+	}
 
-	assert.Equal(
-		expected.NameSuffix,
-		received.NameSuffix,
-		"Name Suffix, group %v",
-		group,
-	)
+	if expected.NameSuffix != received.NameSuffix {
+		t.Errorf(
+			"NameSuffix: expected '%v', got '%v'. Group '%v'",
+			expected.NameSuffix,
+			received.NameSuffix,
+			group,
+		)
+	}
 
-	assert.Equal(
-		expectedString,
-		received.String(),
-		"Formatted String, group %v",
-		group,
-	)
+	if expectedString != received.String() {
+		t.Errorf(
+			"formatted .String(): expected '%v', got '%v'. Group '%v'",
+			expectedString,
+			received.String(),
+			group,
+		)
+	}
+
 }
 
 func TestNewPersonNameFromDicom(t *testing.T) {
@@ -222,38 +233,50 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				tc.Expected.NameSuffix,
 				tc.NoNullSeps,
 			}
-			assert.Equal(
-				t,
-				tc.Raw,
-				newGroup.String(),
-				"convert to string",
-			)
+			if tc.Raw != newGroup.String() {
+				t.Errorf(
+					"formatted .String() does not match input: "+
+						"expected '%v', got '%v'",
+					tc.Raw,
+					newGroup.String(),
+				)
+			}
 		})
 
 		// Test parsing a group string.
 		t.Run(tc.Raw+"_Parse", func(t *testing.T) {
-			assert := assert.New(t)
 
 			parsed, err := groupFromValueString(tc.Raw, "Alphabetic")
-			if !assert.NoError(err, "parse string") {
-				t.FailNow()
+			if err != nil {
+				t.Fatal("error parsing value:", err)
 			}
 
 			checkGroupInfo(t, tc.Expected, tc.Raw, parsed, "")
 
-			assert.Equal(tc.Raw, parsed.String(), "convert to string")
+			if tc.Raw != parsed.String() {
+				t.Errorf(
+					"formatted .String() does not match input: "+
+						"expected '%v', got '%v'",
+					tc.Raw,
+					parsed.String(),
+				)
+			}
 		})
 
 		// Test .IsEmpty() method.
 		t.Run(tc.Raw+"_IsEmpty", func(t *testing.T) {
-			assert := assert.New(t)
-
 			parsed, err := groupFromValueString(tc.Raw, "Alphabetic")
-			if !assert.NoError(err, "parse string") {
-				t.FailNow()
+			if err != nil {
+				t.Fatalf("error parsing value '%v': %v", tc.Raw, err)
 			}
 
-			assert.Equal(tc.IsEmpty, parsed.IsEmpty(), "IsEmpty()")
+			if tc.IsEmpty != parsed.IsEmpty() {
+				t.Errorf(
+					".IsEmpty() returned %v, extected %v",
+					parsed.IsEmpty(),
+					tc.IsEmpty,
+				)
+			}
 		})
 	}
 }
@@ -263,12 +286,15 @@ func TestNewPersonNameFromDicom_Err(t *testing.T) {
 	_, err := groupFromValueString(badName, "Alphabetic")
 
 	// Check that we get a ErrParsePersonName
-	assert.True(t, errors.Is(err, ErrParsePersonName))
-	assert.EqualError(
-		t,
-		err,
-		"string contains to many segments for PN value: PN group Alphabetic"+
-			" contains 6 segments. No more than 5 segments with"+
-			" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
-	)
+	if !errors.Is(err, ErrParsePersonName) {
+		t.Errorf("returned err is not ErrParsePersonName: %v", err)
+	}
+
+	expectedString := "string contains to many segments for PN value: PN group " +
+		"Alphabetic contains 6 segments. No more than 5 segments with" +
+		" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed"
+
+	if err.Error() != expectedString {
+		t.Errorf("unexpected error text: %v", expectedString)
+	}
 }

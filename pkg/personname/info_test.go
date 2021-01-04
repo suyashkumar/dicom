@@ -2,7 +2,6 @@ package personname
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -265,16 +264,21 @@ func TestInfo(t *testing.T) {
 				NoNullSeparators: tc.NoNullSeparators,
 			}
 
-			assert.Equal(t, tc.Raw, newInfo.String())
+			if tc.Raw != newInfo.String() {
+				t.Errorf(
+					"formatted string: expected '%v', got '%v'",
+					tc.Raw,
+					newInfo.String(),
+				)
+			}
 		})
 
-		// Test pasring a full PN value.
+		// Test parsing a full PN value.
 		t.Run(tc.Raw+"_parse", func(t *testing.T) {
-			assert := assert.New(t)
 
 			parsed, err := Parse(tc.Raw)
-			if !assert.NoError(err, "parse Raw") {
-				t.FailNow()
+			if err != nil {
+				t.Fatal("error parsing value:", err)
 			}
 
 			checkGroupInfo(
@@ -302,14 +306,19 @@ func TestInfo(t *testing.T) {
 
 		// Test the .IsEmpty() method.
 		t.Run(tc.Raw+"_isEmpty", func(t *testing.T) {
-			assert := assert.New(t)
-
 			newInfo, err := Parse(tc.Raw)
-			if !assert.NoError(err, "parse Raw") {
+			if err != nil {
+				t.Error("error parsing value:", err)
 				t.FailNow()
 			}
 
-			assert.Equal(tc.IsEmpty, newInfo.IsEmpty())
+			if tc.IsEmpty != newInfo.IsEmpty() {
+				t.Errorf(
+					".IsEmpty(): got '%v', expected '%v'",
+					tc.IsEmpty,
+					newInfo.IsEmpty(),
+				)
+			}
 		})
 	}
 }
@@ -347,21 +356,16 @@ func TestParse_Err(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Raw, func(t *testing.T) {
-			assert := assert.New(t)
-
 			_, err := Parse(tc.Raw)
 
 			// Test errors.Is() with ErrParsePersonName
-			assert.True(
-				errors.Is(err, ErrParsePersonName),
-				"error unwraps to ErrParsePersonName",
-			)
+			if !errors.Is(err, ErrParsePersonName) {
+				t.Errorf("err is not ErrParsePersonName")
+			}
 
-			// Test full error string is correct.
-			assert.EqualError(
-				err,
-				tc.ErrString,
-			)
+			if err.Error() != tc.ErrString {
+				t.Error("error string unexpected:", err.Error())
+			}
 		})
 	}
 }
@@ -371,8 +375,7 @@ func TestInfo_WithNullSeparators(t *testing.T) {
 
 	parsed, err := Parse(pnVal)
 	if err != nil {
-		t.Errorf("error parsing pnVal: %v", err)
-		t.FailNow()
+		t.Fatalf("error parsing pnVal: %v", err)
 	}
 
 	altered := parsed.WithNullSeparators()
@@ -388,8 +391,7 @@ func TestInfo_WithoutNullSeparators(t *testing.T) {
 
 	parsed, err := Parse(pnVal)
 	if err != nil {
-		t.Errorf("error parsing pnVal: %v", err)
-		t.FailNow()
+		t.Fatalf("error parsing pnVal: %v", err)
 	}
 
 	altered := parsed.WithoutNullSeparators()

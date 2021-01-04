@@ -1,7 +1,6 @@
 package dcmtime
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -515,17 +514,15 @@ func TestDatetime_DCM(t *testing.T) {
 			name += "_NoOffset"
 		}
 		t.Run(name, func(t *testing.T) {
-			assert := assert.New(t)
-
-			daVal := Datetime{
+			dt := Datetime{
 				Time:      tc.TimeVal,
 				Precision: tc.Precision,
 				NoOffset:  tc.NoOffset,
 			}
 
-			assert.Equal(
-				tc.Expected, daVal.DCM(), "output equals expected",
-			)
+			if dt.DCM() != tc.Expected {
+				t.Errorf("DCM(): expected '%v', got '%v'", tc.Expected, dt.DCM())
+			}
 		})
 	}
 }

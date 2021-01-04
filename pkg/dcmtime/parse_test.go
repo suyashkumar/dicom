@@ -1,7 +1,6 @@
 package dcmtime
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -166,27 +165,25 @@ func TestParseTM(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.TMValue, func(t *testing.T) {
-			assert := assert.New(t)
 
 			parsed, err := ParseTM(tc.TMValue)
-			if !assert.NoError(err, "parse TM value") {
-				t.FailNow()
+			if err != nil {
+				t.Fatal("parse error:", err)
 			}
 
-			assert.Truef(
-				tc.ExpectedTime.Equal(parsed.Time),
-				"parsed time (%v) equals expected (%v)",
-				parsed,
-				tc.ExpectedTime,
-			)
+			if !tc.ExpectedTime.Equal(parsed.Time) {
+				t.Errorf(
+					"parsed time (%v) != expected (%v)", parsed, tc.ExpectedTime,
+				)
+			}
 
-			assert.Equalf(
-				tc.ExpectedPrecision,
-				parsed.Precision,
-				"precision. expected %v, got %v",
-				tc.ExpectedPrecision.String(),
-				parsed.Precision.String(),
-			)
+			if parsed.Precision != tc.ExpectedPrecision {
+				t.Errorf(
+					"precision: expected %v, got %v",
+					tc.ExpectedPrecision.String(),
+					parsed.Precision.String(),
+				)
+			}
 		})
 	}
 }
@@ -296,29 +293,29 @@ func TestParseDA(t *testing.T) {
 		},
 	}
 
-	for _, thisCase := range testCases {
-		t.Run(thisCase.DAValue, func(t *testing.T) {
-			assert := assert.New(t)
-
-			parsed, err := ParseDA(thisCase.DAValue, thisCase.AllowNema)
-			if !assert.NoError(err, "parse DA value") {
-				t.FailNow()
+	for _, tc := range testCases {
+		t.Run(tc.DAValue, func(t *testing.T) {
+			parsed, err := ParseDA(tc.DAValue, tc.AllowNema)
+			if err != nil {
+				t.Fatal("parse err:", err)
 			}
 
-			assert.Truef(
-				thisCase.Expected.Equal(parsed.Time),
-				"parsed time (%v) equals expected (%v)",
-				parsed.Time,
-				thisCase.Expected,
-			)
+			if !tc.Expected.Equal(parsed.Time) {
+				t.Errorf(
+					"parsed time (%v) != expected (%v)",
+					parsed.Time,
+					tc.Expected,
+				)
 
-			assert.Equalf(
-				thisCase.ExpectedPrecision,
-				parsed.Precision,
-				"precision. expected %v, got %v",
-				thisCase.ExpectedPrecision.String(),
-				parsed.Precision.String(),
-			)
+			}
+
+			if parsed.Precision != tc.ExpectedPrecision {
+				t.Errorf(
+					"precision: expected %v, got %v",
+					tc.ExpectedPrecision.String(),
+					parsed.Precision.String(),
+				)
+			}
 		})
 	}
 }
@@ -910,33 +907,27 @@ func TestParseDT(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.DTValue, func(t *testing.T) {
-			assert := assert.New(t)
-
 			parsed, err := ParseDT(tc.DTValue)
-			if !assert.NoError(err, "parse DT value") {
-				t.FailNow()
+			if err != nil {
+				t.Fatal("parse err:", err)
 			}
 
-			assert.Truef(
-				tc.Expected.Equal(parsed.Time),
-				"parsed time (%v) equals expected (%v)",
-				parsed,
-				tc.Expected,
-			)
+			if !tc.Expected.Equal(parsed.Time) {
+				t.Errorf(
+					"parsed time (%v) != expected (%v)",
+					parsed.Time,
+					tc.Expected,
+				)
 
-			assert.Equal(
-				tc.ExpectedPrecision,
-				parsed.Precision,
-				"precision. expected %v, got %v",
-				tc.ExpectedPrecision,
-				parsed.Precision,
-			)
+			}
 
-			assert.Equal(
-				tc.HasOffset,
-				parsed.NoOffset,
-				"offset specified",
-			)
+			if parsed.Precision != tc.ExpectedPrecision {
+				t.Errorf(
+					"precision: expected %v, got %v",
+					tc.ExpectedPrecision.String(),
+					parsed.Precision.String(),
+				)
+			}
 		})
 	}
 }

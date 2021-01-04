@@ -1,7 +1,6 @@
 package dcmtime
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -181,14 +180,14 @@ func TestTime_DCM(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Expected, func(t *testing.T) {
-			assert := assert.New(t)
-
 			tm := Time{
 				Time:      tc.Time,
 				Precision: tc.Precision,
 			}
 
-			assert.Equal(tc.Expected, tm.DCM(), ".DCM()")
+			if tm.DCM() != tc.Expected {
+				t.Errorf("DCM(): expected '%v', got '%v'", tc.Expected, tm.DCM())
+			}
 		})
 	}
 }

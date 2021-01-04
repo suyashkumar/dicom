@@ -7,7 +7,7 @@ import (
 
 // Datetime holds data for a parsed DICOM datetime (DT) value.
 type Datetime struct {
-	// Time is a native go time.Time value.
+	// Time is the underlying time.Time value.
 	Time time.Time
 	// Precision with this value was stored. For instance, a DT value with a
 	// precision of PrecisionYear ONLY stored the year.

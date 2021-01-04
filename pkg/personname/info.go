@@ -49,7 +49,7 @@ func (info Info) IsEmpty() bool {
 		info.Phonetic.IsEmpty()
 }
 
-// instead creates a new Info object detailing the individual data.
+// New creates a new Info object detailing the individual data.
 //
 // If removeTrailingEmpty is set to true, null trailing groups and their separators
 // will be removed for the Raw field if they contain no information, so

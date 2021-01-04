@@ -11,24 +11,41 @@ const segmentSep = "^"
 //	- Ideographic
 //	- Phonetic
 type GroupInfo struct {
-	// The original Raw string which created this value.
-	Raw string
-	// The person's family or last name.
+	// FamilyName is the person's family or last name.
 	FamilyName string
-	// The person's given or first names.
+	// GivenName if the person's given or first names.
 	GivenName string
-	// The person's middle names.
+	// MiddleName is the person's middle name(s).
 	MiddleName string
-	// The person's name prefix.
+	// NamePrefix is the person's name prefix (ex: MR., MRS.).
 	NamePrefix string
-	// The person's name suffix.
+	// NameSuffix is the person's name suffix (ex: Jr, III).
 	NameSuffix string
+
+	// NoNullSeparators will remove repeated separators around null groups when
+	// calling String() if set to true.
+	NoNullSeparators bool
 }
 
 // String Returns original, formatted string in
 // '[FamilyName]^[GivenName]^[MiddleName]^[NamePrefix]^[NameSuffix]'.
 func (group GroupInfo) String() string {
-	return group.Raw
+	dcmString := strings.Join(
+		[]string{
+			group.FamilyName,
+			group.GivenName,
+			group.MiddleName,
+			group.NamePrefix,
+			group.NameSuffix,
+		},
+		segmentSep,
+	)
+
+	if group.NoNullSeparators {
+		dcmString = strings.TrimRight(dcmString, segmentSep)
+	}
+
+	return dcmString
 }
 
 // IsEmpty returns true if all group segments are empty, even if Raw value was "^^^^".
@@ -40,53 +57,6 @@ func (group GroupInfo) IsEmpty() bool {
 		group.NameSuffix == ""
 }
 
-// NewGroupInfo returns a group info object with the given segments. If
-// removeTrailingSeparators is set to true, null trailing segments and their separators
-// will be removed for the Raw field, so "Potter^Harry^James^^" will be rendered as
-// "Potter^Harry^James" instead.
-func NewGroupInfo(
-	familyName string,
-	givenName string,
-	middleName string,
-	namePrefix string,
-	nameSuffix string,
-	removeTrailingSeparators bool,
-) GroupInfo {
-	info := GroupInfo{
-		Raw:        "",
-		FamilyName: familyName,
-		GivenName:  givenName,
-		MiddleName: middleName,
-		NamePrefix: namePrefix,
-		NameSuffix: nameSuffix,
-	}
-
-	rawString := strings.Join(
-		[]string{familyName, givenName, middleName, namePrefix, nameSuffix},
-		segmentSep,
-	)
-
-	if removeTrailingSeparators {
-		rawString = strings.TrimRight(rawString, segmentSep)
-	}
-
-	info.Raw = rawString
-	return info
-}
-
-// NewGroupEmpty returns an empty GroupInfo value, if noSeps is false, returned
-// GroupInfo.String() value will be "^^^^", otherwise it will be "".
-func NewGroupEmpty(noSeps bool) GroupInfo {
-	return NewGroupInfo(
-		"",
-		"",
-		"",
-		"",
-		"",
-		noSeps,
-	)
-}
-
 // groupFromValueString converts a string from a dicom element with a Value
 // Representation of PN to a parsed Info struct.
 func groupFromValueString(groupString string, group string) (GroupInfo, error) {
@@ -96,7 +66,7 @@ func groupFromValueString(groupString string, group string) (GroupInfo, error) {
 		return GroupInfo{}, newErrTooManyGroupSegments(group, len(segments))
 	}
 
-	groupInfo := GroupInfo{Raw: groupString}
+	groupInfo := GroupInfo{}
 
 	// Range over the groups and assign them based on index.
 	for i, groupValue := range segments {
@@ -112,6 +82,12 @@ func groupFromValueString(groupString string, group string) (GroupInfo, error) {
 		case 4:
 			groupInfo.NameSuffix = groupValue
 		}
+	}
+
+	// If there are less than 5 segments, that means trailing separators were not
+	// included, and when we call GroupInfo.String(), they should not be rendered.
+	if len(segments) < 5 {
+		groupInfo.NoNullSeparators = true
 	}
 
 	return groupInfo, nil

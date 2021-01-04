@@ -9,6 +9,7 @@ import (
 func checkGroupInfo(
 	t *testing.T,
 	expected GroupInfo,
+	expectedString string,
 	received GroupInfo,
 	group string,
 ) {
@@ -50,7 +51,7 @@ func checkGroupInfo(
 	)
 
 	assert.Equal(
-		expected.Raw,
+		expectedString,
 		received.String(),
 		"Formatted String, group %v",
 		group,
@@ -63,9 +64,9 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected GroupInfo
-		// Whether removeTrailingSeps should be set to true when creating a new
+		// Whether NoNullSeparators should be set to true when creating a new
 		// GroupInfo to match Raw.
-		RemoveTrailingSeps bool
+		NoNullSeps bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
 	}{
@@ -157,7 +158,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "",
 			},
-			RemoveTrailingSeps: true,
+			NoNullSeps: true,
 		},
 		// No prefix or trailing
 		{
@@ -169,7 +170,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			RemoveTrailingSeps: true,
+			NoNullSeps: true,
 		},
 		// No middle or trailing
 		{
@@ -181,7 +182,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			RemoveTrailingSeps: true,
+			NoNullSeps: true,
 		},
 		// No given or trailing
 		{
@@ -193,7 +194,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			RemoveTrailingSeps: true,
+			NoNullSeps: true,
 		},
 		// No family or trailing
 		{
@@ -205,24 +206,22 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			RemoveTrailingSeps: true,
-			IsEmpty:            true,
+			NoNullSeps: true,
+			IsEmpty:    true,
 		},
 	}
 
 	for _, tc := range testCases {
-		tc.Expected.Raw = tc.Raw
-
 		// Test creating a new GroupInfo object
 		t.Run(tc.Raw+"_New", func(t *testing.T) {
-			newGroup := NewGroupInfo(
+			newGroup := GroupInfo{
 				tc.Expected.FamilyName,
 				tc.Expected.GivenName,
 				tc.Expected.MiddleName,
 				tc.Expected.NamePrefix,
 				tc.Expected.NameSuffix,
-				tc.RemoveTrailingSeps,
-			)
+				tc.NoNullSeps,
+			}
 			assert.Equal(
 				t,
 				tc.Raw,
@@ -240,7 +239,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				t.FailNow()
 			}
 
-			checkGroupInfo(t, tc.Expected, parsed, "")
+			checkGroupInfo(t, tc.Expected, tc.Raw, parsed, "")
 
 			assert.Equal(tc.Raw, parsed.String(), "convert to string")
 		})

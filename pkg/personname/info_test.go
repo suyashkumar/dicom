@@ -12,9 +12,9 @@ func TestInfo(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected Info
-		// Whether RemoveTrailingEmpty should be set to true when creating a new
-		// GroupInfo to match Raw.
-		RemoveTrailingEmpty bool
+		// Whether NoNullSeparators should be set to true when creating a new
+		// Info to match Raw.
+		NoNullSeparators bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
 	}{
@@ -25,32 +25,32 @@ func TestInfo(t *testing.T) {
 				"pFamily^pGiven^pMiddle^pPrefix^pSuffix",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 					FamilyName: "aFamily",
 					GivenName:  "aGiven",
 					MiddleName: "aMiddle",
 					NamePrefix: "aPrefix",
 					NameSuffix: "aSuffix",
+					NoNullSeparators: true,
 				},
 				Ideographic: GroupInfo{
-					Raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
 					FamilyName: "iFamily",
 					GivenName:  "iGiven",
 					MiddleName: "iMiddle",
 					NamePrefix: "iPrefix",
 					NameSuffix: "iSuffix",
+					NoNullSeparators: true,
 				},
 				Phonetic: GroupInfo{
-					Raw:        "pFamily^pGiven^pMiddle^pPrefix^pSuffix",
 					FamilyName: "pFamily",
 					GivenName:  "pGiven",
 					MiddleName: "pMiddle",
 					NamePrefix: "pPrefix",
 					NameSuffix: "pSuffix",
+					NoNullSeparators: true,
 				},
 			},
-			RemoveTrailingEmpty: false,
-			IsEmpty:             false,
+			NoNullSeparators: false,
+			IsEmpty:          false,
 		},
 		// No Phonetic
 		{
@@ -59,32 +59,32 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 					FamilyName: "aFamily",
 					GivenName:  "aGiven",
 					MiddleName: "aMiddle",
 					NamePrefix: "aPrefix",
 					NameSuffix: "aSuffix",
+					NoNullSeparators: true,
 				},
 				Ideographic: GroupInfo{
-					Raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
 					FamilyName: "iFamily",
 					GivenName:  "iGiven",
 					MiddleName: "iMiddle",
 					NamePrefix: "iPrefix",
 					NameSuffix: "iSuffix",
+					NoNullSeparators: true,
 				},
 				Phonetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 			},
-			RemoveTrailingEmpty: false,
-			IsEmpty:             false,
+			NoNullSeparators: false,
+			IsEmpty:          false,
 		},
 		// No Phonetic, no seps
 		{
@@ -93,32 +93,32 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 					FamilyName: "aFamily",
 					GivenName:  "aGiven",
 					MiddleName: "aMiddle",
 					NamePrefix: "aPrefix",
 					NameSuffix: "aSuffix",
+					NoNullSeparators: true,
 				},
 				Ideographic: GroupInfo{
-					Raw:        "iFamily^iGiven^iMiddle^iPrefix^iSuffix",
 					FamilyName: "iFamily",
 					GivenName:  "iGiven",
 					MiddleName: "iMiddle",
 					NamePrefix: "iPrefix",
 					NameSuffix: "iSuffix",
+					NoNullSeparators: true,
 				},
 				Phonetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 			},
-			RemoveTrailingEmpty: true,
-			IsEmpty:             false,
+			NoNullSeparators: true,
+			IsEmpty:          false,
 		},
 		// No Ideographic
 		{
@@ -127,64 +127,64 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 					FamilyName: "aFamily",
 					GivenName:  "aGiven",
 					MiddleName: "aMiddle",
 					NamePrefix: "aPrefix",
 					NameSuffix: "aSuffix",
+					NoNullSeparators: true,
 				},
 				Ideographic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 				Phonetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 			},
-			RemoveTrailingEmpty: false,
-			IsEmpty:             false,
+			NoNullSeparators: false,
+			IsEmpty:          false,
 		},
 		// No Ideographic, no seps
 		{
 			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					Raw:        "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 					FamilyName: "aFamily",
 					GivenName:  "aGiven",
 					MiddleName: "aMiddle",
 					NamePrefix: "aPrefix",
 					NameSuffix: "aSuffix",
+					NoNullSeparators: true,
 				},
 				Ideographic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 				Phonetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 			},
-			RemoveTrailingEmpty: true,
-			IsEmpty:             false,
+			NoNullSeparators: true,
+			IsEmpty:          false,
 		},
 		// Empty with seps
 		{
@@ -193,78 +193,77 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 				Ideographic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 				Phonetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 			},
-			RemoveTrailingEmpty: false,
-			IsEmpty:             true,
+			NoNullSeparators: false,
+			IsEmpty:          true,
 		},
 		// Empty no seps
 		{
 			Raw: "",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 				Ideographic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 				Phonetic: GroupInfo{
-					Raw:        "",
 					FamilyName: "",
 					GivenName:  "",
 					MiddleName: "",
 					NamePrefix: "",
 					NameSuffix: "",
+					NoNullSeparators: true,
 				},
 			},
-			RemoveTrailingEmpty: true,
-			IsEmpty:             true,
+			NoNullSeparators: true,
+			IsEmpty:          true,
 		},
 	}
 
 	for _, tc := range testCases {
-		tc.Expected.Raw = tc.Raw
 
 		// Test creating a new Info object.
 		t.Run(tc.Raw+"_new", func(t *testing.T) {
-			newInfo := New(
-				tc.Expected.Alphabetic,
-				tc.Expected.Ideographic,
-				tc.Expected.Phonetic,
-				tc.RemoveTrailingEmpty,
-			)
+			newInfo := Info{
+				Alphabetic:       tc.Expected.Alphabetic,
+				Ideographic:      tc.Expected.Ideographic,
+				Phonetic:         tc.Expected.Phonetic,
+				NoNullSeparators: tc.NoNullSeparators,
+			}
 
 			assert.Equal(t, tc.Raw, newInfo.String())
 		})
@@ -281,18 +280,21 @@ func TestInfo(t *testing.T) {
 			checkGroupInfo(
 				t,
 				tc.Expected.Alphabetic,
+				tc.Expected.Alphabetic.String(),
 				parsed.Alphabetic,
 				"Alphabetic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Ideographic,
+				tc.Expected.Ideographic.String(),
 				parsed.Ideographic,
 				"Ideographic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Phonetic,
+				tc.Expected.Phonetic.String(),
 				parsed.Phonetic,
 				"Phonetic",
 			)
@@ -361,5 +363,39 @@ func TestParse_Err(t *testing.T) {
 				tc.ErrString,
 			)
 		})
+	}
+}
+
+func TestInfo_WithNullSeparators(t *testing.T) {
+	pnVal := "Potter^Harry"
+
+	parsed, err := Parse(pnVal)
+	if err != nil {
+		t.Errorf("error parsing pnVal: %v", err)
+		t.FailNow()
+	}
+
+	altered := parsed.WithNullSeparators()
+
+	expected := "Potter^Harry^^^=^^^^=^^^^"
+	if altered.String() != expected {
+		t.Errorf("expected '%v', got '%v'", expected, altered.String())
+	}
+}
+
+func TestInfo_WithoutNullSeparators(t *testing.T) {
+	pnVal := "Potter^Harry^^^=^^^^=^^^^"
+
+	parsed, err := Parse(pnVal)
+	if err != nil {
+		t.Errorf("error parsing pnVal: %v", err)
+		t.FailNow()
+	}
+
+	altered := parsed.WithoutNullSeparators()
+
+	expected := "Potter^Harry"
+	if altered.String() != expected {
+		t.Errorf("expected '%v', got '%v'", expected, altered.String())
 	}
 }

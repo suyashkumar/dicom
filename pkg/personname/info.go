@@ -25,54 +25,49 @@ const groupSep = "="
 // Each of these groups can be inspected to access their individual segments (family
 // name, Given name, etc.)
 type Info struct {
-	// The original, Raw PN value.
-	Raw string
-	// Expected information about the Alphabetic group.
+	// Alphabetic group information about the Alphabetic group.
 	Alphabetic GroupInfo
-	// Expected information about the Ideographic group.
+	// Ideographic group information about the Ideographic group.
 	Ideographic GroupInfo
-	// Expected information about the Phonetic group.
+	// Phonetic group information about the Phonetic group.
 	Phonetic GroupInfo
+
+	// NoNullSeparators will remove repeated separators around null groups when
+	// calling String() if set to true.
+	NoNullSeparators bool
+}
+
+// WithNullSeparators returns a new Info object that will keep trailing separators
+// that surround both null groups AND group segments: (ex: 'Potter^Harry^^^==').
+func (info Info) WithNullSeparators() Info {
+	info.NoNullSeparators = false
+	info.Alphabetic.NoNullSeparators = false
+	info.Ideographic.NoNullSeparators = false
+	info.Phonetic.NoNullSeparators = false
+
+	return info
+}
+
+// WithoutNullSeparators returns a new Info object that will remove trailing
+// separators that surround both null groups AND group segments:
+// (ex: 'Potter^Harry').
+func (info Info) WithoutNullSeparators() Info {
+	info.NoNullSeparators = true
+	info.Alphabetic.NoNullSeparators = true
+	info.Ideographic.NoNullSeparators = true
+	info.Phonetic.NoNullSeparators = true
+
+	return info
 }
 
 // String returns the original Raw representation of the PN value, in
-// '[Alphabetic]===[Ideographic]===[Phonetic]' format.
+// '[Alphabetic]=[Ideographic]=[Phonetic]' format.
 func (info Info) String() string {
-	return info.Raw
-}
-
-// IsEmpty returns whether the PN value contains any actual information. This method
-// ignores separator, so both '' and '^^^^=^^^^=^^^^' would return true.
-func (info Info) IsEmpty() bool {
-	return info.Alphabetic.IsEmpty() &&
-		info.Ideographic.IsEmpty() &&
-		info.Phonetic.IsEmpty()
-}
-
-// New creates a new Info object detailing the individual data.
-//
-// If removeTrailingEmpty is set to true, null trailing groups and their separators
-// will be removed for the Raw field if they contain no information, so
-// "Potter^Harry^James^^=^^^^=^^^^" will be rendered as "Potter^Harry^James^^"
-// instead.
-func New(
-	alphabetic GroupInfo,
-	ideographic GroupInfo,
-	phonetic GroupInfo,
-	removeTrailingEmpty bool,
-) Info {
-	info := Info{
-		Raw:         "",
-		Alphabetic:  alphabetic,
-		Ideographic: ideographic,
-		Phonetic:    phonetic,
-	}
-
 	groups := []GroupInfo{info.Alphabetic, info.Ideographic, info.Phonetic}
 
 	// If we are removing trailing emtpy, we are going to check if the last group is
 	// empty, then trim it off the end if it is, until we hit a non-empty slice.
-	if removeTrailingEmpty {
+	if info.NoNullSeparators {
 		out := 3
 		for i := 2; i >= 0; i-- {
 			if groups[i].IsEmpty() {
@@ -92,9 +87,15 @@ func New(
 		rawGroups[i] = groups[i].String()
 	}
 
-	info.Raw = strings.Join(rawGroups, groupSep)
+	return strings.Join(rawGroups, groupSep)
+}
 
-	return info
+// IsEmpty returns whether the PN value contains any actual information. This method
+// ignores separator, so both '' and '^^^^=^^^^=^^^^' would return true.
+func (info Info) IsEmpty() bool {
+	return info.Alphabetic.IsEmpty() &&
+		info.Ideographic.IsEmpty() &&
+		info.Phonetic.IsEmpty()
 }
 
 // Parse PN dicom value into informational value.
@@ -105,7 +106,7 @@ func Parse(valueString string) (Info, error) {
 		return Info{}, newErrTooManyGroups(len(groups))
 	}
 
-	info := Info{Raw: valueString}
+	info := Info{}
 
 	// Range over the groups and assign them based on index.
 	for i, groupString := range groups {
@@ -129,6 +130,24 @@ func Parse(valueString string) (Info, error) {
 			}
 			info.Phonetic = groupInfo
 		}
+	}
+
+	// If there are less than three groups, that means this value was removing null
+	// separators, and this behavior should be replicated when calling Info.String().
+	if len(groups) < 3 {
+		info.NoNullSeparators = true
+
+		// If we were missing the last group, we know there was no ^^^^ either, so we
+		// need to reflect that in the Phonetic group.
+		info.Phonetic.NoNullSeparators = true
+
+		// Same idea if we are missing the second-to-last group (ideographic).
+		if len(groups) < 2 {
+			info.Ideographic.NoNullSeparators = true
+		}
+
+		// Split will always result in at least one value, even on an emtpy slice, so
+		// we don't need to worry about null separators on the Alphabetic group.
 	}
 
 	return info, nil

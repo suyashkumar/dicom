@@ -32,7 +32,7 @@ func ExampleParse() {
 	// To print the original Raw value, simply use the string method.
 	fmt.Println("ORIGINAL RAW:", parsedPN.String())
 
-	// Output (comparison here is busted, maybe due to ideographs?):
+	// Output (gotest comparison here is busted, maybe due to ideographs?):
 	// ALPHABETIC: Potter^Harry^James^^
 	// IDEOGRAPHIC: 哈利^波特^詹姆^^
 	// PHONETIC: hɛər.i^pɒ.tər^dʒeɪmz^^
@@ -47,47 +47,35 @@ func ExampleParse() {
 // How to create new PN value.
 func ExampleNew() {
 	// Create a new PN like so
-	pnVal := personname.New(
-		personname.NewGroupInfo(
-			"Potter",
-			"Harry",
-			"James",
-			"",
-			"",
-			// This PN group will render trailing separators.
-			false,
-		),
+	pnVal := personname.Info{
+		Alphabetic: personname.GroupInfo{
+			FamilyName:     "Potter",
+			GivenName:      "Harry",
+			MiddleName:     "James",
+		},
 		// Add empty group that will render its separators.
-		personname.NewGroupEmpty(false),
+		Ideographic: personname.GroupInfo{},
 		// Add empty group that will render its separators.
-		personname.NewGroupEmpty(false),
-		// Remove groups from string render that do not add information.
-		true,
-	)
+		Phonetic: personname.GroupInfo{},
+		// This will remove trailing separators
+		NoNullSeparators: true,
+	}
 
-	// Print the string, should render as 'Potter^Harry^James^^'. Even though those
-	// groups were set to render trailing separators, because they are empty, they are
-	// suppressed.
+	// Print the string, should render as 'Potter^Harry^James^^'.
 	fmt.Println("PN 1:", pnVal.String())
 
 	// Now let's make one that still renders empty groups with String().
-	pnVal = personname.New(
-		personname.NewGroupInfo(
-			"Potter",
-			"Harry",
-			"James",
-			"",
-			"",
-			// This PN group will render trailing separators.
-			false,
-		),
-		// Add empty group that will render it's separators.
-		personname.NewGroupEmpty(false),
-		// Add empty group that will render it's separators.
-		personname.NewGroupEmpty(false),
-		// Do not remove groups from string render that do not add information.
-		false,
-	)
+	pnVal = personname.Info{
+		Alphabetic: personname.GroupInfo{
+			FamilyName: "Potter",
+			GivenName:  "Harry",
+			MiddleName: "James",
+		},
+		// Add empty group that will render its separators.
+		Ideographic: personname.GroupInfo{},
+		// Add empty group that will render its separators.
+		Phonetic: personname.GroupInfo{},
+	}
 
 	// This will render as 'Potter^Harry^James^^=^^^^=^^^^'
 	fmt.Println("PN 2:", pnVal.String())
@@ -95,4 +83,40 @@ func ExampleNew() {
 	// Output:
 	// PN 1: Potter^Harry^James^^
 	// PN 2: Potter^Harry^James^^=^^^^=^^^^
+}
+
+func ExampleInfo_WithNullSeparators() {
+	rawVal := "Potter^Harry"
+
+	parsedPN, err := personname.Parse(rawVal)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("ORIGINAL   :", parsedPN.String())
+
+	reformatted := parsedPN.WithNullSeparators()
+	fmt.Println("REFORMATTED:", reformatted.String())
+
+	// Output:
+	// ORIGINAL   : Potter^Harry
+	// REFORMATTED: Potter^Harry^^^=^^^^=^^^^
+}
+
+func ExampleInfo_WithoutNullSeparators() {
+	rawVal := "Potter^Harry^^^=^^^^=^^^^"
+
+	parsedPN, err := personname.Parse(rawVal)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("ORIGINAL   :", parsedPN.String())
+
+	reformatted := parsedPN.WithoutNullSeparators()
+	fmt.Println("REFORMATTED:", reformatted.String())
+
+	// Output:
+	// ORIGINAL   : Potter^Harry^^^=^^^^=^^^^
+	// REFORMATTED: Potter^Harry
 }

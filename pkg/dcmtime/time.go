@@ -21,17 +21,17 @@ type Time struct {
 // Make sure values are converted to UTC before passing if that is the desired output.
 func (tm Time) DCM() string {
 	tmVal := fmt.Sprintf("%02d", tm.Time.Hour())
-	if !isIncluded(Precision.Minutes, tm.Precision) {
+	if !isIncluded(PrecisionMinutes, tm.Precision) {
 		return tmVal
 	}
 
 	tmVal += fmt.Sprintf("%02d", tm.Time.Minute())
-	if !isIncluded(Precision.Seconds, tm.Precision) {
+	if !isIncluded(PrecisionSeconds, tm.Precision) {
 		return tmVal
 	}
 
 	tmVal += fmt.Sprintf("%02d", tm.Time.Second())
-	if !isIncluded(Precision.MS1, tm.Precision) {
+	if !isIncluded(PrecisionMS1, tm.Precision) {
 		return tmVal
 	}
 
@@ -43,15 +43,4 @@ func (tm Time) DCM() string {
 // String implements fmt.Stringer.
 func (tm Time) String() string {
 	return tm.DCM()
-}
-
-// NewTM creates new TM value from a given time.Time.
-//
-// precision is the last element to be included in the DICOM TM.DCM() value.
-// Precision.Full will include all possible values.
-func NewTM(timeVal time.Time, precision PrecisionLevel) Time {
-	return Time{
-		Time:      timeVal,
-		Precision: precision,
-	}
 }

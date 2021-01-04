@@ -91,7 +91,7 @@ func ExampleDate() {
 	}
 
 	// Create a nw DA object like so:
-	da := Date{Time: date, Precision: Precision.Full}
+	da := Date{Time: date, Precision: PrecisionFull}
 
 	// Get the DICOM string value
 	fmt.Println("DA:", da.DCM())
@@ -108,7 +108,7 @@ func ExampleDate_precisionYear() {
 	}
 
 	// Create a nw DA object that only represent the year like so:
-	da := Date{Time: date, Precision: Precision.Month}
+	da := Date{Time: date, Precision: PrecisionMonth}
 
 	// Get the DICOM string value
 	fmt.Println("DA:", da.DCM())
@@ -179,7 +179,10 @@ func ExampleNewTM() {
 	}
 
 	// Create a nw TM object like so:
-	tm := NewTM(timeVal, Precision.Full)
+	tm := Time{
+		Time:      timeVal,
+		Precision: PrecisionFull,
+	}
 
 	// Get the DICOM string value
 	fmt.Println("TM:", tm.DCM())
@@ -199,7 +202,10 @@ func ExampleNewTM_precision3MS() {
 	}
 
 	// Create a nw TM object like so:
-	tm := NewTM(timeVal, Precision.MS3)
+	tm := Time{
+		Time:      timeVal,
+		Precision: PrecisionMS3,
+	}
 
 	// Get the DICOM string value
 	fmt.Println("TM:", tm.DCM())
@@ -219,7 +225,10 @@ func ExampleNewTM_precisionMinutes() {
 	}
 
 	// Create a nw TM object like so:
-	tm := NewTM(timeVal, Precision.Minutes)
+	tm := Time{
+		Time:      timeVal,
+		Precision: PrecisionMinutes,
+	}
 
 	// Get the DICOM string value
 	fmt.Println("TM:", tm.DCM())
@@ -303,9 +312,9 @@ func ExampleDatetime() {
 
 	// Create a nw TM object like so:
 	dt := Datetime{
-		Time: timeVal,
-		Precision: Precision.Full,
-		NoOffset: false,
+		Time:      timeVal,
+		Precision: PrecisionFull,
+		NoOffset:  false,
 	}
 
 	// Get the DICOM string value
@@ -327,9 +336,9 @@ func ExampleDatetime_noOffset() {
 
 	// Create a nw TM object like so:
 	dt := Datetime{
-		Time: timeVal,
-		Precision: Precision.Full,
-		NoOffset: true,
+		Time:      timeVal,
+		Precision: PrecisionFull,
+		NoOffset:  true,
 	}
 
 	// Get the DICOM string value
@@ -352,7 +361,7 @@ func ExampleDatetime_precisionMinute() {
 	// Create a nw TM object like so:
 	dt := Datetime{
 		Time:      timeVal,
-		Precision: Precision.Minutes,
+		Precision: PrecisionMinutes,
 		NoOffset:  true,
 	}
 
@@ -376,7 +385,7 @@ func ExampleDatetime_precisionMinuteWithOffset() {
 	// Create a nw TM object like so:
 	dt := Datetime{
 		Time:      timeVal,
-		Precision: Precision.Minutes,
+		Precision: PrecisionMinutes,
 		NoOffset:  false,
 	}
 

@@ -23,7 +23,7 @@ func TestDate_DCM(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			Expected:  "10100203",
 		},
 		{
@@ -37,7 +37,7 @@ func TestDate_DCM(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			Precision: Precision.Day,
+			Precision: PrecisionDay,
 			Expected:  "10100203",
 		},
 		{
@@ -51,7 +51,7 @@ func TestDate_DCM(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			Precision: Precision.Month,
+			Precision: PrecisionMonth,
 			Expected:  "101002",
 		},
 		{
@@ -65,7 +65,7 @@ func TestDate_DCM(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			Precision: Precision.Year,
+			Precision: PrecisionYear,
 			Expected:  "1010",
 		},
 	}

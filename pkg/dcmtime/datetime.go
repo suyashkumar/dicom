@@ -27,8 +27,8 @@ func (dt Datetime) DCM() string {
 	dtVal := Date{Time: dt.Time, Precision: dt.Precision}.DCM()
 
 	// Check that at lead
-	if isIncluded(Precision.Hours, dt.Precision) {
-		dtVal += NewTM(dt.Time, dt.Precision).DCM()
+	if isIncluded(PrecisionHours, dt.Precision) {
+		dtVal += Time{Time: dt.Time, Precision: dt.Precision}.DCM()
 	}
 
 	// If we are not rendering the offset, return the current value

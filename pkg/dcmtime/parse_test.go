@@ -25,7 +25,7 @@ func TestParseTM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Full,
+			ExpectedPrecision: PrecisionFull,
 		},
 		// Remove one millisecond
 		{
@@ -40,7 +40,7 @@ func TestParseTM(t *testing.T) {
 				456780000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS5,
+			ExpectedPrecision: PrecisionMS5,
 		},
 		// Remove one millisecond
 		{
@@ -55,7 +55,7 @@ func TestParseTM(t *testing.T) {
 				456700000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS4,
+			ExpectedPrecision: PrecisionMS4,
 		},
 		// Remove one millisecond
 		{
@@ -70,7 +70,7 @@ func TestParseTM(t *testing.T) {
 				456000000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS3,
+			ExpectedPrecision: PrecisionMS3,
 		},
 		// Remove one millisecond
 		{
@@ -85,7 +85,7 @@ func TestParseTM(t *testing.T) {
 				450000000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS2,
+			ExpectedPrecision: PrecisionMS2,
 		},
 		// Remove one millisecond
 		{
@@ -100,7 +100,7 @@ func TestParseTM(t *testing.T) {
 				400000000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS1,
+			ExpectedPrecision: PrecisionMS1,
 		},
 		// No milliseconds
 		{
@@ -115,7 +115,7 @@ func TestParseTM(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Seconds,
+			ExpectedPrecision: PrecisionSeconds,
 		},
 		// No seconds
 		{
@@ -130,7 +130,7 @@ func TestParseTM(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Minutes,
+			ExpectedPrecision: PrecisionMinutes,
 		},
 		// No minutes
 		{
@@ -145,7 +145,7 @@ func TestParseTM(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Hours,
+			ExpectedPrecision: PrecisionHours,
 		},
 		// No leading zeroes
 		{
@@ -160,7 +160,7 @@ func TestParseTM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Full,
+			ExpectedPrecision: PrecisionFull,
 		},
 	}
 
@@ -211,7 +211,7 @@ func TestParseDA(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Full,
+			ExpectedPrecision: PrecisionFull,
 			AllowNema:         false,
 		},
 		// DICOM no day
@@ -227,7 +227,7 @@ func TestParseDA(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Month,
+			ExpectedPrecision: PrecisionMonth,
 			AllowNema:         false,
 		},
 		// DICOM no month
@@ -243,7 +243,7 @@ func TestParseDA(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Year,
+			ExpectedPrecision: PrecisionYear,
 			AllowNema:         false,
 		},
 		// NEMA full date
@@ -259,7 +259,7 @@ func TestParseDA(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Full,
+			ExpectedPrecision: PrecisionFull,
 			AllowNema:         true,
 		},
 		// NEMA no day
@@ -275,7 +275,7 @@ func TestParseDA(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Month,
+			ExpectedPrecision: PrecisionMonth,
 			AllowNema:         true,
 		},
 		// NEMA no month
@@ -291,7 +291,7 @@ func TestParseDA(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Year,
+			ExpectedPrecision: PrecisionYear,
 			AllowNema:         true,
 		},
 	}
@@ -343,7 +343,7 @@ func TestParseDT(t *testing.T) {
 				456789000,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.Full,
+			ExpectedPrecision: PrecisionFull,
 			HasOffset:         true,
 		},
 		// Full value, minus 1 millisecond places, positive offset
@@ -359,7 +359,7 @@ func TestParseDT(t *testing.T) {
 				456780000,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.MS5,
+			ExpectedPrecision: PrecisionMS5,
 			HasOffset:         true,
 		},
 		// Full value, minus 2 millisecond places, positive offset
@@ -375,7 +375,7 @@ func TestParseDT(t *testing.T) {
 				456700000,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.MS4,
+			ExpectedPrecision: PrecisionMS4,
 			HasOffset:         true,
 		},
 		// Full value, minus 3 millisecond places, positive offset
@@ -391,7 +391,7 @@ func TestParseDT(t *testing.T) {
 				456000000,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.MS3,
+			ExpectedPrecision: PrecisionMS3,
 			HasOffset:         true,
 		},
 		// Full value, minus 4 millisecond places, positive offset
@@ -407,7 +407,7 @@ func TestParseDT(t *testing.T) {
 				450000000,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.MS2,
+			ExpectedPrecision: PrecisionMS2,
 			HasOffset:         true,
 		},
 		// Full value, minus 5 millisecond places, positive offset
@@ -423,7 +423,7 @@ func TestParseDT(t *testing.T) {
 				400000000,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.MS1,
+			ExpectedPrecision: PrecisionMS1,
 			HasOffset:         true,
 		},
 		// Full value, no millisecond, positive offset
@@ -439,7 +439,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.Seconds,
+			ExpectedPrecision: PrecisionSeconds,
 			HasOffset:         true,
 		},
 		// Full value, no seconds, positive offset
@@ -455,7 +455,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.Minutes,
+			ExpectedPrecision: PrecisionMinutes,
 			HasOffset:         true,
 		},
 		// Full value, no minutes, positive offset
@@ -471,7 +471,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.Hours,
+			ExpectedPrecision: PrecisionHours,
 			HasOffset:         true,
 		},
 		// Full value, no hours, positive offset
@@ -487,7 +487,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.Day,
+			ExpectedPrecision: PrecisionDay,
 			HasOffset:         true,
 		},
 		// Full value, no hours, positive offset
@@ -503,7 +503,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.Month,
+			ExpectedPrecision: PrecisionMonth,
 			HasOffset:         true,
 		},
 		// Full value, no hours, positive offset
@@ -519,7 +519,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.FixedZone("", 3720),
 			),
-			ExpectedPrecision: Precision.Year,
+			ExpectedPrecision: PrecisionYear,
 			HasOffset:         true,
 		},
 		// Full value, negative offset
@@ -535,7 +535,7 @@ func TestParseDT(t *testing.T) {
 				456789000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.Full,
+			ExpectedPrecision: PrecisionFull,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 1 millisecond places
@@ -551,7 +551,7 @@ func TestParseDT(t *testing.T) {
 				456780000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.MS5,
+			ExpectedPrecision: PrecisionMS5,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 2 millisecond places
@@ -567,7 +567,7 @@ func TestParseDT(t *testing.T) {
 				456700000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.MS4,
+			ExpectedPrecision: PrecisionMS4,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 3 millisecond places
@@ -583,7 +583,7 @@ func TestParseDT(t *testing.T) {
 				456000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.MS3,
+			ExpectedPrecision: PrecisionMS3,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 4 millisecond places
@@ -599,7 +599,7 @@ func TestParseDT(t *testing.T) {
 				450000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.MS2,
+			ExpectedPrecision: PrecisionMS2,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, minus 5 millisecond places
@@ -615,7 +615,7 @@ func TestParseDT(t *testing.T) {
 				400000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.MS1,
+			ExpectedPrecision: PrecisionMS1,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, no milliseconds
@@ -631,7 +631,7 @@ func TestParseDT(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.Seconds,
+			ExpectedPrecision: PrecisionSeconds,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, no seconds
@@ -647,7 +647,7 @@ func TestParseDT(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.Minutes,
+			ExpectedPrecision: PrecisionMinutes,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, no minutes
@@ -663,7 +663,7 @@ func TestParseDT(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.Hours,
+			ExpectedPrecision: PrecisionHours,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, no hours
@@ -679,7 +679,7 @@ func TestParseDT(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.Day,
+			ExpectedPrecision: PrecisionDay,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, no days
@@ -695,7 +695,7 @@ func TestParseDT(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.Month,
+			ExpectedPrecision: PrecisionMonth,
 			HasOffset:         true,
 		},
 		// Full value, negative offset, no month
@@ -711,7 +711,7 @@ func TestParseDT(t *testing.T) {
 				000000000,
 				time.FixedZone("", -3720),
 			),
-			ExpectedPrecision: Precision.Year,
+			ExpectedPrecision: PrecisionYear,
 			HasOffset:         true,
 		},
 		// Full value, no offset
@@ -727,7 +727,7 @@ func TestParseDT(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Full,
+			ExpectedPrecision: PrecisionFull,
 			HasOffset:         false,
 		},
 		// Full value, no offset, minus 1 millisecond place
@@ -743,7 +743,7 @@ func TestParseDT(t *testing.T) {
 				456780000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS5,
+			ExpectedPrecision: PrecisionMS5,
 			HasOffset:         false,
 		},
 		// Full value, no offset, minus 2 millisecond place
@@ -759,7 +759,7 @@ func TestParseDT(t *testing.T) {
 				456700000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS4,
+			ExpectedPrecision: PrecisionMS4,
 			HasOffset:         false,
 		},
 		// Full value, no offset, minus 3 millisecond place
@@ -775,7 +775,7 @@ func TestParseDT(t *testing.T) {
 				456000000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS3,
+			ExpectedPrecision: PrecisionMS3,
 			HasOffset:         false,
 		},
 		// Full value, no offset, minus 4 millisecond place
@@ -791,7 +791,7 @@ func TestParseDT(t *testing.T) {
 				450000000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS2,
+			ExpectedPrecision: PrecisionMS2,
 			HasOffset:         false,
 		},
 		// Full value, no offset, minus 5 millisecond place
@@ -807,7 +807,7 @@ func TestParseDT(t *testing.T) {
 				400000000,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.MS1,
+			ExpectedPrecision: PrecisionMS1,
 			HasOffset:         false,
 		},
 		// Full value, no offset, no milliseconds
@@ -823,7 +823,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Seconds,
+			ExpectedPrecision: PrecisionSeconds,
 			HasOffset:         false,
 		},
 		// Full value, no offset, no seconds
@@ -839,7 +839,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Minutes,
+			ExpectedPrecision: PrecisionMinutes,
 			HasOffset:         false,
 		},
 		// Full value, no offset, no minutes
@@ -855,7 +855,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Hours,
+			ExpectedPrecision: PrecisionHours,
 			HasOffset:         false,
 		},
 		// Full value, no offset, no seconds
@@ -871,7 +871,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Day,
+			ExpectedPrecision: PrecisionDay,
 			HasOffset:         false,
 		},
 		// Full value, no offset, no days
@@ -887,7 +887,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Month,
+			ExpectedPrecision: PrecisionMonth,
 			HasOffset:         false,
 		},
 		// Full value, no offset, no month
@@ -903,7 +903,7 @@ func TestParseDT(t *testing.T) {
 				0,
 				time.UTC,
 			),
-			ExpectedPrecision: Precision.Year,
+			ExpectedPrecision: PrecisionYear,
 			HasOffset:         false,
 		},
 	}

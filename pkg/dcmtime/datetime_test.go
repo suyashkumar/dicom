@@ -29,7 +29,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.456789-0102",
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			NoOffset:  false,
 		},
 		// Full Precision, with offset, fractal leading zero
@@ -48,7 +48,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.000456-0102",
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			NoOffset:  false,
 		},
 		// Full Precision, truncate trailing nanos
@@ -67,7 +67,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.456789-0102",
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			NoOffset:  false,
 		},
 		// Full Precision, no offset
@@ -86,7 +86,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.456789",
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			NoOffset:  true,
 		},
 		// -1 Precision, with offset
@@ -105,7 +105,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.45678-0102",
-			Precision: Precision.MS5,
+			Precision: PrecisionMS5,
 			NoOffset:  false,
 		},
 		// -1 Precision, no offset
@@ -124,7 +124,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.45678",
-			Precision: Precision.MS5,
+			Precision: PrecisionMS5,
 			NoOffset:  true,
 		},
 		// -2 Precision, with offset
@@ -143,7 +143,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.4567-0102",
-			Precision: Precision.MS4,
+			Precision: PrecisionMS4,
 			NoOffset:  false,
 		},
 		// -2 Precision, no offset
@@ -162,7 +162,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.4567",
-			Precision: Precision.MS4,
+			Precision: PrecisionMS4,
 			NoOffset:  true,
 		},
 		// -3 Precision, with offset
@@ -181,7 +181,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.456-0102",
-			Precision: Precision.MS3,
+			Precision: PrecisionMS3,
 			NoOffset:  false,
 		},
 		// -3 Precision, with offset
@@ -200,7 +200,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.456",
-			Precision: Precision.MS3,
+			Precision: PrecisionMS3,
 			NoOffset:  true,
 		},
 		// -4 Precision, with offset
@@ -219,7 +219,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.45-0102",
-			Precision: Precision.MS2,
+			Precision: PrecisionMS2,
 			NoOffset:  false,
 		},
 		// -4 Precision, with offset
@@ -238,7 +238,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.45",
-			Precision: Precision.MS2,
+			Precision: PrecisionMS2,
 			NoOffset:  true,
 		},
 		// -5 Precision, with offset
@@ -257,7 +257,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.4-0102",
-			Precision: Precision.MS1,
+			Precision: PrecisionMS1,
 			NoOffset:  false,
 		},
 		// -5 Precision, with offset
@@ -276,7 +276,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506.4",
-			Precision: Precision.MS1,
+			Precision: PrecisionMS1,
 			NoOffset:  true,
 		},
 		// -6 Precision, with offset
@@ -295,7 +295,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506-0102",
-			Precision: Precision.Seconds,
+			Precision: PrecisionSeconds,
 			NoOffset:  false,
 		},
 		// -6 Precision, with offset
@@ -314,7 +314,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203040506",
-			Precision: Precision.Seconds,
+			Precision: PrecisionSeconds,
 			NoOffset:  true,
 		},
 		// -7 Precision, with offset
@@ -333,7 +333,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "101002030405-0102",
-			Precision: Precision.Minutes,
+			Precision: PrecisionMinutes,
 			NoOffset:  false,
 		},
 		// -7 Precision, with offset
@@ -352,7 +352,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "101002030405",
-			Precision: Precision.Minutes,
+			Precision: PrecisionMinutes,
 			NoOffset:  true,
 		},
 		// -8 Precision, with offset
@@ -371,7 +371,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "1010020304-0102",
-			Precision: Precision.Hours,
+			Precision: PrecisionHours,
 			NoOffset:  false,
 		},
 		// -8 Precision, with offset
@@ -390,7 +390,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "1010020304",
-			Precision: Precision.Hours,
+			Precision: PrecisionHours,
 			NoOffset:  true,
 		},
 		// -9 Precision, with offset
@@ -409,7 +409,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203-0102",
-			Precision: Precision.Day,
+			Precision: PrecisionDay,
 			NoOffset:  false,
 		},
 		// -9 Precision, with offset
@@ -428,7 +428,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "10100203",
-			Precision: Precision.Day,
+			Precision: PrecisionDay,
 			NoOffset:  true,
 		},
 		// -10 Precision, with offset
@@ -447,7 +447,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "101002-0102",
-			Precision: Precision.Month,
+			Precision: PrecisionMonth,
 			NoOffset:  false,
 		},
 		// -10 Precision, with offset
@@ -466,7 +466,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "101002",
-			Precision: Precision.Month,
+			Precision: PrecisionMonth,
 			NoOffset:  true,
 		},
 		// -11 Precision, with offset
@@ -485,7 +485,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "1010-0102",
-			Precision: Precision.Year,
+			Precision: PrecisionYear,
 			NoOffset:  false,
 		},
 		// -11 Precision, with offset
@@ -504,7 +504,7 @@ func TestDatetime_DCM(t *testing.T) {
 				),
 			),
 			Expected:  "1010",
-			Precision: Precision.Year,
+			Precision: PrecisionYear,
 			NoOffset:  true,
 		},
 	}
@@ -518,9 +518,9 @@ func TestDatetime_DCM(t *testing.T) {
 			assert := assert.New(t)
 
 			daVal := Datetime{
-				Time: tc.TimeVal,
+				Time:      tc.TimeVal,
 				Precision: tc.Precision,
-				NoOffset: tc.NoOffset,
+				NoOffset:  tc.NoOffset,
 			}
 
 			assert.Equal(

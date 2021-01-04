@@ -24,7 +24,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			Expected:  "010203.456789",
 		},
 		// Precision.Full, leading zeros
@@ -39,7 +39,7 @@ func TestTime_DCM(t *testing.T) {
 				456789,
 				time.UTC,
 			),
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			Expected:  "010203.000456",
 		},
 		// Precision.Full, tail truncated
@@ -54,7 +54,7 @@ func TestTime_DCM(t *testing.T) {
 				456789999,
 				time.UTC,
 			),
-			Precision: Precision.Full,
+			Precision: PrecisionFull,
 			Expected:  "010203.456789",
 		},
 		// Precision.MS5
@@ -69,7 +69,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.MS5,
+			Precision: PrecisionMS5,
 			Expected:  "010203.45678",
 		},
 		// Precision.MS4
@@ -84,7 +84,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.MS4,
+			Precision: PrecisionMS4,
 			Expected:  "010203.4567",
 		},
 		// Precision.MS3
@@ -99,7 +99,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.MS3,
+			Precision: PrecisionMS3,
 			Expected:  "010203.456",
 		},
 		// Precision.MS2
@@ -114,7 +114,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.MS2,
+			Precision: PrecisionMS2,
 			Expected:  "010203.45",
 		},
 		// Precision.MS1
@@ -129,7 +129,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.MS1,
+			Precision: PrecisionMS1,
 			Expected:  "010203.4",
 		},
 		// Precision.Seconds
@@ -144,7 +144,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.Seconds,
+			Precision: PrecisionSeconds,
 			Expected:  "010203",
 		},
 		// Precision.Minutes
@@ -159,7 +159,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.Minutes,
+			Precision: PrecisionMinutes,
 			Expected:  "0102",
 		},
 		// Precision.Hours
@@ -174,7 +174,7 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: Precision.Hours,
+			Precision: PrecisionHours,
 			Expected:  "01",
 		},
 	}
@@ -183,7 +183,10 @@ func TestTime_DCM(t *testing.T) {
 		t.Run(tc.Expected, func(t *testing.T) {
 			assert := assert.New(t)
 
-			tm := NewTM(tc.Time, tc.Precision)
+			tm := Time{
+				Time:      tc.Time,
+				Precision: tc.Precision,
+			}
 
 			assert.Equal(tc.Expected, tm.DCM(), ".DCM()")
 		})

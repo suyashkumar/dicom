@@ -23,12 +23,12 @@ func (da Date) DCM() string {
 	year, month, day := da.Time.Date()
 
 	daVal := fmt.Sprintf("%04d", year)
-	if !isIncluded(Precision.Month, da.Precision) {
+	if !isIncluded(PrecisionMonth, da.Precision) {
 		return daVal
 	}
 
 	daVal += fmt.Sprintf("%02d", month)
-	if !isIncluded(Precision.Day, da.Precision) {
+	if !isIncluded(PrecisionDay, da.Precision) {
 		return daVal
 	}
 

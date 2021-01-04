@@ -19,7 +19,7 @@ func truncateMilliseconds(
 ) (millisecondsStr string) {
 	milliseconds := nanoSeconds / 1000
 	millisecondsStr = fmt.Sprintf("%06d", milliseconds)
-	millisecondsStr = millisecondsStr[:6-(Precision.Full-precision)]
+	millisecondsStr = millisecondsStr[:6-(PrecisionFull-precision)]
 
 	return millisecondsStr
 }

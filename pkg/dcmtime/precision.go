@@ -15,60 +15,67 @@ type PrecisionLevel int
 // String returns the name of the PrecisionLevel for debugging.
 func (level PrecisionLevel) String() string {
 	switch level {
-	case Precision.Full:
+	case PrecisionFull:
 		return "FULL"
-	case Precision.Year:
+	case PrecisionYear:
 		return "YEAR"
-	case Precision.Month:
+	case PrecisionMonth:
 		return "MONTH"
-	case Precision.Day:
+	case PrecisionDay:
 		return "DAY"
-	case Precision.Hours:
+	case PrecisionHours:
 		return "HOURS"
-	case Precision.Minutes:
+	case PrecisionMinutes:
 		return "MINUTES"
-	case Precision.Seconds:
+	case PrecisionSeconds:
 		return "SECONDS"
-	case Precision.MS1:
+	case PrecisionMS1:
 		return "MS1"
-	case Precision.MS2:
+	case PrecisionMS2:
 		return "MS2"
-	case Precision.MS3:
+	case PrecisionMS3:
 		return "MS3"
-	case Precision.MS4:
+	case PrecisionMS4:
 		return "MS4"
-	case Precision.MS5:
+	case PrecisionMS5:
 		return "MS5"
 	default:
 		return "!{PRECISION}"
 	}
 }
 
-// Precision is a namespace for PrecisionLevel values.
-var Precision = struct {
-	Year,
-	Month,
-	Day,
-	Hours,
-	Minutes,
-	Seconds,
-	MS1,
-	MS2,
-	MS3,
-	MS4,
-	MS5,
-	Full PrecisionLevel
-}{
-	Year:    0,
-	Month:   1,
-	Day:     2,
-	Hours:   3,
-	Minutes: 4,
-	Seconds: 5,
-	MS1:     6,
-	MS2:     7,
-	MS3:     8,
-	MS4:     9,
-	MS5:     10,
-	Full:    11,
-}
+const (
+	// PrecisionYear indicated that a given dcm time value is only precise to the year.
+	PrecisionYear PrecisionLevel = iota
+	// PrecisionMonth indicated that a given dcm time value is only precise to the
+	// month.
+	PrecisionMonth
+	// PrecisionDay indicated that a given dcm time value is only precise to the day.
+	PrecisionDay
+	// PrecisionHours indicated that a given dcm time value is only precise to the hour.
+	PrecisionHours
+	// PrecisionMinutes indicated that a given dcm time value is only precise to the
+	// minute.
+	PrecisionMinutes
+	// PrecisionSeconds indicated that a given dcm time value is only precise to the
+	// second.
+	PrecisionSeconds
+	// PrecisionMS1 indicated that a given dcm time value is only precise to 1
+	// millisecond place (1/10 of a second).
+	PrecisionMS1
+	// PrecisionMS2 indicated that a given dcm time value is only precise to 2
+	// millisecond place (1/100 of a second).
+	PrecisionMS2
+	// PrecisionMS3 indicated that a given dcm time value is only precise to 3
+	// millisecond place (1/1000 of a second).
+	PrecisionMS3
+	// PrecisionMS4 indicated that a given dcm time value is only precise to 4
+	// millisecond place (1/10000 of a second).
+	PrecisionMS4
+	// PrecisionMS5 indicated that a given dcm time value is only precise to 4
+	// millisecond place (1/100000 of a second).
+	PrecisionMS5
+	// PrecisionFull indicates that a given dcm time value is precise to the full extent
+	// it is able to be.
+	PrecisionFull
+)

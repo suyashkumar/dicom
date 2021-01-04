@@ -41,7 +41,7 @@ func extractDurationInfo(subMatches []string, index int, fractal bool) (
 		// get our nano-seconds.
 		missingPlaces := 9 - len(valueStr)
 		valueStr = valueStr + strings.Repeat("0", missingPlaces)
-		info.FractalPrecision = Precision.Full - PrecisionLevel(missingPlaces-3)
+		info.FractalPrecision = PrecisionFull - PrecisionLevel(missingPlaces-3)
 	}
 
 	info.Value, err = strconv.Atoi(valueStr)
@@ -60,7 +60,7 @@ func updatePrecision(
 ) PrecisionLevel {
 	if info.Present {
 		if levelIsFull {
-			return Precision.Full
+			return PrecisionFull
 		}
 		return infoLevel
 	}
@@ -127,7 +127,7 @@ func extractDate(
 	if err != nil {
 		return year, month, day, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionIn, year, Precision.Year, false)
+	precisionOut = updatePrecision(precisionIn, year, PrecisionYear, false)
 
 	month, err = extractDurationInfo(matches, regexGroups.Month, false)
 	if err != nil {
@@ -138,7 +138,7 @@ func extractDate(
 	if !month.Present {
 		month.Value = 1
 	}
-	precisionOut = updatePrecision(precisionOut, month, Precision.Month, false)
+	precisionOut = updatePrecision(precisionOut, month, PrecisionMonth, false)
 
 	day, err = extractDurationInfo(matches, regexGroups.Day, false)
 	if err != nil {
@@ -149,7 +149,7 @@ func extractDate(
 	if !day.Present {
 		day.Value = 1
 	}
-	precisionOut = updatePrecision(precisionOut, day, Precision.Day, isDA)
+	precisionOut = updatePrecision(precisionOut, day, PrecisionDay, isDA)
 
 	return year, month, day, precisionOut, err
 }
@@ -180,7 +180,7 @@ func ParseDA(daString string, allowNEMA bool) (Date, error) {
 		return Date{}, ErrParseDA
 	}
 
-	year, month, day, precision, err := extractDate(matches, Precision.Full, true)
+	year, month, day, precision, err := extractDate(matches, PrecisionFull, true)
 	if err != nil {
 		return Date{}, err
 	}
@@ -248,19 +248,19 @@ func extractTime(
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionIn, hours, Precision.Hours, false)
+	precisionOut = updatePrecision(precisionIn, hours, PrecisionHours, false)
 
 	minutes, err = extractDurationInfo(matches, groupIndexes.Minutes, false)
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionOut, minutes, Precision.Minutes, false)
+	precisionOut = updatePrecision(precisionOut, minutes, PrecisionMinutes, false)
 
 	seconds, err = extractDurationInfo(matches, groupIndexes.Seconds, false)
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionOut, seconds, Precision.Seconds, false)
+	precisionOut = updatePrecision(precisionOut, seconds, PrecisionSeconds, false)
 
 	nanos, err = extractDurationInfo(matches, groupIndexes.Fractal, true)
 	if err != nil {
@@ -281,7 +281,7 @@ func ParseTM(tmString string) (Time, error) {
 	}
 
 	hours, minutes, seconds, nanos, precision, err := extractTime(
-		matches, Precision.Full, true,
+		matches, PrecisionFull, true,
 	)
 	if err != nil {
 		return Time{}, err
@@ -315,7 +315,7 @@ func ParseDT(dtString string) (Datetime, error) {
 		return Datetime{}, ErrParseDT
 	}
 
-	year, month, day, precision, err := extractDate(matches, Precision.Full, false)
+	year, month, day, precision, err := extractDate(matches, PrecisionFull, false)
 	if err != nil {
 		return Datetime{}, err
 	}

@@ -4,12 +4,12 @@ package dcmtime
 // to the DICOM format string, as the spec allows eliding segments to communicate the
 // precision.
 //
-// For instance: when rendering a DA (date) value, using a truncation of Precision.Year
+// For instance: when rendering a DA (date) value, using a truncation of PrecisionYear
 // would render the entire date as 'YYYY'.
 //
-// Using Precision.Month would render 'YYYYMM'.
+// Using PrecisionMonth would render 'YYYYMM'.
 //
-// Using Precision.Day or Precision.Full would render a full 'YYYYMMDD'.
+// Using PrecisionDay or PrecisionFull would render a full 'YYYYMMDD'.
 type PrecisionLevel int
 
 // String returns the name of the PrecisionLevel for debugging.

@@ -8,7 +8,7 @@ import (
 // Returns whether `check` is included in `limit`.
 //
 // Example: to test whether seconds should be included, you would:
-//	isIncluded(Precision.Seconds, [caller-passed-limit])
+// isIncluded(PrecisionSeconds, [caller-passed-limit])
 func isIncluded(check PrecisionLevel, precision PrecisionLevel) bool {
 	return check <= precision
 }

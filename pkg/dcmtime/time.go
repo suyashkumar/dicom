@@ -10,7 +10,7 @@ type Time struct {
 	// Time native go time.Time value.
 	Time time.Time
 	// Precision with which the raw TM value was stored. For instance, a Date value
-	// with a precision of PrecisionHour ONLY stored the Hour.
+	// with a precision of PrecisionHours ONLY stored the Hour.
 	Precision PrecisionLevel
 }
 

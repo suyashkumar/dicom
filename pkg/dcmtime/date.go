@@ -10,7 +10,7 @@ type Date struct {
 	// Time is a native go time.Time value.
 	Time time.Time
 	// Precision with which the raw DA value was stored. For instance, a Date value
-	// with a precision of Precision.Year ONLY stored the year.
+	// with a precision of PrecisionYear ONLY stored the year.
 	Precision PrecisionLevel
 }
 

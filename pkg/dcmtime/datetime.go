@@ -10,7 +10,7 @@ type Datetime struct {
 	// Time is a native go time.Time value.
 	Time time.Time
 	// Precision with this value was stored. For instance, a DT value with a
-	// precision of Precision.Year ONLY stored the year.
+	// precision of PrecisionYear ONLY stored the year.
 	Precision PrecisionLevel
 	// NoOffset: if true, offset information was not specifically included in the
 	// original DT string, and will not be rendered with DCM()

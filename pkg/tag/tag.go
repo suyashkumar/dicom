@@ -50,6 +50,11 @@ func (t Tag) Compare(other Tag) int {
 	return 0
 }
 
+// Equals returns true if this tag equals the provided tag.
+func (t Tag) Equals(other Tag) bool {
+	return t.Compare(other) == 0
+}
+
 // IsPrivate indicates if the input group is part of a private tag.
 func IsPrivate(group uint16) bool {
 	return group%2 == 1

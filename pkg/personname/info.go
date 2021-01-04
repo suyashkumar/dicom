@@ -18,9 +18,9 @@ const groupSep = "="
 // PN values are split into three groups which represent three different ways to
 // represent a name:
 //
-//	- Alphabetic: How a name is formally spelled using a Phonetic alphabet.
-//  - Ideographic: How a name is represented using ideograms / ideographs.
-//  - Phonetic: How a name is pronounced.
+// - Alphabetic: How a name is formally spelled using a Phonetic alphabet.
+// - Ideographic: How a name is represented using ideograms / ideographs.
+// - Phonetic: How a name is pronounced.
 //
 // Each of these groups can be inspected to access their individual segments (family
 // name, Given name, etc.)

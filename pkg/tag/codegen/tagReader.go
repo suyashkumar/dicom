@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-// Interface to implement for reading tags from a source.
+// TagReader  is an interface to implement for reading tags from a source.
 type TagReader interface {
 	// Name of reader for error messages.
 	Name() string
@@ -16,15 +16,19 @@ type TagReader interface {
 	Close() error
 }
 
-// Reads tags from multiple TagReader implementations until all readers are exhausted.
+// MasterTagReader reads tags from multiple TagReader implementations until all readers
+// are exhausted.
 type MasterTagReader struct {
 	tagReaders []TagReader
 }
 
+// Name implements TagReader and returns "master tag reader".
 func (reader *MasterTagReader) Name() string {
 	return "master tag reader"
 }
 
+// Next implements TagReader and returns the next tag from the child readers until
+// all child readers are exhausted.
 func (reader *MasterTagReader) Next() (TagInfo, error) {
 	// If there are no readers left to process, we are done.
 	if len(reader.tagReaders) == 0 {
@@ -55,9 +59,14 @@ func (reader *MasterTagReader) Next() (TagInfo, error) {
 	return info, nil
 }
 
+// Close implements TagReader and closes all child readers.
 func (reader *MasterTagReader) Close() (err error) {
 	// Defer all closes so if we panic, files still get closed.
 	for _, thisReader := range reader.tagReaders {
+
+		// We want to defer all our closes so a panic in one close doesn't keep the
+		// others from being closes. This is not a resource leak, all defers will
+		// execute when this function exits.
 		defer func(closer io.Closer) {
 			thisErr := closer.Close()
 			if thisErr != nil && err == nil {
@@ -69,7 +78,8 @@ func (reader *MasterTagReader) Close() (err error) {
 	return err
 }
 
-// Creates master TagReader we can use to read from all of our child readers.
+// NewMasterTagReader creates a MasterTagReader from a slice of functions that
+// create new child readers for the MasterTagReader to handle.
 func NewMasterTagReader(
 	tagReaderCreators []func() (TagReader, error),
 ) (reader TagReader, err error) {
@@ -77,7 +87,7 @@ func NewMasterTagReader(
 		tagReaders: make([]TagReader, 0, len(tagReaderCreators)),
 	}
 
-	// Close master reader and all sub-readers on error
+	// Close master reader and all sub-readers on error.
 	defer func() {
 		if err != nil {
 			masterReader.Close()

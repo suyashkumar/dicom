@@ -11,7 +11,7 @@ import (
 
 const innoliticsJSONPath = "./dicom-standard/standard/attributes.json"
 
-// Data model to unmarshal innolitics json.
+// innoliticsTagInfo is the data model to unmarshal innolitics json.
 type innoliticsTagInfo struct {
 	Tag                 string `json:"tag"`
 	Name                string `json:"name"`
@@ -22,6 +22,8 @@ type innoliticsTagInfo struct {
 	ID                  string `json:"id"`
 }
 
+// infoFromInnolitics converts an unmarshalled innoliticsTagInfo into TagInfo for
+// passing back from the reader.
 func infoFromInnolitics(tagSpec innoliticsTagInfo) (TagInfo, error) {
 	// If this tag contains an "X" it is information about a general range of tags,
 	// and should be skipped.
@@ -94,10 +96,13 @@ type InnoliticsTagReader struct {
 	elementIndex uint
 }
 
+// Name implements TagReader and returns "innolitics json reader".
 func (reader *InnoliticsTagReader) Name() string {
 	return "innolitics json reader"
 }
 
+// Next implements TagReader and returns information about the next tag in the JSON
+// file.
 func (reader *InnoliticsTagReader) Next() (TagInfo, error) {
 	defer func() {
 		reader.elementIndex++
@@ -130,11 +135,13 @@ func (reader *InnoliticsTagReader) Next() (TagInfo, error) {
 	return info, nil
 }
 
+// Next implements TagReader and returns information about the next tag in the JSON
+// file.
 func (reader *InnoliticsTagReader) Close() error {
 	return reader.fileCloser.Close()
 }
 
-// Creates a new tag reader that parses tags from the innolitics json
+// NewInnoliticsReader is a factory method for creating our InnoliticsTagReader.
 func NewInnoliticsReader() (TagReader, error) {
 	// open json file.
 	fileReader, err := os.Open(innoliticsJSONPath)

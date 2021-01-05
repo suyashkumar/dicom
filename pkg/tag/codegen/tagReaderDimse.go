@@ -14,17 +14,19 @@ const dimseVRRecordIndex = 1
 const dimseKeywordRecordIndex = 2
 const dimseVMRecordIndex = 3
 
-// Reads group 0x0000 tags from the dimse.csv file.
+// DimseReader reads group 0x0000 tags from the dimse.csv file.
 type DimseReader struct {
 	fileCloser  io.Closer
 	csvReader   *csv.Reader
 	recordIndex uint
 }
 
+// Name implements TagReader and returns "dimse reader".
 func (reader *DimseReader) Name() string {
 	return "dimse reader"
 }
 
+// Next implements TagReader and returns information about the next tag in the CSV file.
 func (reader *DimseReader) Next() (TagInfo, error) {
 	defer func() {
 		reader.recordIndex++
@@ -58,11 +60,12 @@ func (reader *DimseReader) Next() (TagInfo, error) {
 	}, nil
 }
 
+// Close implements TagReader and closes our dimse.csv.
 func (reader *DimseReader) Close() error {
 	return reader.fileCloser.Close()
 }
 
-// Factory method for creating our dimse.csv tag reader.
+// NewDimseReader is a factory method for creating our DimseReader.
 func NewDimseReader() (TagReader, error) {
 	fileReader, err := os.Open(dimseCSVPath)
 	if err != nil {

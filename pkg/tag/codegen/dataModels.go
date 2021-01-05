@@ -5,21 +5,29 @@ import (
 	"strings"
 )
 
-// Holds tag group and element.
+// Tag holds tag group and element.
 type Tag struct {
-	Group   uint16
+	// Group is the metadata group piece of the tag.
+	Group uint16
+	// Element is the metadata element identifier half of the tag.
 	Element uint16
 }
 
-// Mirror of tag.Info
+// TagInfo is a mirror of tag.Info that we will parse our spec data into.
 type TagInfo struct {
-	Tag  Tag
-	VR   string
+	// Tag is the (XXXX,YYYY) metadata element identifier.
+	Tag Tag
+	// VR is the DICOM Value Representation string that indicates what type of data
+	// this tag holds.
+	VR string
+	// Name is the dicom machine readable Keyword associated with the tag.
 	Name string
-	VM   string
+	// VM is the value multiplicity of the tag (how many VR values does / can the
+	// element store)
+	VM string
 }
 
-// Parse tag value from string.
+// ParseTag parses a Tag from a (XXXX,YYYY) string.
 func ParseTag(tag string) (Tag, error) {
 	parts := strings.Split(strings.Trim(tag, "()"), ",")
 	group, err := strconv.ParseInt(parts[0], 16, 0)

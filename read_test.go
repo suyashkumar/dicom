@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"math/rand"
 	"strconv"
@@ -16,29 +15,49 @@ import (
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/frame"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	mock_dicomio "github.com/suyashkumar/dicom/mocks/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
 func TestReadTag(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	cases := []struct {
+		name    string
+		data    []byte
+		wantTag tag.Tag
+		wantErr error
+	}{
+		{
+			name:    "basic",
+			data:    buildTagData(t, tag.Rows),
+			wantTag: tag.Rows,
+			wantErr: nil,
+		},
+		{
+			name:    "custom",
+			data:    buildTagData(t, tag.Tag{0x0011, 0x0010}),
+			wantTag: tag.Tag{0x0011, 0x0010},
+			wantErr: nil,
+		},
+	}
 
-	assert := assert.New(t)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := bytes.NewBuffer(tc.data)
+			r, err := dicomio.NewReader(bufio.NewReader(data), binary.LittleEndian, int64(data.Len()))
+			if err != nil {
+				t.Errorf("TestReadTag: unable to create new dicomio.Reader")
+			}
 
-	m := mock_dicomio.NewMockReader(ctrl)
+			gotTag, err := readTag(r)
+			if err != tc.wantErr {
+				t.Errorf("TestReadTag: unexpected err. got: %v, want: %v", err, tc.wantErr)
+			}
 
-	first := m.EXPECT().ReadUInt16().Return(uint16(0x7FE0), nil)
-	m.EXPECT().ReadUInt16().Return(uint16(0x0010), nil).After(first)
-
-	retTag, err := readTag(m)
-
-	assert.NoError(err)
-	fmt.Println(err)
-	assert.Equal(tag.PixelData, *retTag)
+			if !gotTag.Equals(tc.wantTag) {
+				t.Errorf("TestReadTag: unexpected output. got: %v, want: %v", gotTag, tc.wantTag)
+			}
+		})
+	}
 
 }
 
@@ -383,4 +402,17 @@ func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *t
 	}
 
 	return &dataset, r
+}
+
+func buildTagData(t *testing.T, tg tag.Tag) []byte {
+	t.Helper()
+	data := bytes.Buffer{}
+	if err := binary.Write(&data, binary.LittleEndian, tg.Group); err != nil {
+		t.Errorf("buildTagData: Unable to setup test buffer: %v", err)
+	}
+	if err := binary.Write(&data, binary.LittleEndian, tg.Element); err != nil {
+		t.Errorf("buildTagData: Unable to setup test buffer: %v", err)
+	}
+
+	return data.Bytes()
 }

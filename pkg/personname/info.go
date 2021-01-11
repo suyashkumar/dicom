@@ -1,5 +1,5 @@
 /*
-The personName package provides methods and data types for inspecting Person Name (PN)
+The personname package provides methods and data types for inspecting Person Name (PN)
 Value Representations, as defined here:
 
 http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
@@ -7,10 +7,35 @@ http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
 package personname
 
 import (
+	"fmt"
 	"strings"
 )
 
 const groupSep = "="
+
+// pnGroup is an enum value for the PN group types (Alphabetic, Ideographic & Phonetic).
+type pnGroup int
+
+// String representation -- mostly for formatting error messages.
+func (group pnGroup) String() string {
+	switch group {
+	case 0:
+		return "Alphabetic"
+	case 1:
+		return "Ideographic"
+	case 2:
+		return "Phonetic"
+	default:
+		panic(fmt.Errorf("bad pnGroup value: %v", int(group)))
+	}
+}
+
+// Enum values for pnGroup
+const (
+	pnGroupAlphabetic pnGroup = iota
+	pnGroupIdeographic
+	pnGroupPhonetic
+)
 
 // Info holds information from an element with a "PN" VR. See the "PN"
 // entry at: http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
@@ -33,7 +58,7 @@ type Info struct {
 	Phonetic GroupInfo
 
 	// NoNullSeparators will remove repeated separators around null groups when
-	// calling String() if set to true.
+	// calling DCM() if set to true.
 	NoNullSeparators bool
 }
 
@@ -60,29 +85,55 @@ func (info Info) WithoutNullSeparators() Info {
 	return info
 }
 
-// String returns the original Raw representation of the PN value, in
-// '[Alphabetic]=[Ideographic]=[Phonetic]' format.
-func (info Info) String() string {
-	groupStrings := []string{
-		info.Alphabetic.String(), info.Ideographic.String(), info.Phonetic.String(),
+// dcmRemoveNullStrings removes null group strings from the list of groups to be
+// rendered.
+func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
+	// If we are not removing null separators, return immediately.
+	if !info.NoNullSeparators {
+		return groupStrings
 	}
 
 	// If we are removing trailing emtpy, we are going to check if the last group is
-	// empty, then trim it off the end if it is, until we hit a non-empty slice.
-	if info.NoNullSeparators {
-		out := 3
-		for i := 2; i >= 0; i-- {
-			if groupStrings[i] == "" {
-				out = i
-			} else {
-				break
-			}
-		}
+	// empty, and if it is, trim it off the end until we hit a non-empty slice.
+	//
+	// If we were to move front-to-back instead of back-to-front, we would get a bad
+	// result if the middle group is blank, but the third group is not, as we would
+	// bail on the middle group, and not end up rendering the last.
+	//
+	// 'Harry^Potter==Phonetic^Spelling is a valid PN value, which we need to account
+	// for.
 
-		// Trim the groups by getting a slice of our slice.
-		groupStrings = groupStrings[0:out]
+	// Start with the sliceOut point containing all three groups
+	sliceOut := 3
+	// Iterate backwards over the strings
+	for i := 2; i >= 0; i-- {
+		// If the string is blank, shift the slice out back 1 place.
+		if groupStrings[i] == "" {
+			sliceOut = i
+		} else {
+			// Otherwise, if it is not blank, we have to render all remaining
+			// separators, even if their values are null, so bail.
+			break
+		}
 	}
 
+	// Trim the groups by getting a slice of our slice using the sliceOut value.
+	groupStrings = groupStrings[0:sliceOut]
+	return groupStrings
+}
+
+// DCM returns the serialized DICOM representation of the PN value, in
+// '[Alphabetic]=[Ideographic]=[Phonetic]' format.
+func (info Info) DCM() string {
+	// Convert the groups into their formatted string representations.=
+	groupStrings := []string{
+		info.Alphabetic.DCM(), info.Ideographic.DCM(), info.Phonetic.DCM(),
+	}
+
+	// Remove groups based on the trailing null setting and the formatted group strings.
+	groupStrings = info.dcmRemoveNullStrings(groupStrings)
+
+	// Join the remaining groups with '='
 	return strings.Join(groupStrings, groupSep)
 }
 
@@ -94,42 +145,43 @@ func (info Info) IsEmpty() bool {
 		info.Phonetic.IsEmpty()
 }
 
-// Parse PN dicom value into informational value.
+// Parse PN dicom value into a personname.Info value.
 func Parse(valueString string) (Info, error) {
 	groups := strings.Split(valueString, groupSep)
 
+	// If there are more than three groups, then the value does not conform to the DICOM
+	// spec.
 	if len(groups) > 3 {
 		return Info{}, newErrTooManyGroups(len(groups))
 	}
 
+	// Set up out new info value.
 	info := Info{}
 
 	// Range over the groups and assign them based on index.
 	for i, groupString := range groups {
-		switch i {
-		case 0:
-			groupInfo, err := groupFromValueString(groupString, "Alphabetic")
-			if err != nil {
-				return Info{}, err
-			}
+		// Convert the index into a pnGroup enum.
+		group := pnGroup(i)
+
+		// Parse the group info.
+		groupInfo, err := groupFromValueString(groupString, group)
+		if err != nil {
+			return Info{}, err
+		}
+
+		// Apply the group info.
+		switch group {
+		case pnGroupAlphabetic:
 			info.Alphabetic = groupInfo
-		case 1:
-			groupInfo, err := groupFromValueString(groupString, "Ideographic")
-			if err != nil {
-				return Info{}, err
-			}
+		case pnGroupIdeographic:
 			info.Ideographic = groupInfo
-		case 2:
-			groupInfo, err := groupFromValueString(groupString, "Phonetic")
-			if err != nil {
-				return Info{}, err
-			}
+		case pnGroupPhonetic:
 			info.Phonetic = groupInfo
 		}
 	}
 
 	// If there are less than three groups, that means this value was removing null
-	// separators, and this behavior should be replicated when calling Info.String().
+	// separators, and this behavior should be replicated when calling Info.DCM().
 	if len(groups) < 3 {
 		info.NoNullSeparators = true
 

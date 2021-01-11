@@ -1,6 +1,8 @@
 package personname
 
-import "strings"
+import (
+	"strings"
+)
 
 const segmentSep = "^"
 
@@ -23,13 +25,13 @@ type GroupInfo struct {
 	NameSuffix string
 
 	// NoNullSeparators will remove repeated separators around null groups when
-	// calling String() if set to true.
+	// calling DCM() if set to true.
 	NoNullSeparators bool
 }
 
-// String Returns original, formatted string in
+// DCM Returns original, formatted string in
 // '[FamilyName]^[GivenName]^[MiddleName]^[NamePrefix]^[NameSuffix]'.
-func (group GroupInfo) String() string {
+func (group GroupInfo) DCM() string {
 	dcmString := strings.Join(
 		[]string{
 			group.FamilyName,
@@ -59,7 +61,7 @@ func (group GroupInfo) IsEmpty() bool {
 
 // groupFromValueString converts a string from a dicom element with a Value
 // Representation of PN to a parsed Info struct.
-func groupFromValueString(groupString string, group string) (GroupInfo, error) {
+func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) {
 	segments := strings.Split(groupString, segmentSep)
 
 	if len(segments) > 5 {
@@ -85,7 +87,7 @@ func groupFromValueString(groupString string, group string) (GroupInfo, error) {
 	}
 
 	// If there are less than 5 segments, that means trailing separators were not
-	// included, and when we call GroupInfo.String(), they should not be rendered.
+	// included, and when we call GroupInfo.DCM(), they should not be rendered.
 	if len(segments) < 5 {
 		groupInfo.NoNullSeparators = true
 	}

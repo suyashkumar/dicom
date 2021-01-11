@@ -255,8 +255,8 @@ func TestInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 
-		// Test creating a new Info object.
-		t.Run(tc.Raw+"_new", func(t *testing.T) {
+		// Test creating a new Info value and getting it's DCM() value.
+		t.Run(tc.Raw+"_String", func(t *testing.T) {
 			newInfo := Info{
 				Alphabetic:       tc.Expected.Alphabetic,
 				Ideographic:      tc.Expected.Ideographic,
@@ -264,11 +264,11 @@ func TestInfo(t *testing.T) {
 				NoNullSeparators: tc.NoNullSeparators,
 			}
 
-			if tc.Raw != newInfo.String() {
+			if tc.Raw != newInfo.DCM() {
 				t.Errorf(
 					"formatted string: expected '%v', got '%v'",
 					tc.Raw,
-					newInfo.String(),
+					newInfo.DCM(),
 				)
 			}
 		})
@@ -284,21 +284,21 @@ func TestInfo(t *testing.T) {
 			checkGroupInfo(
 				t,
 				tc.Expected.Alphabetic,
-				tc.Expected.Alphabetic.String(),
+				tc.Expected.Alphabetic.DCM(),
 				parsed.Alphabetic,
 				"Alphabetic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Ideographic,
-				tc.Expected.Ideographic.String(),
+				tc.Expected.Ideographic.DCM(),
 				parsed.Ideographic,
 				"Ideographic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Phonetic,
-				tc.Expected.Phonetic.String(),
+				tc.Expected.Phonetic.DCM(),
 				parsed.Phonetic,
 				"Phonetic",
 			)
@@ -330,27 +330,34 @@ func TestParse_Err(t *testing.T) {
 	}{
 		{
 			Raw: "===",
-			ErrString: "string contains to many segments for PN value:" +
-				" PN contains 4 groups. No more than 3 groups with" +
-				" '[Alphabetic]=[Ideographic]=[Phonetic]' format are allowed",
+			ErrString: "error parsing PN value: no more than 3 groups with " +
+				"'[Alphabetic]=[Ideographic]=[Phonetic]' format are allowed: value " +
+				"contains 4 groups. see 'PN' entry in official dicom spec: " +
+				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 		{
 			Raw: "^^^^^",
-			ErrString: "string contains to many segments for PN value: PN group" +
-				" Alphabetic contains 6 segments. No more than 5 segments with" +
-				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
+			ErrString: "error parsing PN value: no more than 5 segments with " +
+				"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: " +
+				"value group Alphabetic contains 6 segments. see 'PN' entry in " +
+				"official dicom spec: " +
+				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 		{
 			Raw: "=^^^^^",
-			ErrString: "string contains to many segments for PN value: PN group" +
-				" Ideographic contains 6 segments. No more than 5 segments with" +
-				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
+			ErrString: "error parsing PN value: no more than 5 segments with " +
+				"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: " +
+				"value group Ideographic contains 6 segments. see 'PN' entry in " +
+				"official dicom spec: " +
+				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 		{
 			Raw: "==^^^^^",
-			ErrString: "string contains to many segments for PN value: PN group" +
-				" Phonetic contains 6 segments. No more than 5 segments with" +
-				" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed",
+			ErrString: "error parsing PN value: no more than 5 segments with " +
+				"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: " +
+				"value group Phonetic contains 6 segments. see 'PN' entry in " +
+				"official dicom spec: " +
+				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 	}
 
@@ -381,8 +388,8 @@ func TestInfo_WithNullSeparators(t *testing.T) {
 	altered := parsed.WithNullSeparators()
 
 	expected := "Potter^Harry^^^=^^^^=^^^^"
-	if altered.String() != expected {
-		t.Errorf("expected '%v', got '%v'", expected, altered.String())
+	if altered.DCM() != expected {
+		t.Errorf("expected '%v', got '%v'", expected, altered.DCM())
 	}
 }
 
@@ -397,7 +404,7 @@ func TestInfo_WithoutNullSeparators(t *testing.T) {
 	altered := parsed.WithoutNullSeparators()
 
 	expected := "Potter^Harry"
-	if altered.String() != expected {
-		t.Errorf("expected '%v', got '%v'", expected, altered.String())
+	if altered.DCM() != expected {
+		t.Errorf("expected '%v', got '%v'", expected, altered.DCM())
 	}
 }

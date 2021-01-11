@@ -58,11 +58,11 @@ func checkGroupInfo(
 		)
 	}
 
-	if expectedString != received.String() {
+	if expectedString != received.DCM() {
 		t.Errorf(
-			"formatted .String(): expected '%v', got '%v'. Group '%v'",
+			"formatted .DCM(): expected '%v', got '%v'. Group '%v'",
 			expectedString,
-			received.String(),
+			received.DCM(),
 			group,
 		)
 	}
@@ -233,12 +233,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				tc.Expected.NameSuffix,
 				tc.NoNullSeps,
 			}
-			if tc.Raw != newGroup.String() {
+			if tc.Raw != newGroup.DCM() {
 				t.Errorf(
-					"formatted .String() does not match input: "+
+					"formatted .DCM() does not match input: "+
 						"expected '%v', got '%v'",
 					tc.Raw,
-					newGroup.String(),
+					newGroup.DCM(),
 				)
 			}
 		})
@@ -246,26 +246,26 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		// Test parsing a group string.
 		t.Run(tc.Raw+"_Parse", func(t *testing.T) {
 
-			parsed, err := groupFromValueString(tc.Raw, "Alphabetic")
+			parsed, err := groupFromValueString(tc.Raw, pnGroupAlphabetic)
 			if err != nil {
 				t.Fatal("error parsing value:", err)
 			}
 
 			checkGroupInfo(t, tc.Expected, tc.Raw, parsed, "")
 
-			if tc.Raw != parsed.String() {
+			if tc.Raw != parsed.DCM() {
 				t.Errorf(
-					"formatted .String() does not match input: "+
+					"formatted .DCM() does not match input: "+
 						"expected '%v', got '%v'",
 					tc.Raw,
-					parsed.String(),
+					parsed.DCM(),
 				)
 			}
 		})
 
 		// Test .IsEmpty() method.
 		t.Run(tc.Raw+"_IsEmpty", func(t *testing.T) {
-			parsed, err := groupFromValueString(tc.Raw, "Alphabetic")
+			parsed, err := groupFromValueString(tc.Raw, pnGroupAlphabetic)
 			if err != nil {
 				t.Fatalf("error parsing value '%v': %v", tc.Raw, err)
 			}
@@ -283,18 +283,24 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 
 func TestNewPersonNameFromDicom_Err(t *testing.T) {
 	badName := "Malfoy^Draco^^^^"
-	_, err := groupFromValueString(badName, "Alphabetic")
+	_, err := groupFromValueString(badName, pnGroupAlphabetic)
 
 	// Check that we get a ErrParsePersonName
 	if !errors.Is(err, ErrParsePersonName) {
 		t.Errorf("returned err is not ErrParsePersonName: %v", err)
 	}
 
-	expectedString := "string contains to many segments for PN value: PN group " +
-		"Alphabetic contains 6 segments. No more than 5 segments with" +
-		" '[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed"
+	// Check that we get a ErrParsePersonName
+	if !errors.Is(err, ErrParseGroupSegmentCount) {
+		t.Errorf("returned err is not ErrParseGroupSegmentCount: %v", err)
+	}
+
+	expectedString := "error parsing PN value: no more than 5 segments with " +
+		"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: value group " +
+		"Alphabetic contains 6 segments. see 'PN' entry in official dicom spec: " +
+		"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2"
 
 	if err.Error() != expectedString {
-		t.Errorf("unexpected error text: %v", expectedString)
+		t.Errorf("unexpected error text: %v", err.Error())
 	}
 }

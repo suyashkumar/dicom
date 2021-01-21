@@ -5,13 +5,7 @@ import (
 	"testing"
 )
 
-func checkGroupInfo(
-	t *testing.T,
-	expected GroupInfo,
-	expectedString string,
-	received GroupInfo,
-	group string,
-) {
+func checkGroupInfo(t *testing.T, expected, received GroupInfo, expectedString, group string) {
 
 	if expected.FamilyName != received.FamilyName {
 		t.Errorf(
@@ -251,7 +245,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				t.Fatal("error parsing value:", err)
 			}
 
-			checkGroupInfo(t, tc.Expected, tc.Raw, parsed, "")
+			checkGroupInfo(t, tc.Expected, parsed, tc.Raw, "")
 
 			if tc.Raw != parsed.DCM() {
 				t.Errorf(

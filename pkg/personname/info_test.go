@@ -284,22 +284,22 @@ func TestInfo(t *testing.T) {
 			checkGroupInfo(
 				t,
 				tc.Expected.Alphabetic,
-				tc.Expected.Alphabetic.DCM(),
 				parsed.Alphabetic,
+				tc.Expected.Alphabetic.DCM(),
 				"Alphabetic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Ideographic,
-				tc.Expected.Ideographic.DCM(),
 				parsed.Ideographic,
+				tc.Expected.Ideographic.DCM(),
 				"Ideographic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Phonetic,
-				tc.Expected.Phonetic.DCM(),
 				parsed.Phonetic,
+				tc.Expected.Phonetic.DCM(),
 				"Phonetic",
 			)
 		})

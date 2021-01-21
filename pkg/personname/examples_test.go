@@ -5,7 +5,7 @@ import (
 	"github.com/suyashkumar/dicom/pkg/personname"
 )
 
-// How to parse an existing PN value.
+// ExampleParse shows how to parse an existing PN value.
 func ExampleParse() {
 	// A Raw PN string value with Alphabetic, Ideographic, and Phonetic information.
 	rawPN := "Potter^Harry^James^^=哈利^波特^詹姆^^=hɛər.i^pɒ.tər^dʒeɪmz^^"
@@ -16,20 +16,20 @@ func ExampleParse() {
 		panic(err)
 	}
 
-	// PN values are broken into three groups: Alphabetic, Phonetic, and Ideographic.
-	// which can be accessed through getter methods.
+	// PN values are broken into three groups: Alphabetic, Phonetic, and Ideographic;
+	// our struct contains a fiel for each one.
 	fmt.Println("ALPHABETIC:", parsedPN.Alphabetic.DCM())
 	fmt.Println("IDEOGRAPHIC:", parsedPN.Ideographic.DCM())
 	fmt.Println("PHONETIC:", parsedPN.Phonetic.DCM())
 
-	// Each Group info in turn has Getter methods for retrieving individual data.
+	// Each GroupInfo in turn is parsed into discrete fields for each name segment.
 	fmt.Println("FAMILY NAME:", parsedPN.Alphabetic.FamilyName)
 	fmt.Println("GIVEN NAME: ", parsedPN.Alphabetic.GivenName)
 	fmt.Println("MIDDLE NAME:", parsedPN.Alphabetic.MiddleName)
 	fmt.Println("NAME PREFIX:", parsedPN.Alphabetic.NamePrefix)
 	fmt.Println("NAME SUFFIX:", parsedPN.Alphabetic.NameSuffix)
 
-	// To print the original Raw value, simply use the string method.
+	// To print the original Raw value, simply use the DCM() method.
 	fmt.Println("ORIGINAL RAW:", parsedPN.DCM())
 
 	// Output (gotest comparison here is busted, maybe due to ideographs?):
@@ -89,6 +89,7 @@ func ExampleNew() {
 	// PN 2: Potter^Harry^James^^=^^^^=^^^^
 }
 
+// ExampleInfo_WithNullSeparators shows parsing a PN value without trailing separators.
 func ExampleInfo_WithNullSeparators() {
 	rawVal := "Potter^Harry"
 
@@ -107,6 +108,7 @@ func ExampleInfo_WithNullSeparators() {
 	// REFORMATTED: Potter^Harry^^^=^^^^=^^^^
 }
 
+// ExampleInfo_WithoutNullSeparators shows parsing a PN values with trailing separators.
 func ExampleInfo_WithoutNullSeparators() {
 	rawVal := "Potter^Harry^^^=^^^^=^^^^"
 

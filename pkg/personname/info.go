@@ -19,11 +19,11 @@ type pnGroup int
 // String representation -- mostly for formatting error messages.
 func (group pnGroup) String() string {
 	switch group {
-	case 0:
+	case pnGroupAlphabetic:
 		return "Alphabetic"
-	case 1:
+	case pnGroupIdeographic:
 		return "Ideographic"
-	case 2:
+	case pnGroupPhonetic:
 		return "Phonetic"
 	default:
 		panic(fmt.Errorf("bad pnGroup value: %v", int(group)))
@@ -32,9 +32,9 @@ func (group pnGroup) String() string {
 
 // Enum values for pnGroup
 const (
-	pnGroupAlphabetic pnGroup = iota
-	pnGroupIdeographic
-	pnGroupPhonetic
+	pnGroupAlphabetic  = 0
+	pnGroupIdeographic = 1
+	pnGroupPhonetic    = 2
 )
 
 // Info holds information from an element with a "PN" VR. See the "PN"
@@ -85,6 +85,21 @@ func (info Info) WithoutNullSeparators() Info {
 	return info
 }
 
+// DCM returns the serialized DICOM representation of the PN value, in
+// '[Alphabetic]=[Ideographic]=[Phonetic]' format.
+func (info Info) DCM() string {
+	// Convert the groups into their formatted string representations.=
+	groupStrings := []string{
+		info.Alphabetic.DCM(), info.Ideographic.DCM(), info.Phonetic.DCM(),
+	}
+
+	// Remove groups based on the trailing null setting and the formatted group strings.
+	groupStrings = info.dcmRemoveNullStrings(groupStrings)
+
+	// Join the remaining groups with '='
+	return strings.Join(groupStrings, groupSep)
+}
+
 // dcmRemoveNullStrings removes null group strings from the list of groups to be
 // rendered.
 func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
@@ -104,9 +119,9 @@ func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
 	// for.
 
 	// Start with the sliceOut point containing all three groups
-	sliceOut := 3
+	sliceOut := len(groupStrings)
 	// Iterate backwards over the strings
-	for i := 2; i >= 0; i-- {
+	for i := sliceOut - 1; i >= 0; i-- {
 		// If the string is blank, shift the slice out back 1 place.
 		if groupStrings[i] == "" {
 			sliceOut = i
@@ -120,21 +135,6 @@ func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
 	// Trim the groups by getting a slice of our slice using the sliceOut value.
 	groupStrings = groupStrings[0:sliceOut]
 	return groupStrings
-}
-
-// DCM returns the serialized DICOM representation of the PN value, in
-// '[Alphabetic]=[Ideographic]=[Phonetic]' format.
-func (info Info) DCM() string {
-	// Convert the groups into their formatted string representations.=
-	groupStrings := []string{
-		info.Alphabetic.DCM(), info.Ideographic.DCM(), info.Phonetic.DCM(),
-	}
-
-	// Remove groups based on the trailing null setting and the formatted group strings.
-	groupStrings = info.dcmRemoveNullStrings(groupStrings)
-
-	// Join the remaining groups with '='
-	return strings.Join(groupStrings, groupSep)
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method
@@ -155,7 +155,7 @@ func Parse(valueString string) (Info, error) {
 		return Info{}, newErrTooManyGroups(len(groups))
 	}
 
-	// Set up out new info value.
+	// Set up a new info value.
 	info := Info{}
 
 	// Range over the groups and assign them based on index.

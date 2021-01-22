@@ -67,10 +67,10 @@ func ExampleNew() {
 	// Create a new PN like so
 	pnVal := personname.Info{
 		Alphabetic: personname.GroupInfo{
-			FamilyName:        "Potter",
-			GivenName:         "Harry",
-			MiddleName:        "James",
-			HasNullSeparators: true,
+			FamilyName:    "Potter",
+			GivenName:     "Harry",
+			MiddleName:    "James",
+			TrailingNulls: true,
 		},
 		// Add empty group that will not render its separators.
 		Ideographic: personname.GroupInfo{},
@@ -84,20 +84,20 @@ func ExampleNew() {
 	// Now let's make one that still renders empty groups with DCM().
 	pnVal = personname.Info{
 		Alphabetic: personname.GroupInfo{
-			FamilyName:        "Potter",
-			GivenName:         "Harry",
-			MiddleName:        "James",
-			HasNullSeparators: true,
+			FamilyName:    "Potter",
+			GivenName:     "Harry",
+			MiddleName:    "James",
+			TrailingNulls: true,
 		},
 		// Add empty group that will render its separators.
 		Ideographic: personname.GroupInfo{
-			HasNullSeparators: true,
+			TrailingNulls: true,
 		},
 		// Add empty group that will render its separators.
 		Phonetic: personname.GroupInfo{
-			HasNullSeparators: true,
+			TrailingNulls: true,
 		},
-		HasNullSeparators: true,
+		TrailingNulls: true,
 	}
 
 	// This will render as 'Potter^Harry^James^^=^^^^=^^^^'
@@ -108,9 +108,9 @@ func ExampleNew() {
 	// PN 2: Potter^Harry^James^^=^^^^=^^^^
 }
 
-// ExampleInfo_WithNullSeparators shows reformatting a PN value without trailing
+// ExampleInfo_WithTrailingNulls shows reformatting a PN value without trailing
 // separators.
-func ExampleInfo_WithNullSeparators() {
+func ExampleInfo_WithTrailingNulls() {
 	rawVal := "Potter^Harry"
 
 	parsedPN, err := personname.Parse(rawVal)
@@ -120,7 +120,7 @@ func ExampleInfo_WithNullSeparators() {
 
 	fmt.Println("ORIGINAL   :", parsedPN.DCM())
 
-	reformatted := parsedPN.WithNullSeparators()
+	reformatted := parsedPN.WithTrailingNulls()
 	fmt.Println("REFORMATTED:", reformatted.DCM())
 
 	// Output:
@@ -128,9 +128,9 @@ func ExampleInfo_WithNullSeparators() {
 	// REFORMATTED: Potter^Harry^^^=^^^^=^^^^
 }
 
-// ExampleInfo_WithoutNullSeparators shows reformatting a PN values without trailing
+// ExampleInfo_WithoutTrailingNulls shows reformatting a PN values without trailing
 // separators.
-func ExampleInfo_WithoutNullSeparators() {
+func ExampleInfo_WithoutTrailingNulls() {
 	rawVal := "Potter^Harry^^^=^^^^=^^^^"
 
 	parsedPN, err := personname.Parse(rawVal)
@@ -140,7 +140,7 @@ func ExampleInfo_WithoutNullSeparators() {
 
 	fmt.Println("ORIGINAL   :", parsedPN.DCM())
 
-	reformatted := parsedPN.WithoutNullSeparators()
+	reformatted := parsedPN.WithoutTrailingNulls()
 	fmt.Println("REFORMATTED:", reformatted.DCM())
 
 	// Output:
@@ -161,11 +161,11 @@ func ExampleInfo_WithFormat() {
 	fmt.Println("ORIGINAL   :", parsedPN.DCM())
 
 	reformatted := parsedPN.WithFormat(
-		false, // useGroupNullSeparators
+		false, // groupTrailingNulls
 		// We will keep empty separators for the Alphabetic group.
-		true,  // useAlphabeticNullSeparators
-		false, // useIdeographicNullSeparators
-		false, // usePhoneticNullSeparators
+		true,  // alphabeticTrailingNulls
+		false, // ideographicTrailingNulls
+		false, // phoneticTrailingNulls
 	)
 	fmt.Println("REFORMATTED:", reformatted.DCM())
 

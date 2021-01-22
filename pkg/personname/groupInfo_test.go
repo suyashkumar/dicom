@@ -2,6 +2,7 @@ package personname
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -52,6 +53,14 @@ func checkGroupInfo(t *testing.T, expected, received GroupInfo, expectedString, 
 		)
 	}
 
+	if expected.TrailingNulls != received.TrailingNulls {
+		t.Errorf(
+			"TrailingNulls: expected %v, got %v",
+			expected.TrailingNulls,
+			received.TrailingNulls,
+		)
+	}
+
 	if expectedString != received.DCM() {
 		t.Errorf(
 			"formatted .DCM(): expected '%v', got '%v'. Group '%v'",
@@ -60,7 +69,6 @@ func checkGroupInfo(t *testing.T, expected, received GroupInfo, expectedString, 
 			group,
 		)
 	}
-
 }
 
 func TestNewPersonNameFromDicom(t *testing.T) {
@@ -69,9 +77,6 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected GroupInfo
-		// Whether HasNullSeparators should be set to true when creating a new
-		// GroupInfo to match Raw.
-		HasNullSeps bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
 	}{
@@ -96,19 +101,18 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "JR",
 			},
-			HasNullSeps: true,
 		},
 		// No Suffix
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR^",
 			Expected: GroupInfo{
-				FamilyName: "CROUCH",
-				GivenName:  "BARTEMIUS",
-				MiddleName: "'BARTY'",
-				NamePrefix: "MR",
-				NameSuffix: "",
+				FamilyName:    "CROUCH",
+				GivenName:     "BARTEMIUS",
+				MiddleName:    "'BARTY'",
+				NamePrefix:    "MR",
+				NameSuffix:    "",
+				TrailingNulls: true,
 			},
-			HasNullSeps: true,
 		},
 		// No Prefix
 		{
@@ -120,19 +124,18 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "JR",
 			},
-			HasNullSeps: true,
 		},
 		// Only First and last
 		{
 			Raw: "CROUCH^BARTEMIUS^^^",
 			Expected: GroupInfo{
-				FamilyName: "CROUCH",
-				GivenName:  "BARTEMIUS",
-				MiddleName: "",
-				NamePrefix: "",
-				NameSuffix: "",
+				FamilyName:    "CROUCH",
+				GivenName:     "BARTEMIUS",
+				MiddleName:    "",
+				NamePrefix:    "",
+				NameSuffix:    "",
+				TrailingNulls: true,
 			},
-			HasNullSeps: true,
 		},
 		// No first
 		{
@@ -144,7 +147,6 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "JR",
 			},
-			HasNullSeps: true,
 		},
 		// No family name.
 		{
@@ -156,20 +158,30 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "JR",
 			},
-			HasNullSeps: true,
+		},
+		// No family name, no suffix
+		{
+			Raw: "^BARTEMIUS^'BARTY'^MR",
+			Expected: GroupInfo{
+				FamilyName: "",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "'BARTY'",
+				NamePrefix: "MR",
+				NameSuffix: "",
+			},
 		},
 		// Empty
 		{
 			Raw: "^^^^",
 			Expected: GroupInfo{
-				FamilyName: "",
-				GivenName:  "",
-				MiddleName: "",
-				NamePrefix: "",
-				NameSuffix: "",
+				FamilyName:    "",
+				GivenName:     "",
+				MiddleName:    "",
+				NamePrefix:    "",
+				NameSuffix:    "",
+				TrailingNulls: true,
 			},
-			IsEmpty:     true,
-			HasNullSeps: true,
+			IsEmpty: true,
 		},
 		// No suffix or trailing
 		{
@@ -238,7 +250,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				tc.Expected.MiddleName,
 				tc.Expected.NamePrefix,
 				tc.Expected.NameSuffix,
-				tc.HasNullSeps,
+				tc.Expected.TrailingNulls,
 			}
 			if tc.Raw != newGroup.DCM() {
 				t.Errorf(
@@ -258,6 +270,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				t.Fatal("error parsing value:", err)
 			}
 
+			fmt.Println("EXPECTED NULLS:", tc.Expected.TrailingNulls)
 			checkGroupInfo(t, tc.Expected, parsed, tc.Raw, "")
 
 			if tc.Raw != parsed.DCM() {

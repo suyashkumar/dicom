@@ -24,9 +24,10 @@ type GroupInfo struct {
 	// NameSuffix is the person's name suffix (ex: Jr, III).
 	NameSuffix string
 
-	// HasNullSeparators will remove repeated separators around null groups when
-	// calling DCM() if set to true.
-	HasNullSeparators bool
+	// TrailingNulls is true when a PN value has trailing '=' separators around null
+	// group values. If true, repeated separators around null groups will be removed
+	// when calling DCM().
+	TrailingNulls bool
 }
 
 // DCM Returns original, formatted string in
@@ -43,7 +44,7 @@ func (group GroupInfo) DCM() string {
 		segmentSep,
 	)
 
-	if !group.HasNullSeparators {
+	if !group.TrailingNulls {
 		dcmString = strings.TrimRight(dcmString, segmentSep)
 	}
 
@@ -71,13 +72,7 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 
 	groupInfo := GroupInfo{}
 
-	// Range over the groups and assign them based on index.
-	hasEmpty := false
 	for i, groupValue := range segments {
-		// If this group value is empty, set hasEmpty to true
-		if groupValue == "" {
-			hasEmpty = true
-		}
 		switch i {
 		case 0:
 			groupInfo.FamilyName = groupValue
@@ -94,8 +89,8 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 
 	// If the string is not empty, and any of our groups ARE empty, then we are using
 	// null separators.
-	if len(groupString) > 0 && hasEmpty {
-		groupInfo.HasNullSeparators = true
+	if strings.HasSuffix(groupString, "^") {
+		groupInfo.TrailingNulls = true
 	}
 
 	return groupInfo, nil

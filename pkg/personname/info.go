@@ -51,44 +51,44 @@ type Info struct {
 	// Phonetic group information about the Phonetic group.
 	Phonetic GroupInfo
 
-	// HasNullSeparators will remove repeated separators around null groups when
+	// TrailingNulls will remove repeated separators around null groups when
 	// calling DCM() if set to true.
-	HasNullSeparators bool
+	TrailingNulls bool
 }
 
 // WithFormat returns a new Info object with null separator settings applied to the
 // relevant Info / GroupInfo objects.
 //
-// useGroupNullSeparators will add trailing "=" characters, even when one or more
+// keepGroupTrailingNulls will add trailing "=" characters, even when one or more
 // trailing groups are emtpy strings.
 //
 // The remaining options will apply the passed value to their groups respective
-// HasNullSeparators value.
+// TrailingNulls value.
 //
 // WithFormat does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
 func (info Info) WithFormat(
-	useGroupNullSeparators,
-	useAlphabeticNullSeparators,
-	useIdeographicNullSeparators,
-	usePhoneticNullSeparators bool,
+	groupTrailingNulls,
+	alphabeticTrailingNulls,
+	ideographicTrailingNulls,
+	phoneticTrailingNulls bool,
 ) Info {
-	info.HasNullSeparators = useGroupNullSeparators
-	info.Alphabetic.HasNullSeparators = useAlphabeticNullSeparators
-	info.Ideographic.HasNullSeparators = useIdeographicNullSeparators
-	info.Phonetic.HasNullSeparators = usePhoneticNullSeparators
+	info.TrailingNulls = groupTrailingNulls
+	info.Alphabetic.TrailingNulls = alphabeticTrailingNulls
+	info.Ideographic.TrailingNulls = ideographicTrailingNulls
+	info.Phonetic.TrailingNulls = phoneticTrailingNulls
 	return info
 }
 
-// WithNullSeparators returns a new Info object that will keep trailing separators
+// WithTrailingNulls returns a new Info object that will keep trailing separators
 // that surround both null groups AND group segments: (ex: 'Potter^Harry^^^==').
 //
-// WithNullSeparators is equivalent to calling WithFormat() with all options set to
+// WithTrailingNulls is equivalent to calling WithFormat() with all options set to
 // true.
 //
-// WithNullSeparators does not mutate its receiver value, instead returning a new value
+// WithTrailingNulls does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
-func (info *Info) WithNullSeparators() Info {
+func (info *Info) WithTrailingNulls() Info {
 	// We're going to take in a pointer here to avoid a double-copy when invoking
 	// WithFormat, otherwise we would be passing by value twice.
 	//
@@ -101,16 +101,16 @@ func (info *Info) WithNullSeparators() Info {
 	)
 }
 
-// WithoutNullSeparators returns a new Info object that will remove trailing
+// WithoutTrailingNulls returns a new Info object that will remove trailing
 // separators that surround both null groups AND group segments:
 // (ex: 'Potter^Harry').
 //
-// WithoutNullSeparators is equivalent to calling WithFormat() with all options set to
+// WithoutTrailingNulls is equivalent to calling WithFormat() with all options set to
 // false.
 //
-// WithoutNullSeparators does not mutate its receiver value, instead returning a new
+// WithoutTrailingNulls does not mutate its receiver value, instead returning a new
 // value to the caller with the passed settings.
-func (info *Info) WithoutNullSeparators() Info {
+func (info *Info) WithoutTrailingNulls() Info {
 	// We're going to take in a pointer here to avoid a double-copy when invoking
 	// WithFormat, otherwise we would be passing by value twice.
 	//
@@ -123,19 +123,19 @@ func (info *Info) WithoutNullSeparators() Info {
 	)
 }
 
-// WithoutEmptyGroups sets Info.HasNullSeparators to false, then checks eac
-// group, and if it contains no actual information, sets that group's HasNullSeparators
+// WithoutEmptyGroups sets Info.TrailingNulls to false, then checks eac
+// group, and if it contains no actual information, sets that group's TrailingNulls
 // to false.
 //
 // Groups with Partial information will retain their null separators.
 func (info Info) WithoutEmptyGroups() Info {
-	info.HasNullSeparators = false
+	info.TrailingNulls = false
 
 	// Iterate over references to our group values (we aren't mutating our receiver
 	// here since it's passed by value and already a deep copy).
 	for _, group := range []*GroupInfo{&info.Alphabetic, &info.Ideographic, &info.Phonetic} {
 		if group.IsEmpty() {
-			group.HasNullSeparators = false
+			group.TrailingNulls = false
 		}
 	}
 
@@ -161,7 +161,7 @@ func (info Info) DCM() string {
 // rendered.
 func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
 	// If we are not removing null separators, return immediately.
-	if info.HasNullSeparators {
+	if info.TrailingNulls {
 		return groupStrings
 	}
 
@@ -249,15 +249,15 @@ func Parse(valueString string) (Info, error) {
 	// If there are less than three groups, that means this value was removing null
 	// separators, and this behavior should be replicated when calling Info.DCM().
 	if len(groups) < 3 {
-		info.HasNullSeparators = false
+		info.TrailingNulls = false
 
 		// If we were missing the last group, we know there was no ^^^^ either, so we
 		// need to reflect that in the Phonetic group.
-		info.Phonetic.HasNullSeparators = false
+		info.Phonetic.TrailingNulls = false
 
 		// Same idea if we are missing the second-to-last group (ideographic).
 		if len(groups) < 2 {
-			info.Ideographic.HasNullSeparators = false
+			info.Ideographic.TrailingNulls = false
 		}
 
 		// Split will always result in at least one value, even on an emtpy slice, so

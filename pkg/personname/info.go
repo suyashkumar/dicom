@@ -65,7 +65,7 @@ type Info struct {
 // The remaining options will apply the passed value to their groups respective
 // HasNullSeparators value.
 //
-// This method does not mutate its receiver value, instead returning a new value
+// WithFormat does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
 func (info Info) WithFormat(
 	useGroupNullSeparators,
@@ -88,13 +88,17 @@ func (info Info) WithFormat(
 //
 // WithNullSeparators does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
-func (info Info) WithNullSeparators() Info {
-	info.HasNullSeparators = true
-	info.Alphabetic.HasNullSeparators = true
-	info.Ideographic.HasNullSeparators = true
-	info.Phonetic.HasNullSeparators = true
-
-	return info
+func (info *Info) WithNullSeparators() Info {
+	// We're going to take in a pointer here to avoid a double-copy when invoking
+	// WithFormat, otherwise we would be passing by value twice.
+	//
+	// Since WithFormat is pass-by-value, this will not mutate the original info.
+	return info.WithFormat(
+		true,
+		true,
+		true,
+		true,
+	)
 }
 
 // WithoutNullSeparators returns a new Info object that will remove trailing
@@ -106,13 +110,17 @@ func (info Info) WithNullSeparators() Info {
 //
 // WithoutNullSeparators does not mutate its receiver value, instead returning a new
 // value to the caller with the passed settings.
-func (info Info) WithoutNullSeparators() Info {
-	info.HasNullSeparators = false
-	info.Alphabetic.HasNullSeparators = false
-	info.Ideographic.HasNullSeparators = false
-	info.Phonetic.HasNullSeparators = false
-
-	return info
+func (info *Info) WithoutNullSeparators() Info {
+	// We're going to take in a pointer here to avoid a double-copy when invoking
+	// WithFormat, otherwise we would be passing by value twice.
+	//
+	// Since WithFormat is pass-by-value, this will not mutate the original info.
+	return info.WithFormat(
+		false,
+		false,
+		false,
+		false,
+	)
 }
 
 // WithoutEmptyGroups sets Info.HasNullSeparators to false, then checks eac

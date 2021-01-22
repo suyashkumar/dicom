@@ -11,11 +11,14 @@ func TestInfo(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected Info
-		// Whether NoNullSeparators should be set to true when creating a new
+		// Whether HasNullSeparators should be set to true when creating a new
 		// Info to match Raw.
-		NoNullSeparators bool
+		HasNullSeparators bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
+		// If the DCM() method is not expected to return the Raw string because an
+		// irregular number of separators is being used, put the expected string here.
+		FixedDCM string
 	}{
 		// All groups
 		{
@@ -24,32 +27,32 @@ func TestInfo(t *testing.T) {
 				"pFamily^pGiven^pMiddle^pPrefix^pSuffix",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					FamilyName:       "aFamily",
-					GivenName:        "aGiven",
-					MiddleName:       "aMiddle",
-					NamePrefix:       "aPrefix",
-					NameSuffix:       "aSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "aFamily",
+					GivenName:         "aGiven",
+					MiddleName:        "aMiddle",
+					NamePrefix:        "aPrefix",
+					NameSuffix:        "aSuffix",
+					HasNullSeparators: false,
 				},
 				Ideographic: GroupInfo{
-					FamilyName:       "iFamily",
-					GivenName:        "iGiven",
-					MiddleName:       "iMiddle",
-					NamePrefix:       "iPrefix",
-					NameSuffix:       "iSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "iFamily",
+					GivenName:         "iGiven",
+					MiddleName:        "iMiddle",
+					NamePrefix:        "iPrefix",
+					NameSuffix:        "iSuffix",
+					HasNullSeparators: false,
 				},
 				Phonetic: GroupInfo{
-					FamilyName:       "pFamily",
-					GivenName:        "pGiven",
-					MiddleName:       "pMiddle",
-					NamePrefix:       "pPrefix",
-					NameSuffix:       "pSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "pFamily",
+					GivenName:         "pGiven",
+					MiddleName:        "pMiddle",
+					NamePrefix:        "pPrefix",
+					NameSuffix:        "pSuffix",
+					HasNullSeparators: false,
 				},
 			},
-			NoNullSeparators: false,
-			IsEmpty:          false,
+			HasNullSeparators: false,
+			IsEmpty:           false,
 		},
 		// No Phonetic
 		{
@@ -58,32 +61,32 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					FamilyName:       "aFamily",
-					GivenName:        "aGiven",
-					MiddleName:       "aMiddle",
-					NamePrefix:       "aPrefix",
-					NameSuffix:       "aSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "aFamily",
+					GivenName:         "aGiven",
+					MiddleName:        "aMiddle",
+					NamePrefix:        "aPrefix",
+					NameSuffix:        "aSuffix",
+					HasNullSeparators: false,
 				},
 				Ideographic: GroupInfo{
-					FamilyName:       "iFamily",
-					GivenName:        "iGiven",
-					MiddleName:       "iMiddle",
-					NamePrefix:       "iPrefix",
-					NameSuffix:       "iSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "iFamily",
+					GivenName:         "iGiven",
+					MiddleName:        "iMiddle",
+					NamePrefix:        "iPrefix",
+					NameSuffix:        "iSuffix",
+					HasNullSeparators: false,
 				},
 				Phonetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 			},
-			NoNullSeparators: false,
-			IsEmpty:          false,
+			HasNullSeparators: true,
+			IsEmpty:           false,
 		},
 		// No Phonetic, no seps
 		{
@@ -92,32 +95,32 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					FamilyName:       "aFamily",
-					GivenName:        "aGiven",
-					MiddleName:       "aMiddle",
-					NamePrefix:       "aPrefix",
-					NameSuffix:       "aSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "aFamily",
+					GivenName:         "aGiven",
+					MiddleName:        "aMiddle",
+					NamePrefix:        "aPrefix",
+					NameSuffix:        "aSuffix",
+					HasNullSeparators: false,
 				},
 				Ideographic: GroupInfo{
-					FamilyName:       "iFamily",
-					GivenName:        "iGiven",
-					MiddleName:       "iMiddle",
-					NamePrefix:       "iPrefix",
-					NameSuffix:       "iSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "iFamily",
+					GivenName:         "iGiven",
+					MiddleName:        "iMiddle",
+					NamePrefix:        "iPrefix",
+					NameSuffix:        "iSuffix",
+					HasNullSeparators: false,
 				},
 				Phonetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 			},
-			NoNullSeparators: true,
-			IsEmpty:          false,
+			HasNullSeparators: false,
+			IsEmpty:           false,
 		},
 		// No Ideographic
 		{
@@ -126,64 +129,131 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					FamilyName:       "aFamily",
-					GivenName:        "aGiven",
-					MiddleName:       "aMiddle",
-					NamePrefix:       "aPrefix",
-					NameSuffix:       "aSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "aFamily",
+					GivenName:         "aGiven",
+					MiddleName:        "aMiddle",
+					NamePrefix:        "aPrefix",
+					NameSuffix:        "aSuffix",
+					HasNullSeparators: false,
 				},
 				Ideographic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 				Phonetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 			},
-			NoNullSeparators: false,
-			IsEmpty:          false,
+			HasNullSeparators: true,
+			IsEmpty:           false,
 		},
 		// No Ideographic, no seps
 		{
 			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					FamilyName:       "aFamily",
-					GivenName:        "aGiven",
-					MiddleName:       "aMiddle",
-					NamePrefix:       "aPrefix",
-					NameSuffix:       "aSuffix",
-					NoNullSeparators: true,
+					FamilyName:        "aFamily",
+					GivenName:         "aGiven",
+					MiddleName:        "aMiddle",
+					NamePrefix:        "aPrefix",
+					NameSuffix:        "aSuffix",
+					HasNullSeparators: false,
 				},
 				Ideographic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 				Phonetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 			},
-			NoNullSeparators: true,
-			IsEmpty:          false,
+			HasNullSeparators: false,
+			IsEmpty:           false,
+		},
+		// No Alphabetic, with seps
+		{
+			Raw: "=" +
+				"iFamily^iGiven^iMiddle^iPrefix^iSuffix=" +
+				"pFamily^pGiven^pMiddle^pPrefix^pSuffix",
+			Expected: Info{
+				Alphabetic: GroupInfo{
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
+				},
+				Ideographic: GroupInfo{
+					FamilyName:        "iFamily",
+					GivenName:         "iGiven",
+					MiddleName:        "iMiddle",
+					NamePrefix:        "iPrefix",
+					NameSuffix:        "iSuffix",
+					HasNullSeparators: false,
+				},
+				Phonetic: GroupInfo{
+					FamilyName:        "pFamily",
+					GivenName:         "pGiven",
+					MiddleName:        "pMiddle",
+					NamePrefix:        "pPrefix",
+					NameSuffix:        "pSuffix",
+					HasNullSeparators: false,
+				},
+			},
+			HasNullSeparators: true,
+			IsEmpty:           false,
+		},
+		// Alphabetic, with only 1 sep
+		{
+			Raw: "aFamily^aGiven^aMiddle^aPrefix^aSuffix=",
+			Expected: Info{
+				Alphabetic: GroupInfo{
+					FamilyName:        "aFamily",
+					GivenName:         "aGiven",
+					MiddleName:        "aMiddle",
+					NamePrefix:        "aPrefix",
+					NameSuffix:        "aSuffix",
+					HasNullSeparators: false,
+				},
+				Ideographic: GroupInfo{
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
+				},
+				Phonetic: GroupInfo{
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
+				},
+			},
+			HasNullSeparators: true,
+			IsEmpty:           false,
+			FixedDCM:          "aFamily^aGiven^aMiddle^aPrefix^aSuffix==",
 		},
 		// Empty with seps
 		{
@@ -192,64 +262,64 @@ func TestInfo(t *testing.T) {
 				"",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 				Ideographic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 				Phonetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 			},
-			NoNullSeparators: false,
-			IsEmpty:          true,
+			HasNullSeparators: true,
+			IsEmpty:           true,
 		},
 		// Empty no seps
 		{
 			Raw: "",
 			Expected: Info{
 				Alphabetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 				Ideographic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 				Phonetic: GroupInfo{
-					FamilyName:       "",
-					GivenName:        "",
-					MiddleName:       "",
-					NamePrefix:       "",
-					NameSuffix:       "",
-					NoNullSeparators: true,
+					FamilyName:        "",
+					GivenName:         "",
+					MiddleName:        "",
+					NamePrefix:        "",
+					NameSuffix:        "",
+					HasNullSeparators: false,
 				},
 			},
-			NoNullSeparators: true,
-			IsEmpty:          true,
+			HasNullSeparators: false,
+			IsEmpty:           true,
 		},
 	}
 
@@ -258,16 +328,24 @@ func TestInfo(t *testing.T) {
 		// Test creating a new Info value and getting it's DCM() value.
 		t.Run(tc.Raw+"_String", func(t *testing.T) {
 			newInfo := Info{
-				Alphabetic:       tc.Expected.Alphabetic,
-				Ideographic:      tc.Expected.Ideographic,
-				Phonetic:         tc.Expected.Phonetic,
-				NoNullSeparators: tc.NoNullSeparators,
+				Alphabetic:        tc.Expected.Alphabetic,
+				Ideographic:       tc.Expected.Ideographic,
+				Phonetic:          tc.Expected.Phonetic,
+				HasNullSeparators: tc.HasNullSeparators,
 			}
 
-			if tc.Raw != newInfo.DCM() {
+			// By default, expect the raw input string.
+			expected := tc.Raw
+
+			// If the test case has a "fixed" expected string, use that instead.
+			if tc.FixedDCM != "" {
+				expected = tc.FixedDCM
+			}
+
+			if expected != newInfo.DCM() {
 				t.Errorf(
 					"formatted string: expected '%v', got '%v'",
-					tc.Raw,
+					expected,
 					newInfo.DCM(),
 				)
 			}

@@ -24,9 +24,9 @@ type GroupInfo struct {
 	// NameSuffix is the person's name suffix (ex: Jr, III).
 	NameSuffix string
 
-	// NoNullSeparators will remove repeated separators around null groups when
+	// HasNullSeparators will remove repeated separators around null groups when
 	// calling DCM() if set to true.
-	NoNullSeparators bool
+	HasNullSeparators bool
 }
 
 // DCM Returns original, formatted string in
@@ -43,7 +43,7 @@ func (group GroupInfo) DCM() string {
 		segmentSep,
 	)
 
-	if group.NoNullSeparators {
+	if !group.HasNullSeparators {
 		dcmString = strings.TrimRight(dcmString, segmentSep)
 	}
 
@@ -63,15 +63,21 @@ func (group GroupInfo) IsEmpty() bool {
 // Representation of PN to a parsed Info struct.
 func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) {
 	segments := strings.Split(groupString, segmentSep)
+	segmentCount := len(segments)
 
-	if len(segments) > 5 {
+	if segmentCount > 5 {
 		return GroupInfo{}, newErrTooManyGroupSegments(group, len(segments))
 	}
 
 	groupInfo := GroupInfo{}
 
 	// Range over the groups and assign them based on index.
+	hasEmpty := false
 	for i, groupValue := range segments {
+		// If this group value is empty, set hasEmpty to true
+		if groupValue == "" {
+			hasEmpty = true
+		}
 		switch i {
 		case 0:
 			groupInfo.FamilyName = groupValue
@@ -86,10 +92,10 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 		}
 	}
 
-	// If there are less than 5 segments, that means trailing separators were not
-	// included, and when we call GroupInfo.DCM(), they should not be rendered.
-	if len(segments) < 5 {
-		groupInfo.NoNullSeparators = true
+	// If the string is not empty, and any of our groups ARE empty, then we are using
+	// null separators.
+	if len(groupString) > 0 && hasEmpty {
+		groupInfo.HasNullSeparators = true
 	}
 
 	return groupInfo, nil

@@ -69,9 +69,9 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected GroupInfo
-		// Whether NoNullSeparators should be set to true when creating a new
+		// Whether HasNullSeparators should be set to true when creating a new
 		// GroupInfo to match Raw.
-		NoNullSeps bool
+		HasNullSeps bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
 	}{
@@ -96,6 +96,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "JR",
 			},
+			HasNullSeps: true,
 		},
 		// No Suffix
 		{
@@ -107,6 +108,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "",
 			},
+			HasNullSeps: true,
 		},
 		// No Prefix
 		{
@@ -118,6 +120,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "JR",
 			},
+			HasNullSeps: true,
 		},
 		// Only First and last
 		{
@@ -129,6 +132,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
+			HasNullSeps: true,
 		},
 		// No first
 		{
@@ -140,6 +144,19 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "JR",
 			},
+			HasNullSeps: true,
+		},
+		// No family name.
+		{
+			Raw: "^BARTEMIUS^'BARTY'^MR^JR",
+			Expected: GroupInfo{
+				FamilyName: "",
+				GivenName:  "BARTEMIUS",
+				MiddleName: "'BARTY'",
+				NamePrefix: "MR",
+				NameSuffix: "JR",
+			},
+			HasNullSeps: true,
 		},
 		// Empty
 		{
@@ -151,7 +168,8 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			IsEmpty: true,
+			IsEmpty:     true,
+			HasNullSeps: true,
 		},
 		// No suffix or trailing
 		{
@@ -163,7 +181,6 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "MR",
 				NameSuffix: "",
 			},
-			NoNullSeps: true,
 		},
 		// No prefix or trailing
 		{
@@ -175,7 +192,6 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			NoNullSeps: true,
 		},
 		// No middle or trailing
 		{
@@ -187,7 +203,6 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			NoNullSeps: true,
 		},
 		// No given or trailing
 		{
@@ -199,7 +214,6 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			NoNullSeps: true,
 		},
 		// No family or trailing
 		{
@@ -211,8 +225,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				NamePrefix: "",
 				NameSuffix: "",
 			},
-			NoNullSeps: true,
-			IsEmpty:    true,
+			IsEmpty: true,
 		},
 	}
 
@@ -225,7 +238,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				tc.Expected.MiddleName,
 				tc.Expected.NamePrefix,
 				tc.Expected.NameSuffix,
-				tc.NoNullSeps,
+				tc.HasNullSeps,
 			}
 			if tc.Raw != newGroup.DCM() {
 				t.Errorf(

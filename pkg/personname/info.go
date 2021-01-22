@@ -1,9 +1,3 @@
-/*
-The personname package provides methods and data types for inspecting Person Name (PN)
-Value Representations, as defined here:
-
-http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
-*/
 package personname
 
 import (
@@ -57,18 +51,48 @@ type Info struct {
 	// Phonetic group information about the Phonetic group.
 	Phonetic GroupInfo
 
-	// NoNullSeparators will remove repeated separators around null groups when
+	// HasNullSeparators will remove repeated separators around null groups when
 	// calling DCM() if set to true.
-	NoNullSeparators bool
+	HasNullSeparators bool
+}
+
+// WithFormat returns a new Info object with null separator settings applied to the
+// relevant Info / GroupInfo objects.
+//
+// useGroupNullSeparators will add trailing "=" characters, even when one or more
+// trailing groups are emtpy strings.
+//
+// The remaining options will apply the passed value to their groups respective
+// HasNullSeparators value.
+//
+// This method does not mutate its receiver value, instead returning a new value
+// to the caller with the passed settings.
+func (info Info) WithFormat(
+	useGroupNullSeparators,
+	useAlphabeticNullSeparators,
+	useIdeographicNullSeparators,
+	usePhoneticNullSeparators bool,
+) Info {
+	info.HasNullSeparators = useGroupNullSeparators
+	info.Alphabetic.HasNullSeparators = useAlphabeticNullSeparators
+	info.Ideographic.HasNullSeparators = useIdeographicNullSeparators
+	info.Phonetic.HasNullSeparators = usePhoneticNullSeparators
+	return info
 }
 
 // WithNullSeparators returns a new Info object that will keep trailing separators
 // that surround both null groups AND group segments: (ex: 'Potter^Harry^^^==').
+//
+// WithNullSeparators is equivalent to calling WithFormat() with all options set to
+// true.
+//
+// WithNullSeparators does not mutate its receiver value, instead returning a new value
+// to the caller with the passed settings.
 func (info Info) WithNullSeparators() Info {
-	info.NoNullSeparators = false
-	info.Alphabetic.NoNullSeparators = false
-	info.Ideographic.NoNullSeparators = false
-	info.Phonetic.NoNullSeparators = false
+	info.HasNullSeparators = true
+	info.Alphabetic.HasNullSeparators = true
+	info.Ideographic.HasNullSeparators = true
+	info.Phonetic.HasNullSeparators = true
 
 	return info
 }
@@ -76,11 +100,36 @@ func (info Info) WithNullSeparators() Info {
 // WithoutNullSeparators returns a new Info object that will remove trailing
 // separators that surround both null groups AND group segments:
 // (ex: 'Potter^Harry').
+//
+// WithoutNullSeparators is equivalent to calling WithFormat() with all options set to
+// false.
+//
+// WithoutNullSeparators does not mutate its receiver value, instead returning a new
+// value to the caller with the passed settings.
 func (info Info) WithoutNullSeparators() Info {
-	info.NoNullSeparators = true
-	info.Alphabetic.NoNullSeparators = true
-	info.Ideographic.NoNullSeparators = true
-	info.Phonetic.NoNullSeparators = true
+	info.HasNullSeparators = false
+	info.Alphabetic.HasNullSeparators = false
+	info.Ideographic.HasNullSeparators = false
+	info.Phonetic.HasNullSeparators = false
+
+	return info
+}
+
+// WithoutEmptyGroups sets Info.HasNullSeparators to false, then checks eac
+// group, and if it contains no actual information, sets that group's HasNullSeparators
+// to false.
+//
+// Groups with Partial information will retain their null separators.
+func (info Info) WithoutEmptyGroups() Info {
+	info.HasNullSeparators = false
+
+	// Iterate over references to our group values (we aren't mutating our receiver
+	// here since it's passed by value and already a deep copy).
+	for _, group := range []*GroupInfo{&info.Alphabetic, &info.Ideographic, &info.Phonetic} {
+		if group.IsEmpty() {
+			group.HasNullSeparators = false
+		}
+	}
 
 	return info
 }
@@ -104,7 +153,7 @@ func (info Info) DCM() string {
 // rendered.
 func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
 	// If we are not removing null separators, return immediately.
-	if !info.NoNullSeparators {
+	if info.HasNullSeparators {
 		return groupStrings
 	}
 
@@ -118,13 +167,13 @@ func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
 	// 'Harry^Potter==Phonetic^Spelling is a valid PN value, which we need to account
 	// for.
 
-	// Start with the sliceOut point containing all three groups
-	sliceOut := len(groupStrings)
+	// Start with the groupCount point containing all three groups
+	groupCount := len(groupStrings)
 	// Iterate backwards over the strings
-	for i := sliceOut - 1; i >= 0; i-- {
+	for i := groupCount - 1; i >= 0; i-- {
 		// If the string is blank, shift the slice out back 1 place.
 		if groupStrings[i] == "" {
-			sliceOut = i
+			groupCount = i
 		} else {
 			// Otherwise, if it is not blank, we have to render all remaining
 			// separators, even if their values are null, so bail.
@@ -132,8 +181,8 @@ func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
 		}
 	}
 
-	// Trim the groups by getting a slice of our slice using the sliceOut value.
-	groupStrings = groupStrings[0:sliceOut]
+	// Trim the groups by getting a slice of our slice using the groupCount value.
+	groupStrings = groupStrings[0:groupCount]
 	return groupStrings
 }
 
@@ -146,6 +195,15 @@ func (info Info) IsEmpty() bool {
 }
 
 // Parse PN dicom value into a personname.Info value.
+//
+// NOTE ON PARSING:
+//
+// The personname.Info and personname.GroupInfo values only track whether any null
+// separators were used, not how many. This means if a PN value has some null
+// separators, but not the full amount, round-tripping the value will result in adding
+// the missing separators. See examples below. If you wish to make sure that NO
+// alterations are made to the original value after inspecting re-serializing, the
+// original value should be used directly instead.
 func Parse(valueString string) (Info, error) {
 	groups := strings.Split(valueString, groupSep)
 
@@ -183,15 +241,15 @@ func Parse(valueString string) (Info, error) {
 	// If there are less than three groups, that means this value was removing null
 	// separators, and this behavior should be replicated when calling Info.DCM().
 	if len(groups) < 3 {
-		info.NoNullSeparators = true
+		info.HasNullSeparators = false
 
 		// If we were missing the last group, we know there was no ^^^^ either, so we
 		// need to reflect that in the Phonetic group.
-		info.Phonetic.NoNullSeparators = true
+		info.Phonetic.HasNullSeparators = false
 
 		// Same idea if we are missing the second-to-last group (ideographic).
 		if len(groups) < 2 {
-			info.Ideographic.NoNullSeparators = true
+			info.Ideographic.HasNullSeparators = false
 		}
 
 		// Split will always result in at least one value, even on an emtpy slice, so

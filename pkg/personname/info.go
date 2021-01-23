@@ -68,15 +68,15 @@ type Info struct {
 // WithFormat does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
 func (info Info) WithFormat(
-	groupTrailingNulls,
-	alphabeticTrailingNulls,
-	ideographicTrailingNulls,
-	phoneticTrailingNulls bool,
+	groupTrailingNulls bool,
+	alphabeticNullSepLevel,
+	ideographicNullSepLevel,
+	phoneticNullSepLevel GroupNullSepLevel,
 ) Info {
 	info.TrailingNulls = groupTrailingNulls
-	info.Alphabetic.TrailingNulls = alphabeticTrailingNulls
-	info.Ideographic.TrailingNulls = ideographicTrailingNulls
-	info.Phonetic.TrailingNulls = phoneticTrailingNulls
+	info.Alphabetic.NullSepLevel = alphabeticNullSepLevel
+	info.Ideographic.NullSepLevel = ideographicNullSepLevel
+	info.Phonetic.NullSepLevel = phoneticNullSepLevel
 	return info
 }
 
@@ -84,7 +84,7 @@ func (info Info) WithFormat(
 // that surround both null groups AND group segments: (ex: 'Potter^Harry^^^==').
 //
 // WithTrailingNulls is equivalent to calling WithFormat() with all options set to
-// true.
+// GroupNullSepAll.
 //
 // WithTrailingNulls does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
@@ -95,9 +95,9 @@ func (info *Info) WithTrailingNulls() Info {
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
 		true,
-		true,
-		true,
-		true,
+		GroupNullSepAll,
+		GroupNullSepAll,
+		GroupNullSepAll,
 	)
 }
 
@@ -106,7 +106,7 @@ func (info *Info) WithTrailingNulls() Info {
 // (ex: 'Potter^Harry').
 //
 // WithoutTrailingNulls is equivalent to calling WithFormat() with all options set to
-// false.
+// GroupNullSepNone.
 //
 // WithoutTrailingNulls does not mutate its receiver value, instead returning a new
 // value to the caller with the passed settings.
@@ -117,9 +117,9 @@ func (info *Info) WithoutTrailingNulls() Info {
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
 		false,
-		false,
-		false,
-		false,
+		GroupNullSepNone,
+		GroupNullSepNone,
+		GroupNullSepNone,
 	)
 }
 
@@ -135,7 +135,7 @@ func (info Info) WithoutEmptyGroups() Info {
 	// here since it's passed by value and already a deep copy).
 	for _, group := range []*GroupInfo{&info.Alphabetic, &info.Ideographic, &info.Phonetic} {
 		if group.IsEmpty() {
-			group.TrailingNulls = false
+			group.NullSepLevel = GroupNullSepNone
 		}
 	}
 
@@ -253,11 +253,11 @@ func Parse(valueString string) (Info, error) {
 
 		// If we were missing the last group, we know there was no ^^^^ either, so we
 		// need to reflect that in the Phonetic group.
-		info.Phonetic.TrailingNulls = false
+		info.Phonetic.NullSepLevel = GroupNullSepNone
 
 		// Same idea if we are missing the second-to-last group (ideographic).
 		if len(groups) < 2 {
-			info.Ideographic.TrailingNulls = false
+			info.Ideographic.NullSepLevel = GroupNullSepNone
 		}
 
 		// Split will always result in at least one value, even on an emtpy slice, so

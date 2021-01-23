@@ -55,11 +55,11 @@ func ExampleParse_partialNullSeparators() {
 		panic(err)
 	}
 
-	// Print the DCM() method, the missing null separators have been added.
+	// Print the DCM() method, the missing null separators are preserved.
 	fmt.Println("DCM OUTPUT:", parsedPN.DCM())
 
 	// Output:
-	// DCM OUTPUT: Potter^Harry^^^
+	// DCM OUTPUT: Potter^Harry^
 }
 
 // How to create new PN value.
@@ -67,10 +67,10 @@ func ExampleNew() {
 	// Create a new PN like so
 	pnVal := personname.Info{
 		Alphabetic: personname.GroupInfo{
-			FamilyName:    "Potter",
-			GivenName:     "Harry",
-			MiddleName:    "James",
-			TrailingNulls: true,
+			FamilyName:   "Potter",
+			GivenName:    "Harry",
+			MiddleName:   "James",
+			NullSepLevel: personname.GroupNullSepAll,
 		},
 		// Add empty group that will not render its separators.
 		Ideographic: personname.GroupInfo{},
@@ -84,18 +84,18 @@ func ExampleNew() {
 	// Now let's make one that still renders empty groups with DCM().
 	pnVal = personname.Info{
 		Alphabetic: personname.GroupInfo{
-			FamilyName:    "Potter",
-			GivenName:     "Harry",
-			MiddleName:    "James",
-			TrailingNulls: true,
+			FamilyName:   "Potter",
+			GivenName:    "Harry",
+			MiddleName:   "James",
+			NullSepLevel: personname.GroupNullSepAll,
 		},
 		// Add empty group that will render its separators.
 		Ideographic: personname.GroupInfo{
-			TrailingNulls: true,
+			NullSepLevel: personname.GroupNullSepAll,
 		},
 		// Add empty group that will render its separators.
 		Phonetic: personname.GroupInfo{
-			TrailingNulls: true,
+			NullSepLevel: personname.GroupNullSepAll,
 		},
 		TrailingNulls: true,
 	}
@@ -163,9 +163,9 @@ func ExampleInfo_WithFormat() {
 	reformatted := parsedPN.WithFormat(
 		false, // groupTrailingNulls
 		// We will keep empty separators for the Alphabetic group.
-		true,  // alphabeticTrailingNulls
-		false, // ideographicTrailingNulls
-		false, // phoneticTrailingNulls
+		personname.GroupNullSepAll,  // alphabeticTrailingNulls
+		personname.GroupNullSepNone, // ideographicTrailingNulls
+		personname.GroupNullSepNone, // phoneticTrailingNulls
 	)
 	fmt.Println("REFORMATTED:", reformatted.DCM())
 

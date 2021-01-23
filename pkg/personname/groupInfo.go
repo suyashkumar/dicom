@@ -6,7 +6,7 @@ import (
 
 const segmentSep = "^"
 
-// GroupNullSepLevel represents how many null separators are present in the
+// GroupNullSepLevel represents how many null '^' separators are present in the
 // GroupInfo.DCM() return value.
 type GroupNullSepLevel uint
 
@@ -107,16 +107,16 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 	groupInfo := GroupInfo{}
 
 	// Start off with our null segment level being None
-	nullSegmentLevel := GroupNullSepNone
+	nullSepLevel := GroupNullSepNone
 	for i, groupValue := range segments {
 		// If this segment is empty, it means there is a null sep here. Our null sep
 		// level needs to reflect this.
 		if groupValue == "" {
-			nullSegmentLevel = GroupNullSepLevel(i)
+			nullSepLevel = GroupNullSepLevel(i)
 		} else {
 			// Otherwise, if there is a non-zero string value, there is no null sep
 			// after it.
-			nullSegmentLevel = GroupNullSepNone
+			nullSepLevel = GroupNullSepNone
 		}
 
 		switch i {
@@ -136,7 +136,7 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 	// If the string is not empty, and any of our groups ARE empty, then we are using
 	// null separators.
 	if strings.HasSuffix(groupString, "^") {
-		groupInfo.NullSepLevel = nullSegmentLevel
+		groupInfo.NullSepLevel = nullSepLevel
 	}
 
 	return groupInfo, nil

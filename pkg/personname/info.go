@@ -31,6 +31,23 @@ const (
 	pnGroupPhonetic    = 2
 )
 
+// InfoNullSepLevel represents how many null '=' separators are present in the
+// Info.DCM() return value.
+type InfoNullSepLevel uint
+
+const (
+	// InfoNullSepNone will render no null seps.
+	InfoNullSepNone InfoNullSepLevel = iota
+
+	// InfoNullSepIdeographic will render null separators up to the separator before the
+	// Info.Ideographic segment
+	InfoNullSepIdeographic
+
+	// InfoNullSepAll will render null separators up to the separator before the
+	// Info.Phonetic segment, or ALL possible separators.
+	InfoNullSepAll
+)
+
 // Info holds information from an element with a "PN" VR. See the "PN"
 // entry at: http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
 //
@@ -51,29 +68,27 @@ type Info struct {
 	// Phonetic group information about the Phonetic group.
 	Phonetic GroupInfo
 
-	// TrailingNulls will remove repeated separators around null groups when
-	// calling DCM() if set to true.
-	TrailingNulls bool
+	// NullSepLevel contains the highest present null '=' separator in the DCM() value.
+	NullSepLevel InfoNullSepLevel
 }
 
 // WithFormat returns a new Info object with null separator settings applied to the
 // relevant Info / GroupInfo objects.
 //
-// keepGroupTrailingNulls will add trailing "=" characters, even when one or more
-// trailing groups are emtpy strings.
+// infoNullSepLevel sets the highest '=' null separator to render between groups.
 //
 // The remaining options will apply the passed value to their groups respective
-// TrailingNulls value.
+// NullSepLevel value.
 //
 // WithFormat does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
 func (info Info) WithFormat(
-	groupTrailingNulls bool,
+	infoNullSepLevel InfoNullSepLevel,
 	alphabeticNullSepLevel,
 	ideographicNullSepLevel,
 	phoneticNullSepLevel GroupNullSepLevel,
 ) Info {
-	info.TrailingNulls = groupTrailingNulls
+	info.NullSepLevel = infoNullSepLevel
 	info.Alphabetic.NullSepLevel = alphabeticNullSepLevel
 	info.Ideographic.NullSepLevel = ideographicNullSepLevel
 	info.Phonetic.NullSepLevel = phoneticNullSepLevel
@@ -94,7 +109,7 @@ func (info *Info) WithTrailingNulls() Info {
 	//
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
-		true,
+		InfoNullSepAll,
 		GroupNullSepAll,
 		GroupNullSepAll,
 		GroupNullSepAll,
@@ -116,20 +131,20 @@ func (info *Info) WithoutTrailingNulls() Info {
 	//
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
-		false,
+		InfoNullSepNone,
 		GroupNullSepNone,
 		GroupNullSepNone,
 		GroupNullSepNone,
 	)
 }
 
-// WithoutEmptyGroups sets Info.TrailingNulls to false, then checks eac
-// group, and if it contains no actual information, sets that group's TrailingNulls
+// WithoutEmptyGroups sets Info.NullSepLevel to false, then checks eac
+// group, and if it contains no actual information, sets that group's NullSepLevel
 // to false.
 //
 // Groups with Partial information will retain their null separators.
 func (info Info) WithoutEmptyGroups() Info {
-	info.TrailingNulls = false
+	info.NullSepLevel = InfoNullSepNone
 
 	// Iterate over references to our group values (we aren't mutating our receiver
 	// here since it's passed by value and already a deep copy).
@@ -150,48 +165,7 @@ func (info Info) DCM() string {
 		info.Alphabetic.DCM(), info.Ideographic.DCM(), info.Phonetic.DCM(),
 	}
 
-	// Remove groups based on the trailing null setting and the formatted group strings.
-	groupStrings = info.dcmRemoveNullStrings(groupStrings)
-
-	// Join the remaining groups with '='
-	return strings.Join(groupStrings, groupSep)
-}
-
-// dcmRemoveNullStrings removes null group strings from the list of groups to be
-// rendered.
-func (info Info) dcmRemoveNullStrings(groupStrings []string) []string {
-	// If we are not removing null separators, return immediately.
-	if info.TrailingNulls {
-		return groupStrings
-	}
-
-	// If we are removing trailing emtpy, we are going to check if the last group is
-	// empty, and if it is, trim it off the end until we hit a non-empty slice.
-	//
-	// If we were to move front-to-back instead of back-to-front, we would get a bad
-	// result if the middle group is blank, but the third group is not, as we would
-	// bail on the middle group, and not end up rendering the last.
-	//
-	// 'Harry^Potter==Phonetic^Spelling is a valid PN value, which we need to account
-	// for.
-
-	// Start with the groupCount point containing all three groups
-	groupCount := len(groupStrings)
-	// Iterate backwards over the strings
-	for i := groupCount - 1; i >= 0; i-- {
-		// If the string is blank, shift the slice out back 1 place.
-		if groupStrings[i] == "" {
-			groupCount = i
-		} else {
-			// Otherwise, if it is not blank, we have to render all remaining
-			// separators, even if their values are null, so bail.
-			break
-		}
-	}
-
-	// Trim the groups by getting a slice of our slice using the groupCount value.
-	groupStrings = groupStrings[0:groupCount]
-	return groupStrings
+	return renderWithSeps(groupStrings, groupSep, uint(info.NullSepLevel))
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method
@@ -225,7 +199,19 @@ func Parse(valueString string) (Info, error) {
 	info := Info{}
 
 	// Range over the groups and assign them based on index.
+	// Start off with our null segment level being None
+	nullSepLevel := InfoNullSepNone
 	for i, groupString := range groups {
+		// If this group is empty, it means there is a null sep here. Our null sep
+		// level needs to reflect this.
+		if groupString == "" {
+			nullSepLevel = InfoNullSepLevel(i)
+		} else {
+			// Otherwise, if there is a non-zero string value, there is no null sep
+			// after it.
+			nullSepLevel = InfoNullSepNone
+		}
+
 		// Convert the index into a pnGroup enum.
 		group := pnGroup(i)
 
@@ -246,23 +232,7 @@ func Parse(valueString string) (Info, error) {
 		}
 	}
 
-	// If there are less than three groups, that means this value was removing null
-	// separators, and this behavior should be replicated when calling Info.DCM().
-	if len(groups) < 3 {
-		info.TrailingNulls = false
-
-		// If we were missing the last group, we know there was no ^^^^ either, so we
-		// need to reflect that in the Phonetic group.
-		info.Phonetic.NullSepLevel = GroupNullSepNone
-
-		// Same idea if we are missing the second-to-last group (ideographic).
-		if len(groups) < 2 {
-			info.Ideographic.NullSepLevel = GroupNullSepNone
-		}
-
-		// Split will always result in at least one value, even on an emtpy slice, so
-		// we don't need to worry about null separators on the Alphabetic group.
-	}
+	info.NullSepLevel = nullSepLevel
 
 	return info, nil
 }

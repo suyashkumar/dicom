@@ -97,7 +97,7 @@ func ExampleNew() {
 		Phonetic: personname.GroupInfo{
 			NullSepLevel: personname.GroupNullSepAll,
 		},
-		TrailingNulls: true,
+		NullSepLevel: personname.InfoNullSepAll,
 	}
 
 	// This will render as 'Potter^Harry^James^^=^^^^=^^^^'
@@ -161,7 +161,7 @@ func ExampleInfo_WithFormat() {
 	fmt.Println("ORIGINAL   :", parsedPN.DCM())
 
 	reformatted := parsedPN.WithFormat(
-		false, // groupTrailingNulls
+		personname.InfoNullSepNone, // groupTrailingNulls
 		// We will keep empty separators for the Alphabetic group.
 		personname.GroupNullSepAll,  // alphabeticTrailingNulls
 		personname.GroupNullSepNone, // ideographicTrailingNulls

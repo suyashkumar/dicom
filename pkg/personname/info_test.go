@@ -11,14 +11,8 @@ func TestInfo(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected Info
-		// Whether NullSepLevel should be set to true when creating a new
-		// Info to match Raw.
-		HasNullSeparators bool
 		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
-		// If the DCM() method is not expected to return the Raw string because an
-		// irregular number of separators is being used, put the expected string here.
-		FixedDCM string
 	}{
 		// All groups
 		{
@@ -50,9 +44,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "pSuffix",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepNone,
 			},
-			HasNullSeparators: false,
-			IsEmpty:           false,
+			IsEmpty: false,
 		},
 		// No Phonetic
 		{
@@ -84,9 +78,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepAll,
 			},
-			HasNullSeparators: true,
-			IsEmpty:           false,
+			IsEmpty: false,
 		},
 		// No Phonetic, no seps
 		{
@@ -118,9 +112,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepNone,
 			},
-			HasNullSeparators: false,
-			IsEmpty:           false,
+			IsEmpty: false,
 		},
 		// No Ideographic
 		{
@@ -152,9 +146,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepAll,
 			},
-			HasNullSeparators: true,
-			IsEmpty:           false,
+			IsEmpty: false,
 		},
 		// No Ideographic, no seps
 		{
@@ -184,9 +178,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepNone,
 			},
-			HasNullSeparators: false,
-			IsEmpty:           false,
+			IsEmpty: false,
 		},
 		// No Alphabetic, with seps
 		{
@@ -219,8 +213,7 @@ func TestInfo(t *testing.T) {
 					NullSepLevel: GroupNullSepNone,
 				},
 			},
-			HasNullSeparators: true,
-			IsEmpty:           false,
+			IsEmpty: false,
 		},
 		// Alphabetic, with only 1 sep
 		{
@@ -250,10 +243,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepIdeographic,
 			},
-			HasNullSeparators: true,
-			IsEmpty:           false,
-			FixedDCM:          "aFamily^aGiven^aMiddle^aPrefix^aSuffix==",
+			IsEmpty: false,
 		},
 		// Empty with seps
 		{
@@ -285,9 +277,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepAll,
 			},
-			HasNullSeparators: true,
-			IsEmpty:           true,
+			IsEmpty: true,
 		},
 		// Empty no seps
 		{
@@ -317,9 +309,9 @@ func TestInfo(t *testing.T) {
 					NameSuffix:   "",
 					NullSepLevel: GroupNullSepNone,
 				},
+				NullSepLevel: InfoNullSepNone,
 			},
-			HasNullSeparators: false,
-			IsEmpty:           true,
+			IsEmpty: true,
 		},
 	}
 
@@ -328,24 +320,16 @@ func TestInfo(t *testing.T) {
 		// Test creating a new Info value and getting it's DCM() value.
 		t.Run(tc.Raw+"_String", func(t *testing.T) {
 			newInfo := Info{
-				Alphabetic:    tc.Expected.Alphabetic,
-				Ideographic:   tc.Expected.Ideographic,
-				Phonetic:      tc.Expected.Phonetic,
-				TrailingNulls: tc.HasNullSeparators,
+				Alphabetic:   tc.Expected.Alphabetic,
+				Ideographic:  tc.Expected.Ideographic,
+				Phonetic:     tc.Expected.Phonetic,
+				NullSepLevel: tc.Expected.NullSepLevel,
 			}
 
-			// By default, expect the raw input string.
-			expected := tc.Raw
-
-			// If the test case has a "fixed" expected string, use that instead.
-			if tc.FixedDCM != "" {
-				expected = tc.FixedDCM
-			}
-
-			if expected != newInfo.DCM() {
+			if tc.Raw != newInfo.DCM() {
 				t.Errorf(
 					"formatted string: expected '%v', got '%v'",
-					expected,
+					tc.Raw,
 					newInfo.DCM(),
 				)
 			}

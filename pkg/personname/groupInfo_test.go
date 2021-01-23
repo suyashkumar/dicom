@@ -376,7 +376,7 @@ func TestGroupInfo_DCM_panic(t *testing.T) {
 
 	var recovered interface{}
 
-	func(){
+	func() {
 		defer func() {
 			recovered = recover()
 		}()

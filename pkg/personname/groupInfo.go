@@ -85,7 +85,9 @@ type GroupInfo struct {
 	// NameSuffix is the person's name suffix (ex: Jr, III).
 	NameSuffix string
 
-	// TrailingNullLevel contains the highest present null '^' separator in the DCM() value.
+	// TrailingNullLevel contains the highest present null '^' separator in the DCM()
+	// value. For most use cases GroupNullAll or GroupNullNone should be used when
+	// creating new PN values. Use other levels only if you know what you are doing!
 	TrailingNullLevel GroupTrailingNullLevel
 }
 

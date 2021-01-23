@@ -100,7 +100,8 @@ type Info struct {
 	Phonetic GroupInfo
 
 	// TrailingNullLevel contains the highest present null '=' separator in the DCM()
-	// value.
+	// value. For most use cases InfoNullAll or InfoNullNone should be used when
+	// creating new PN values. Use other levels only if you know what you are doing!
 	TrailingNullLevel InfoTrailingNullLevel
 }
 

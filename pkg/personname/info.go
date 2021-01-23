@@ -31,22 +31,53 @@ const (
 	pnGroupPhonetic    = 2
 )
 
-// InfoNullSepLevel represents how many null '=' separators are present in the
+// InfoTrailingNullLevel represents how many null '=' separators are present in the
 // Info.DCM() return value.
-type InfoNullSepLevel uint
+type InfoTrailingNullLevel uint
+
+// String implements fmt.Stringer, giving human-readable names to the null sep level.
+//
+// Returns "NONE" if no null separators were present.
+//
+// Returns "ALL" if the highest possible null separator was present.
+//
+// Otherwise, returns the name of the section that comes after the highest present null
+// separator.
+//
+// String will panic if called on a value that exceeds InfoNullAll.
+func (level InfoTrailingNullLevel) String() string {
+	switch level {
+	case InfoNullNone:
+		return "NONE"
+	case InfoNullIdeographic:
+		return "Ideographic"
+	case InfoNullAll:
+		return "ALL"
+	default:
+		panic(validateInfoNullSepLevel(level))
+	}
+}
 
 const (
-	// InfoNullSepNone will render no null seps.
-	InfoNullSepNone InfoNullSepLevel = iota
+	// InfoNullNone will render no null seps.
+	InfoNullNone InfoTrailingNullLevel = iota
 
-	// InfoNullSepIdeographic will render null separators up to the separator before the
+	// InfoNullIdeographic will render null separators up to the separator before the
 	// Info.Ideographic segment
-	InfoNullSepIdeographic
+	InfoNullIdeographic
 
-	// InfoNullSepAll will render null separators up to the separator before the
+	// InfoNullAll will render null separators up to the separator before the
 	// Info.Phonetic segment, or ALL possible separators.
-	InfoNullSepAll
+	InfoNullAll
 )
+
+func validateInfoNullSepLevel(level InfoTrailingNullLevel) error {
+	if level <= InfoNullAll {
+		return nil
+	}
+
+	return newErrNullSepLevelInvalid(uint(InfoNullAll), uint(level))
+}
 
 // Info holds information from an element with a "PN" VR. See the "PN"
 // entry at: http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
@@ -68,8 +99,9 @@ type Info struct {
 	// Phonetic group information about the Phonetic group.
 	Phonetic GroupInfo
 
-	// NullSepLevel contains the highest present null '=' separator in the DCM() value.
-	NullSepLevel InfoNullSepLevel
+	// TrailingNullLevel contains the highest present null '=' separator in the DCM()
+	// value.
+	TrailingNullLevel InfoTrailingNullLevel
 }
 
 // WithFormat returns a new Info object with null separator settings applied to the
@@ -78,20 +110,20 @@ type Info struct {
 // infoNullSepLevel sets the highest '=' null separator to render between groups.
 //
 // The remaining options will apply the passed value to their groups respective
-// NullSepLevel value.
+// TrailingNullLevel value.
 //
 // WithFormat does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
 func (info Info) WithFormat(
-	infoNullSepLevel InfoNullSepLevel,
+	infoNullSepLevel InfoTrailingNullLevel,
 	alphabeticNullSepLevel,
 	ideographicNullSepLevel,
-	phoneticNullSepLevel GroupNullSepLevel,
+	phoneticNullSepLevel GroupTrailingNullLevel,
 ) Info {
-	info.NullSepLevel = infoNullSepLevel
-	info.Alphabetic.NullSepLevel = alphabeticNullSepLevel
-	info.Ideographic.NullSepLevel = ideographicNullSepLevel
-	info.Phonetic.NullSepLevel = phoneticNullSepLevel
+	info.TrailingNullLevel = infoNullSepLevel
+	info.Alphabetic.TrailingNullLevel = alphabeticNullSepLevel
+	info.Ideographic.TrailingNullLevel = ideographicNullSepLevel
+	info.Phonetic.TrailingNullLevel = phoneticNullSepLevel
 	return info
 }
 
@@ -99,7 +131,7 @@ func (info Info) WithFormat(
 // that surround both null groups AND group segments: (ex: 'Potter^Harry^^^==').
 //
 // WithTrailingNulls is equivalent to calling WithFormat() with all options set to
-// GroupNullSepAll.
+// GroupNullAll.
 //
 // WithTrailingNulls does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
@@ -109,10 +141,10 @@ func (info *Info) WithTrailingNulls() Info {
 	//
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
-		InfoNullSepAll,
-		GroupNullSepAll,
-		GroupNullSepAll,
-		GroupNullSepAll,
+		InfoNullAll,
+		GroupNullAll,
+		GroupNullAll,
+		GroupNullAll,
 	)
 }
 
@@ -121,7 +153,7 @@ func (info *Info) WithTrailingNulls() Info {
 // (ex: 'Potter^Harry').
 //
 // WithoutTrailingNulls is equivalent to calling WithFormat() with all options set to
-// GroupNullSepNone.
+// GroupNullNone.
 //
 // WithoutTrailingNulls does not mutate its receiver value, instead returning a new
 // value to the caller with the passed settings.
@@ -131,26 +163,26 @@ func (info *Info) WithoutTrailingNulls() Info {
 	//
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
-		InfoNullSepNone,
-		GroupNullSepNone,
-		GroupNullSepNone,
-		GroupNullSepNone,
+		InfoNullNone,
+		GroupNullNone,
+		GroupNullNone,
+		GroupNullNone,
 	)
 }
 
-// WithoutEmptyGroups sets Info.NullSepLevel to false, then checks eac
-// group, and if it contains no actual information, sets that group's NullSepLevel
+// WithoutEmptyGroups sets Info.TrailingNullLevel to false, then checks eac
+// group, and if it contains no actual information, sets that group's TrailingNullLevel
 // to false.
 //
 // Groups with Partial information will retain their null separators.
 func (info Info) WithoutEmptyGroups() Info {
-	info.NullSepLevel = InfoNullSepNone
+	info.TrailingNullLevel = InfoNullNone
 
 	// Iterate over references to our group values (we aren't mutating our receiver
 	// here since it's passed by value and already a deep copy).
 	for _, group := range []*GroupInfo{&info.Alphabetic, &info.Ideographic, &info.Phonetic} {
 		if group.IsEmpty() {
-			group.NullSepLevel = GroupNullSepNone
+			group.TrailingNullLevel = GroupNullNone
 		}
 	}
 
@@ -160,12 +192,17 @@ func (info Info) WithoutEmptyGroups() Info {
 // DCM returns the serialized DICOM representation of the PN value, in
 // '[Alphabetic]=[Ideographic]=[Phonetic]' format.
 func (info Info) DCM() string {
+	// validate our TrailingNullLevel and panic if it is exceeded.
+	if err := validateInfoNullSepLevel(info.TrailingNullLevel); err != nil {
+		panic(err)
+	}
+
 	// Convert the groups into their formatted string representations.=
 	groupStrings := []string{
 		info.Alphabetic.DCM(), info.Ideographic.DCM(), info.Phonetic.DCM(),
 	}
 
-	return renderWithSeps(groupStrings, groupSep, uint(info.NullSepLevel))
+	return renderWithSeps(groupStrings, groupSep, uint(info.TrailingNullLevel))
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method
@@ -200,16 +237,16 @@ func Parse(valueString string) (Info, error) {
 
 	// Range over the groups and assign them based on index.
 	// Start off with our null segment level being None
-	nullSepLevel := InfoNullSepNone
+	nullSepLevel := InfoNullNone
 	for i, groupString := range groups {
 		// If this group is empty, it means there is a null sep here. Our null sep
 		// level needs to reflect this.
 		if groupString == "" {
-			nullSepLevel = InfoNullSepLevel(i)
+			nullSepLevel = InfoTrailingNullLevel(i)
 		} else {
 			// Otherwise, if there is a non-zero string value, there is no null sep
 			// after it.
-			nullSepLevel = InfoNullSepNone
+			nullSepLevel = InfoNullNone
 		}
 
 		// Convert the index into a pnGroup enum.
@@ -232,7 +269,7 @@ func Parse(valueString string) (Info, error) {
 		}
 	}
 
-	info.NullSepLevel = nullSepLevel
+	info.TrailingNullLevel = nullSepLevel
 
 	return info, nil
 }

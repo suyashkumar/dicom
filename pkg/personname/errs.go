@@ -32,9 +32,9 @@ var ErrParseGroupSegmentCount = fmt.Errorf(
 	segmentSep,
 )
 
-// ErrNullSepLevelInvalid is a sentinel error returned when Info.NullSepLevel or
-// GroupInfo.NullSepLevel exceeds the maximum allowed value.
-var ErrNullSepLevelInvalid = fmt.Errorf("NullSepLevel exceeded maximum")
+// ErrNullSepLevelInvalid is a sentinel error returned when Info.TrailingNullLevel or
+// GroupInfo.TrailingNullLevel exceeds the maximum allowed value.
+var ErrNullSepLevelInvalid = fmt.Errorf("TrailingNullLevel exceeded maximum")
 
 // newErrTooManyGroups returns a new ErrParseGroupCount wrapped with some context.
 func newErrTooManyGroups(groupsFound int) error {
@@ -58,10 +58,12 @@ func newErrTooManyGroupSegments(group pnGroup, segmentsFound int) error {
 	)
 }
 
-func newErrNullSepLevelInvalid(infoType string, maxAllowed, found uint) error {
+// newErrNullSepLevelInvalid returns a new ErrNullSepLevelInvalid wrapped with some
+// context.
+func newErrNullSepLevelInvalid(maxAllowed, found uint) error {
 	return fmt.Errorf(
-		"%w: %v cannot be greater than %v, got %v", ErrNullSepLevelInvalid,
-		infoType,
+		"%w: cannot be greater than %v, got %v",
+		ErrNullSepLevelInvalid,
 		maxAllowed,
 		found,
 	)

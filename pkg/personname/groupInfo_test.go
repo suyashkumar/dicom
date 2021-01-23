@@ -53,11 +53,11 @@ func checkGroupInfo(t *testing.T, expected, received GroupInfo, expectedString, 
 		)
 	}
 
-	if expected.NullSepLevel != received.NullSepLevel {
+	if expected.TrailingNullLevel != received.TrailingNullLevel {
 		t.Errorf(
-			"NullSepLevel: expected %v, got %v",
-			expected.NullSepLevel,
-			received.NullSepLevel,
+			"TrailingNullLevel: expected %v, got %v",
+			expected.TrailingNullLevel,
+			received.TrailingNullLevel,
 		)
 	}
 
@@ -106,12 +106,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "CROUCH^BARTEMIUS^'BARTY'^MR^",
 			Expected: GroupInfo{
-				FamilyName:   "CROUCH",
-				GivenName:    "BARTEMIUS",
-				MiddleName:   "'BARTY'",
-				NamePrefix:   "MR",
-				NameSuffix:   "",
-				NullSepLevel: GroupNullSepAll,
+				FamilyName:        "CROUCH",
+				GivenName:         "BARTEMIUS",
+				MiddleName:        "'BARTY'",
+				NamePrefix:        "MR",
+				NameSuffix:        "",
+				TrailingNullLevel: GroupNullAll,
 			},
 		},
 		// No Prefix
@@ -129,12 +129,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "CROUCH^BARTEMIUS^^^",
 			Expected: GroupInfo{
-				FamilyName:   "CROUCH",
-				GivenName:    "BARTEMIUS",
-				MiddleName:   "",
-				NamePrefix:   "",
-				NameSuffix:   "",
-				NullSepLevel: GroupNullSepAll,
+				FamilyName:        "CROUCH",
+				GivenName:         "BARTEMIUS",
+				MiddleName:        "",
+				NamePrefix:        "",
+				NameSuffix:        "",
+				TrailingNullLevel: GroupNullAll,
 			},
 		},
 		// No first
@@ -174,12 +174,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "^^^^",
 			Expected: GroupInfo{
-				FamilyName:   "",
-				GivenName:    "",
-				MiddleName:   "",
-				NamePrefix:   "",
-				NameSuffix:   "",
-				NullSepLevel: GroupNullSepAll,
+				FamilyName:        "",
+				GivenName:         "",
+				MiddleName:        "",
+				NamePrefix:        "",
+				NameSuffix:        "",
+				TrailingNullLevel: GroupNullAll,
 			},
 			IsEmpty: true,
 		},
@@ -187,12 +187,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "^^^",
 			Expected: GroupInfo{
-				FamilyName:   "",
-				GivenName:    "",
-				MiddleName:   "",
-				NamePrefix:   "",
-				NameSuffix:   "",
-				NullSepLevel: GroupNullSepPrefix,
+				FamilyName:        "",
+				GivenName:         "",
+				MiddleName:        "",
+				NamePrefix:        "",
+				NameSuffix:        "",
+				TrailingNullLevel: GroupNullPrefix,
 			},
 			IsEmpty: true,
 		},
@@ -200,12 +200,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "^^",
 			Expected: GroupInfo{
-				FamilyName:   "",
-				GivenName:    "",
-				MiddleName:   "",
-				NamePrefix:   "",
-				NameSuffix:   "",
-				NullSepLevel: GroupNullSepMiddle,
+				FamilyName:        "",
+				GivenName:         "",
+				MiddleName:        "",
+				NamePrefix:        "",
+				NameSuffix:        "",
+				TrailingNullLevel: GroupNullMiddle,
 			},
 			IsEmpty: true,
 		},
@@ -213,12 +213,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "^",
 			Expected: GroupInfo{
-				FamilyName:   "",
-				GivenName:    "",
-				MiddleName:   "",
-				NamePrefix:   "",
-				NameSuffix:   "",
-				NullSepLevel: GroupNullSepGiven,
+				FamilyName:        "",
+				GivenName:         "",
+				MiddleName:        "",
+				NamePrefix:        "",
+				NameSuffix:        "",
+				TrailingNullLevel: GroupNullGiven,
 			},
 			IsEmpty: true,
 		},
@@ -270,12 +270,12 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		{
 			Raw: "^^'BARTY'^",
 			Expected: GroupInfo{
-				FamilyName:   "",
-				GivenName:    "",
-				MiddleName:   "'BARTY'",
-				NamePrefix:   "",
-				NameSuffix:   "",
-				NullSepLevel: GroupNullSepPrefix,
+				FamilyName:        "",
+				GivenName:         "",
+				MiddleName:        "'BARTY'",
+				NamePrefix:        "",
+				NameSuffix:        "",
+				TrailingNullLevel: GroupNullPrefix,
 			},
 		},
 		// No family or trailing
@@ -301,7 +301,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				tc.Expected.MiddleName,
 				tc.Expected.NamePrefix,
 				tc.Expected.NameSuffix,
-				tc.Expected.NullSepLevel,
+				tc.Expected.TrailingNullLevel,
 			}
 			if tc.Raw != newGroup.DCM() {
 				t.Errorf(
@@ -321,7 +321,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				t.Fatal("error parsing value:", err)
 			}
 
-			fmt.Println("EXPECTED NULLS:", tc.Expected.NullSepLevel)
+			fmt.Println("EXPECTED NULLS:", tc.Expected.TrailingNullLevel)
 			checkGroupInfo(t, tc.Expected, parsed, tc.Raw, "")
 
 			if tc.Raw != parsed.DCM() {
@@ -349,6 +349,51 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				)
 			}
 		})
+	}
+}
+
+// TestGroupInfo_DCM_interiorNullsExceedTrailingLevel tests that if a group has interior
+// null values that exceed the
+func TestGroupInfo_DCM_interiorNullsExceedTrailingLevel(t *testing.T) {
+	groupInfo := GroupInfo{
+		FamilyName:        "CROUCH",
+		GivenName:         "",
+		MiddleName:        "",
+		NamePrefix:        "",
+		NameSuffix:        "JR",
+		TrailingNullLevel: GroupNullMiddle,
+	}
+
+	if groupInfo.DCM() != "CROUCH^^^^JR" {
+		t.Errorf("dcm returned uneexpected value: %v", groupInfo.DCM())
+	}
+}
+
+func TestGroupInfo_DCM_panic(t *testing.T) {
+	groupInfo := GroupInfo{
+		TrailingNullLevel: 5,
+	}
+
+	var recovered interface{}
+
+	func(){
+		defer func() {
+			recovered = recover()
+		}()
+		groupInfo.DCM()
+	}()
+
+	if recovered == nil {
+		t.Error("did not recover panic")
+	}
+
+	err, ok := recovered.(error)
+	if !ok {
+		t.Error("recovered panic was not error")
+	}
+
+	if err.Error() != "TrailingNullLevel exceeded maximum: cannot be greater than 4, got 5" {
+		t.Error("err had unexpected text:", err.Error())
 	}
 }
 

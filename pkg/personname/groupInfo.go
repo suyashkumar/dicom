@@ -6,39 +6,65 @@ import (
 
 const segmentSep = "^"
 
-// GroupNullSepLevel represents how many null '^' separators are present in the
+// GroupTrailingNullLevel represents how many null '^' separators are present in the
 // GroupInfo.DCM() return value.
-type GroupNullSepLevel uint
+type GroupTrailingNullLevel uint
+
+// String implements fmt.Stringer, giving human-readable names to the trailing null
+// level.
+//
+// Returns "NONE" if no null separators were present.
+//
+// Returns "ALL" if the highest possible null separator was present.
+//
+// Otherwise, returns the name of the section that comes after the highest present null
+// separator.
+//
+// String will panic if called on a value that exceeds GroupNullAll.
+func (level GroupTrailingNullLevel) String() string {
+	switch level {
+	case GroupNullNone:
+		return "NONE"
+	case GroupNullGiven:
+		return "GivenName"
+	case GroupNullMiddle:
+		return "MiddleName"
+	case GroupNullPrefix:
+		return "NamePrefix"
+	case GroupNullAll:
+		return "ALL"
+	default:
+		panic(validateGroupNullSepLevel(level))
+	}
+}
 
 const (
-	// GroupNullSepNone will render no null seps.
-	GroupNullSepNone GroupNullSepLevel = iota
+	// GroupNullNone will render no null seps.
+	GroupNullNone GroupTrailingNullLevel = iota
 
 	// NullSepGiven will render null separators up to the separator before the
 	// GroupInfo.GivenName segment
-	GroupNullSepGiven
+	GroupNullGiven
 
 	// NullSepGiven will render null separators up to the separator before the
 	// GroupInfo.MiddleName segment
-	GroupNullSepMiddle
+	GroupNullMiddle
 
 	// NullSepGiven will render null separators up to the separator before the
 	// GroupInfo.NamePrefix segment
-	GroupNullSepPrefix
+	GroupNullPrefix
 
 	// NullSepGiven will render null separators up to the separator before the
-	// GroupInfo.NameSuffix segment, or ALL possible separators.
-	GroupNullSepAll
+	// GroupInfo.NameSuffix segment (ALL possible separators).
+	GroupNullAll
 )
 
-func validateNullSepLevel(level GroupNullSepLevel) error {
-	if level <= GroupNullSepAll {
+func validateGroupNullSepLevel(level GroupTrailingNullLevel) error {
+	if level <= GroupNullAll {
 		return nil
 	}
 
-	return newErrNullSepLevelInvalid(
-		"group", uint(GroupNullSepAll), uint(level),
-	)
+	return newErrNullSepLevelInvalid(uint(GroupNullAll), uint(level))
 }
 
 // GroupInfo holds the parsed information for any one of these groups the person name
@@ -59,16 +85,15 @@ type GroupInfo struct {
 	// NameSuffix is the person's name suffix (ex: Jr, III).
 	NameSuffix string
 
-	// NullSepLevel contains the highest present null '^' separator in the DCM() value.
-	NullSepLevel GroupNullSepLevel
+	// TrailingNullLevel contains the highest present null '^' separator in the DCM() value.
+	TrailingNullLevel GroupTrailingNullLevel
 }
 
 // DCM Returns original, formatted string in
 // '[FamilyName]^[GivenName]^[MiddleName]^[NamePrefix]^[NameSuffix]'.
 func (group GroupInfo) DCM() string {
-	// validate our NullSepLevel and panic if it is exceeded.
-	err := validateNullSepLevel(group.NullSepLevel)
-	if err != nil {
+	// validate our TrailingNullLevel and panic if it is exceeded.
+	if err := validateGroupNullSepLevel(group.TrailingNullLevel); err != nil {
 		panic(err)
 	}
 
@@ -82,7 +107,7 @@ func (group GroupInfo) DCM() string {
 	}
 
 	// Render our segments with the correct number of null-separators.
-	return renderWithSeps(segments, segmentSep, uint(group.NullSepLevel))
+	return renderWithSeps(segments, segmentSep, uint(group.TrailingNullLevel))
 }
 
 // IsEmpty returns true if all group segments are empty, even if Raw value was "^^^^".
@@ -107,16 +132,16 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 	groupInfo := GroupInfo{}
 
 	// Start off with our null segment level being None
-	nullSepLevel := GroupNullSepNone
+	nullSepLevel := GroupNullNone
 	for i, groupValue := range segments {
 		// If this segment is empty, it means there is a null sep here. Our null sep
 		// level needs to reflect this.
 		if groupValue == "" {
-			nullSepLevel = GroupNullSepLevel(i)
+			nullSepLevel = GroupTrailingNullLevel(i)
 		} else {
 			// Otherwise, if there is a non-zero string value, there is no null sep
 			// after it.
-			nullSepLevel = GroupNullSepNone
+			nullSepLevel = GroupNullNone
 		}
 
 		switch i {
@@ -136,7 +161,7 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 	// If the string is not empty, and any of our groups ARE empty, then we are using
 	// null separators.
 	if strings.HasSuffix(groupString, "^") {
-		groupInfo.NullSepLevel = nullSepLevel
+		groupInfo.TrailingNullLevel = nullSepLevel
 	}
 
 	return groupInfo, nil

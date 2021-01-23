@@ -11,11 +11,13 @@ func renderWithSeps(sections []string, separator string, nullSepLevel uint) stri
 	dcmString := ""
 
 	// It's going to be easier to write the correct values if we iterate backwards over
-	// them, since we need to look-ahead to know if there are interior null components
+	// them, since we need look-ahead to know if there are interior null components
 	// from a non-zero value near the end of the sections.
 	for i := len(sections) - 1; i >= 0; i-- {
-		// Add the section to the dcm string
+		// Get the section.
 		section := sections[i]
+
+		// Add the section to the dcm string
 		dcmString = section + dcmString
 
 		// If this section is non-nil, we need to add all remaining separators, so
@@ -24,9 +26,9 @@ func renderWithSeps(sections []string, separator string, nullSepLevel uint) stri
 			nonZeroFound = true
 		}
 
-		// If this is not the first section, and a non-zero section has been found OR
-		// this section is under the threshold for which we are rendering null
-		// separators -- add a separator to the head of the string (remember, we are
+		// If this is not the (true) first section, and a non-zero section has been
+		// found OR this section is under the threshold for which we are rendering null
+		// separators: add a separator to the head of the string (remember, we are
 		// working our way backwards).
 		if i > 0 && (nonZeroFound || i <= int(nullSepLevel)) {
 			dcmString = separator + dcmString

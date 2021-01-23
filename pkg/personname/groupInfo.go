@@ -5,7 +5,6 @@ import (
 )
 
 const segmentSep = "^"
-const groupSegmentCount = 5
 
 // GroupNullSepLevel represents how many null separators are present in the
 // GroupInfo.DCM() return value.
@@ -60,9 +59,7 @@ type GroupInfo struct {
 	// NameSuffix is the person's name suffix (ex: Jr, III).
 	NameSuffix string
 
-	// NullSepLevel is true when a PN value has trailing '=' separators around null
-	// group values. If true, repeated separators around null groups will be removed
-	// when calling DCM().
+	// NullSepLevel contains the highest present null '^' separator in the DCM() value.
 	NullSepLevel GroupNullSepLevel
 }
 
@@ -76,7 +73,7 @@ func (group GroupInfo) DCM() string {
 	}
 
 	// Put all the segments into an array.
-	segments := [groupSegmentCount]string{
+	segments := []string{
 		group.FamilyName,
 		group.GivenName,
 		group.MiddleName,
@@ -84,24 +81,8 @@ func (group GroupInfo) DCM() string {
 		group.NameSuffix,
 	}
 
-	// It's going to be easier to write the correct values if we iterate backwards over
-	// them, since we need to look-ahead to know if there are interior null components.
-	dcmString := ""
-	nonZeroFound := false
-	for i := groupSegmentCount - 1; i >= 0; i-- {
-		segment := segments[i]
-		dcmString = segment + dcmString
-
-		if segment != "" {
-			nonZeroFound = true
-		}
-
-		if i > 0 && (nonZeroFound || i <= int(group.NullSepLevel)) {
-			dcmString = "^" + dcmString
-		}
-	}
-
-	return dcmString
+	// Render our segments with the correct number of null-separators.
+	return renderWithSeps(segments, segmentSep, uint(group.NullSepLevel))
 }
 
 // IsEmpty returns true if all group segments are empty, even if Raw value was "^^^^".

@@ -132,10 +132,10 @@ func (group GroupInfo) IsEmpty() bool {
 		group.NameSuffix == ""
 }
 
-// Veterinary returns a read / write data access object that points to the calling
-// GroupInfo value with helper methods specific veterinary contexts.
+// Veterinary returns a read / write data access value that points to the calling
+// GroupInfo value with helper methods specific to veterinary contexts.
 //
-// This helper objects should not be passed around itself, but used in chained commands:
+// This helper value should not be passed around itself, but used in chained commands:
 //
 //  petName := groupInfo.Veterinary().PatientName()
 //  groupInfo.Veterinary().SetPatientName(petName)
@@ -155,7 +155,7 @@ type VeterinaryInfo struct {
 }
 
 // ResponsibleParty returns the Responsible Party Family Name / Responsible
-// organization name for the patient.
+// Organization Name for the patient.
 //
 // ResponsibleParty simply returns GroupInfo.FamilyName, and is included a more explicit
 // way of communicating you are getting this information in a Veterinary context.
@@ -167,7 +167,7 @@ func (vet VeterinaryInfo) ResponsibleParty() string {
 // organization name for the patient.
 //
 // SetResponsibleParty simply sets GroupInfo.FamilyName, and is included a more explicit
-// way of communicating you are getting this information in a Veterinary context.
+// way of communicating you are setting this information in a Veterinary context.
 func (vet VeterinaryInfo) SetResponsibleParty(name string) {
 	vet.groupInfo.FamilyName = name
 }
@@ -183,7 +183,7 @@ func (vet VeterinaryInfo) PatientName() string {
 // SetPatientName sets the full name of the Pet, Animal, etc.
 //
 // SetPatientName simply sets GroupInfo.GivenName, and is included a more explicit
-// way of communicating you are getting this information in a Veterinary context.
+// way of communicating you are setting this information in a Veterinary context.
 func (vet VeterinaryInfo) SetPatientName(name string) {
 	vet.groupInfo.GivenName = name
 }

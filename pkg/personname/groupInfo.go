@@ -93,10 +93,10 @@ type GroupInfo struct {
 
 // DCM Returns original, formatted string in
 // '[FamilyName]^[GivenName]^[MiddleName]^[NamePrefix]^[NameSuffix]'.
-func (group GroupInfo) DCM() string {
+func (group GroupInfo) DCM() (string, error) {
 	// validate our TrailingNullLevel and panic if it is exceeded.
 	if err := validateGroupNullSepLevel(group.TrailingNullLevel); err != nil {
-		panic(err)
+		return "", err
 	}
 
 	// Put all the segments into an array.
@@ -109,7 +109,16 @@ func (group GroupInfo) DCM() string {
 	}
 
 	// Render our segments with the correct number of null-separators.
-	return renderWithSeps(segments, segmentSep, uint(group.TrailingNullLevel))
+	return renderWithSeps(segments, segmentSep, uint(group.TrailingNullLevel)), nil
+}
+
+// MustDCM is as DCM, but panics on error.
+func (group GroupInfo) MustDCM() (string, error) {
+	dcm, err := group.DCM()
+	if err != nil {
+		panic(err)
+	}
+	return dcm, nil
 }
 
 // IsEmpty returns true if all group segments are empty, even if Raw value was "^^^^".

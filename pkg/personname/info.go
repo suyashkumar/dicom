@@ -54,7 +54,7 @@ func (level InfoTrailingNullLevel) String() string {
 	case InfoNullAll:
 		return "ALL"
 	default:
-		panic(validateInfoNullSepLevel(level))
+		return "INVALID"
 	}
 }
 
@@ -192,18 +192,35 @@ func (info Info) WithoutEmptyGroups() Info {
 
 // DCM returns the serialized DICOM representation of the PN value, in
 // '[Alphabetic]=[Ideographic]=[Phonetic]' format.
-func (info Info) DCM() string {
+func (info Info) DCM() (string, error) {
 	// validate our TrailingNullLevel and panic if it is exceeded.
-	if err := validateInfoNullSepLevel(info.TrailingNullLevel); err != nil {
+	var err error
+	if err = validateInfoNullSepLevel(info.TrailingNullLevel); err != nil {
+		return "", err
+	}
+
+	// Collect our group DICOM-formatted strings.
+	groupStrings := make([]string, 3)
+	for i, group := range []GroupInfo{info.Alphabetic, info.Ideographic, info.Phonetic} {
+		groupStrings[i], err = group.DCM()
+		if err != nil {
+			return "", fmt.Errorf(
+				"error formatting group %v: %w", pnGroup(i), err,
+			)
+		}
+	}
+
+	return renderWithSeps(groupStrings, groupSep, uint(info.TrailingNullLevel)), nil
+}
+
+// MustDCM is as DCM, but panics on error.
+func (info Info) MustDCM() string {
+	dcm, err := info.DCM()
+	if err != nil {
 		panic(err)
 	}
 
-	// Convert the groups into their formatted string representations.=
-	groupStrings := []string{
-		info.Alphabetic.DCM(), info.Ideographic.DCM(), info.Phonetic.DCM(),
-	}
-
-	return renderWithSeps(groupStrings, groupSep, uint(info.TrailingNullLevel))
+	return dcm
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method

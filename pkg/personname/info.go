@@ -234,15 +234,6 @@ func (info Info) IsEmpty() bool {
 }
 
 // Parse PN dicom value into a personname.Info value.
-//
-// NOTE ON PARSING:
-//
-// The personname.Info and personname.GroupInfo values only track whether any null
-// separators were used, not how many. This means if a PN value has some null
-// separators, but not the full amount, round-tripping the value will result in adding
-// the missing separators. See examples below. If you wish to make sure that NO
-// alterations are made to the original value after inspecting re-serializing, the
-// original value should be used directly instead.
 func Parse(valueString string) (Info, error) {
 	groups := strings.Split(valueString, groupSep)
 

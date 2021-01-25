@@ -242,7 +242,8 @@ func ExampleInfo_WithoutEmptyGroups_hasPhonetic() {
 func ExampleNewVeterinaryGroupInfo() {
 	// Create a new groupInfo in a veterinary context.
 	groupInfo := personname.NewVeterinaryGroupInfo(
-		"Potter", "Hedwig",
+		"Potter", // responsibleParty
+		"Hedwig", // patientName
 	)
 
 	fmt.Println("DCM VETERINARY:", groupInfo.MustDCM())
@@ -266,7 +267,8 @@ func ExampleNewVeterinaryGroupInfo() {
 func ExampleGroupInfo_Veterinary() {
 	// Create a new groupInfo in a veterinary context.
 	groupInfo := personname.NewVeterinaryGroupInfo(
-		"Potter", "Hedwig",
+		"Potter", // responsibleParty
+		"Hedwig", // patientName
 	)
 
 	fmt.Println("DCM VETERINARY   :", groupInfo.MustDCM())

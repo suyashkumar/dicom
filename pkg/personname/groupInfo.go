@@ -132,6 +132,82 @@ func (group GroupInfo) IsEmpty() bool {
 		group.NameSuffix == ""
 }
 
+// Veterinary returns a read / write data access object that points to the calling
+// GroupInfo value with helper methods specific veterinary contexts.
+//
+// This helper objects should not be passed around itself, but used in chained commands:
+//
+//  petName := groupInfo.Veterinary().PatientName()
+//  groupInfo.Veterinary().SetPatientName(petName)
+func (group *GroupInfo) Veterinary() VeterinaryInfo {
+	return VeterinaryInfo{groupInfo: group}
+}
+
+// VeterinaryInfo acts as a namespace for veterinary-specific methods on GroupInfo.
+//
+// VeterinaryInfo should not be extracted and used on it's own. It is included as a more
+// explicit API for veterinary settings and should be invoked via chained calls:
+//
+//  petName := groupInfo.Veterinary().PatientName()
+//  groupInfo.Veterinary().SetPatientName(petName)
+type VeterinaryInfo struct {
+	groupInfo *GroupInfo
+}
+
+// ResponsibleParty returns the Responsible Party Family Name / Responsible
+// organization name for the patient.
+//
+// ResponsibleParty simply returns GroupInfo.FamilyName, and is included a more explicit
+// way of communicating you are getting this information in a Veterinary context.
+func (vet VeterinaryInfo) ResponsibleParty() string {
+	return vet.groupInfo.FamilyName
+}
+
+// SetResponsibleParty sets the Responsible Party Family Name / Responsible
+// organization name for the patient.
+//
+// SetResponsibleParty simply sets GroupInfo.FamilyName, and is included a more explicit
+// way of communicating you are getting this information in a Veterinary context.
+func (vet VeterinaryInfo) SetResponsibleParty(name string) {
+	vet.groupInfo.FamilyName = name
+}
+
+// PatientName is the full name of the Pet, Animal, etc.
+//
+// PatientName simply returns GroupInfo.GivenName, and is included a more explicit
+// way of communicating you are getting this information in a Veterinary context.
+func (vet VeterinaryInfo) PatientName() string {
+	return vet.groupInfo.GivenName
+}
+
+// SetPatientName sets the full name of the Pet, Animal, etc.
+//
+// SetPatientName simply sets GroupInfo.GivenName, and is included a more explicit
+// way of communicating you are getting this information in a Veterinary context.
+func (vet VeterinaryInfo) SetPatientName(name string) {
+	vet.groupInfo.GivenName = name
+}
+
+// NewVeterinaryGroupInfo is a helper function for creating new GroupInfo values in a
+// veterinary context.
+//
+// Returns a GroupInfo value with GroupInfo.FamilyName set to responsibleParty,
+// GroupInfo.GivenName set to patientName, and GroupInfo.TrailingNullLevel set to
+// GroupNullLevelNone.
+//
+// From the dicom spec:
+//
+//  For veterinary use, the first two of the five components in their order of
+//  occurrence are: responsible party family name or responsible organization name,
+//  patient name. The remaining components are not used and shall not be present.
+func NewVeterinaryGroupInfo(responsibleParty, patientName string) GroupInfo {
+	return GroupInfo{
+		FamilyName:        responsibleParty,
+		GivenName:         patientName,
+		TrailingNullLevel: GroupNullLevelNone,
+	}
+}
+
 // groupFromValueString converts a string from a dicom element with a Value
 // Representation of PN to a parsed Info struct.
 func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) {

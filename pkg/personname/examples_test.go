@@ -238,3 +238,79 @@ func ExampleInfo_WithoutEmptyGroups_hasPhonetic() {
 	// ORIGINAL   : Potter^Harry^^^=^^^^=hɛər.i^pɒ.tər^dʒeɪmz^^
 	// REFORMATTED: Potter^Harry^^^==hɛər.i^pɒ.tər^dʒeɪmz^^
 }
+
+func ExampleNewVeterinaryGroupInfo() {
+	// Create a new groupInfo in a veterinary context.
+	groupInfo := personname.NewVeterinaryGroupInfo(
+		"Potter", "Hedwig",
+	)
+
+	fmt.Println("DCM VETERINARY:", groupInfo.MustDCM())
+
+	// This is equivalent to:
+	groupInfo = personname.GroupInfo{
+		FamilyName:        "Potter",
+		GivenName:         "Hedwig",
+		TrailingNullLevel: personname.GroupNullLevelNone,
+	}
+
+	fmt.Println("DCM NORMAL    :", groupInfo.MustDCM())
+
+	// Output:
+	// DCM VETERINARY: Potter^Hedwig
+	// DCM NORMAL    : Potter^Hedwig
+}
+
+// ExampleGroupInfo_Veterinary shows how to use the Veterinary() method helpers on
+// a GroupInfo value.
+func ExampleGroupInfo_Veterinary() {
+	// Create a new groupInfo in a veterinary context.
+	groupInfo := personname.NewVeterinaryGroupInfo(
+		"Potter", "Hedwig",
+	)
+
+	fmt.Println("DCM VETERINARY   :", groupInfo.MustDCM())
+	fmt.Println("RESPONSIBLE PARTY:", groupInfo.Veterinary().ResponsibleParty())
+	fmt.Println("PATIENT NAME     :", groupInfo.Veterinary().PatientName())
+
+	// This is equivalent to:
+	groupInfo = personname.GroupInfo{
+		FamilyName:        "Potter",
+		GivenName:         "Hedwig",
+		TrailingNullLevel: personname.GroupNullLevelNone,
+	}
+
+	fmt.Println()
+	fmt.Println("DCM NORMAL :", groupInfo.MustDCM())
+	fmt.Println("FAMILY NAME:", groupInfo.FamilyName)
+	fmt.Println("GIVEN  NAME:", groupInfo.GivenName)
+
+	// Out Veterinary() namespace also includes setter methods:
+	groupInfo.Veterinary().SetResponsibleParty("Weasley")
+	groupInfo.Veterinary().SetPatientName("Scabbers")
+
+	fmt.Println()
+	fmt.Println("DCM VETERINARY   :", groupInfo.MustDCM())
+	fmt.Println("RESPONSIBLE PARTY:", groupInfo.Veterinary().ResponsibleParty())
+	fmt.Println("PATIENT NAME     :", groupInfo.Veterinary().PatientName())
+
+	// Under the hood, we can see that all we have done is set the regular fields that
+	// are used to represent these values in a Veterinary Context:
+	fmt.Println("FAMILY NAME      :", groupInfo.FamilyName)
+	fmt.Println("GIVEN NAME       :", groupInfo.GivenName)
+
+	// Output:
+	// DCM VETERINARY   : Potter^Hedwig
+	// RESPONSIBLE PARTY: Potter
+	// PATIENT NAME     : Hedwig
+	//
+	// DCM NORMAL : Potter^Hedwig
+	// FAMILY NAME: Potter
+	// GIVEN  NAME: Hedwig
+	//
+	// DCM VETERINARY   : Weasley^Scabbers
+	// RESPONSIBLE PARTY: Weasley
+	// PATIENT NAME     : Scabbers
+	// FAMILY NAME      : Weasley
+	// GIVEN NAME       : Scabbers
+}

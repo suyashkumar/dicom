@@ -61,11 +61,17 @@ func checkGroupInfo(t *testing.T, expected, received GroupInfo, expectedString, 
 		)
 	}
 
-	if expectedString != received.DCM() {
+	dcm, err := received.DCM()
+	if err != nil {
+		t.Error("DCM returned error:", err)
+		t.FailNow()
+	}
+
+	if expectedString != received.MustDCM() {
 		t.Errorf(
 			"formatted .DCM(): expected '%v', got '%v'. Group '%v'",
 			expectedString,
-			received.DCM(),
+			dcm,
 			group,
 		)
 	}
@@ -111,7 +117,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				MiddleName:        "'BARTY'",
 				NamePrefix:        "MR",
 				NameSuffix:        "",
-				TrailingNullLevel: GroupNullAll,
+				TrailingNullLevel: GroupNullLevelAll,
 			},
 		},
 		// No Prefix
@@ -134,7 +140,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				MiddleName:        "",
 				NamePrefix:        "",
 				NameSuffix:        "",
-				TrailingNullLevel: GroupNullAll,
+				TrailingNullLevel: GroupNullLevelAll,
 			},
 		},
 		// No first
@@ -179,7 +185,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				MiddleName:        "",
 				NamePrefix:        "",
 				NameSuffix:        "",
-				TrailingNullLevel: GroupNullAll,
+				TrailingNullLevel: GroupNullLevelAll,
 			},
 			IsEmpty: true,
 		},
@@ -192,7 +198,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				MiddleName:        "",
 				NamePrefix:        "",
 				NameSuffix:        "",
-				TrailingNullLevel: GroupNullPrefix,
+				TrailingNullLevel: GroupNullLevelPrefix,
 			},
 			IsEmpty: true,
 		},
@@ -205,7 +211,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				MiddleName:        "",
 				NamePrefix:        "",
 				NameSuffix:        "",
-				TrailingNullLevel: GroupNullMiddle,
+				TrailingNullLevel: GroupNullLevelMiddle,
 			},
 			IsEmpty: true,
 		},
@@ -218,7 +224,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				MiddleName:        "",
 				NamePrefix:        "",
 				NameSuffix:        "",
-				TrailingNullLevel: GroupNullGiven,
+				TrailingNullLevel: GroupNullLevelGiven,
 			},
 			IsEmpty: true,
 		},
@@ -275,7 +281,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				MiddleName:        "'BARTY'",
 				NamePrefix:        "",
 				NameSuffix:        "",
-				TrailingNullLevel: GroupNullPrefix,
+				TrailingNullLevel: GroupNullLevelPrefix,
 			},
 		},
 		// No family or trailing
@@ -303,12 +309,18 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 				tc.Expected.NameSuffix,
 				tc.Expected.TrailingNullLevel,
 			}
-			if tc.Raw != newGroup.DCM() {
+
+			dcm, err := newGroup.DCM()
+			if err != nil {
+				t.Fatal("DCM() returned error:", err)
+			}
+
+			if tc.Raw != dcm {
 				t.Errorf(
 					"formatted .DCM() does not match input: "+
 						"expected '%v', got '%v'",
 					tc.Raw,
-					newGroup.DCM(),
+					dcm,
 				)
 			}
 		})
@@ -324,12 +336,17 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 			fmt.Println("EXPECTED NULLS:", tc.Expected.TrailingNullLevel)
 			checkGroupInfo(t, tc.Expected, parsed, tc.Raw, "")
 
-			if tc.Raw != parsed.DCM() {
+			dcm, err := parsed.DCM()
+			if err != nil {
+				t.Fatal("DCM() returned error:", err)
+			}
+
+			if tc.Raw != dcm {
 				t.Errorf(
 					"formatted .DCM() does not match input: "+
 						"expected '%v', got '%v'",
 					tc.Raw,
-					parsed.DCM(),
+					dcm,
 				)
 			}
 		})
@@ -361,11 +378,16 @@ func TestGroupInfo_DCM_interiorNullsExceedTrailingLevel(t *testing.T) {
 		MiddleName:        "",
 		NamePrefix:        "",
 		NameSuffix:        "JR",
-		TrailingNullLevel: GroupNullMiddle,
+		TrailingNullLevel: GroupNullLevelMiddle,
 	}
 
-	if groupInfo.DCM() != "CROUCH^^^^JR" {
-		t.Errorf("dcm returned uneexpected value: %v", groupInfo.DCM())
+	dcm, err := groupInfo.DCM()
+	if err != nil {
+		t.Fatal("DCM() returned error", dcm)
+	}
+
+	if dcm != "CROUCH^^^^JR" {
+		t.Errorf("dcm returned uneexpected value: %v", dcm)
 	}
 }
 
@@ -380,16 +402,16 @@ func TestGroupInfo_DCM_panic(t *testing.T) {
 		defer func() {
 			recovered = recover()
 		}()
-		groupInfo.DCM()
+		groupInfo.MustDCM()
 	}()
 
 	if recovered == nil {
-		t.Error("did not recover panic")
+		t.Fatal("did not recover panic")
 	}
 
 	err, ok := recovered.(error)
 	if !ok {
-		t.Error("recovered panic was not error")
+		t.Fatal("recovered panic was not error")
 	}
 
 	if err.Error() != "TrailingNullLevel exceeded maximum: cannot be greater than 4, got 5" {

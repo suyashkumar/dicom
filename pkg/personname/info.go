@@ -44,14 +44,14 @@ type InfoTrailingNullLevel uint
 // Otherwise, returns the name of the section that comes after the highest present null
 // separator.
 //
-// String will panic if called on a value that exceeds InfoNullAll.
+// String will panic if called on a value that exceeds InfoNullLevelAll.
 func (level InfoTrailingNullLevel) String() string {
 	switch level {
-	case InfoNullNone:
+	case InfoNullLevelNone:
 		return "NONE"
-	case InfoNullIdeographic:
+	case InfoNullLevelIdeographic:
 		return "Ideographic"
-	case InfoNullAll:
+	case InfoNullLevelAll:
 		return "ALL"
 	default:
 		return "INVALID"
@@ -59,24 +59,24 @@ func (level InfoTrailingNullLevel) String() string {
 }
 
 const (
-	// InfoNullNone will render no null seps.
-	InfoNullNone InfoTrailingNullLevel = iota
+	// InfoNullLevelNone will render no null seps.
+	InfoNullLevelNone InfoTrailingNullLevel = iota
 
-	// InfoNullIdeographic will render null separators up to the separator before the
+	// InfoNullLevelIdeographic will render null separators up to the separator before the
 	// Info.Ideographic segment
-	InfoNullIdeographic
+	InfoNullLevelIdeographic
 
-	// InfoNullAll will render null separators up to the separator before the
+	// InfoNullLevelAll will render null separators up to the separator before the
 	// Info.Phonetic segment, or ALL possible separators.
-	InfoNullAll
+	InfoNullLevelAll
 )
 
 func validateInfoNullSepLevel(level InfoTrailingNullLevel) error {
-	if level <= InfoNullAll {
+	if level <= InfoNullLevelAll {
 		return nil
 	}
 
-	return newErrNullSepLevelInvalid(uint(InfoNullAll), uint(level))
+	return newErrNullSepLevelInvalid(uint(InfoNullLevelAll), uint(level))
 }
 
 // Info holds information from an element with a "PN" VR. See the "PN"
@@ -100,7 +100,7 @@ type Info struct {
 	Phonetic GroupInfo
 
 	// TrailingNullLevel contains the highest present null '=' separator in the DCM()
-	// value. For most use cases InfoNullAll or InfoNullNone should be used when
+	// value. For most use cases InfoNullLevelAll or InfoNullLevelNone should be used when
 	// creating new PN values. Use other levels only if you know what you are doing!
 	TrailingNullLevel InfoTrailingNullLevel
 }
@@ -132,7 +132,7 @@ func (info Info) WithFormat(
 // that surround both null groups AND group segments: (ex: 'Potter^Harry^^^==').
 //
 // WithTrailingNulls is equivalent to calling WithFormat() with all options set to
-// GroupNullAll.
+// GroupNullLevelAll.
 //
 // WithTrailingNulls does not mutate its receiver value, instead returning a new value
 // to the caller with the passed settings.
@@ -142,10 +142,10 @@ func (info *Info) WithTrailingNulls() Info {
 	//
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
-		InfoNullAll,
-		GroupNullAll,
-		GroupNullAll,
-		GroupNullAll,
+		InfoNullLevelAll,
+		GroupNullLevelAll,
+		GroupNullLevelAll,
+		GroupNullLevelAll,
 	)
 }
 
@@ -154,7 +154,7 @@ func (info *Info) WithTrailingNulls() Info {
 // (ex: 'Potter^Harry').
 //
 // WithoutTrailingNulls is equivalent to calling WithFormat() with all options set to
-// GroupNullNone.
+// GroupNullLevelNone.
 //
 // WithoutTrailingNulls does not mutate its receiver value, instead returning a new
 // value to the caller with the passed settings.
@@ -164,26 +164,26 @@ func (info *Info) WithoutTrailingNulls() Info {
 	//
 	// Since WithFormat is pass-by-value, this will not mutate the original info.
 	return info.WithFormat(
-		InfoNullNone,
-		GroupNullNone,
-		GroupNullNone,
-		GroupNullNone,
+		InfoNullLevelNone,
+		GroupNullLevelNone,
+		GroupNullLevelNone,
+		GroupNullLevelNone,
 	)
 }
 
-// WithoutEmptyGroups sets Info.TrailingNullLevel to false, then checks eac
+// WithoutEmptyGroups sets Info.TrailingNullLevel to false, then checks each
 // group, and if it contains no actual information, sets that group's TrailingNullLevel
-// to false.
+// to GroupNullLevelNone.
 //
 // Groups with Partial information will retain their null separators.
 func (info Info) WithoutEmptyGroups() Info {
-	info.TrailingNullLevel = InfoNullNone
+	info.TrailingNullLevel = InfoNullLevelNone
 
 	// Iterate over references to our group values (we aren't mutating our receiver
 	// here since it's passed by value and already a deep copy).
 	for _, group := range []*GroupInfo{&info.Alphabetic, &info.Ideographic, &info.Phonetic} {
 		if group.IsEmpty() {
-			group.TrailingNullLevel = GroupNullNone
+			group.TrailingNullLevel = GroupNullLevelNone
 		}
 	}
 
@@ -214,6 +214,8 @@ func (info Info) DCM() (string, error) {
 }
 
 // MustDCM is as DCM, but panics on error.
+//
+// MustDCM will only panic if TrailingNullLevel exceeds InfoNullLevelAll.
 func (info Info) MustDCM() string {
 	dcm, err := info.DCM()
 	if err != nil {
@@ -255,7 +257,7 @@ func Parse(valueString string) (Info, error) {
 
 	// Range over the groups and assign them based on index.
 	// Start off with our null segment level being None
-	nullSepLevel := InfoNullNone
+	nullSepLevel := InfoNullLevelNone
 	for i, groupString := range groups {
 		// If this group is empty, it means there is a null sep here. Our null sep
 		// level needs to reflect this.
@@ -264,7 +266,7 @@ func Parse(valueString string) (Info, error) {
 		} else {
 			// Otherwise, if there is a non-zero string value, there is no null sep
 			// after it.
-			nullSepLevel = InfoNullNone
+			nullSepLevel = InfoNullLevelNone
 		}
 
 		// Convert the index into a pnGroup enum.

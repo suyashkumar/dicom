@@ -22,9 +22,9 @@ func ExampleParse() {
 
 	// PN values are broken into three groups: Alphabetic, Phonetic, and Ideographic;
 	// our struct contains a field for each one.
-	fmt.Println("ALPHABETIC:", parsedPN.Alphabetic.DCM())
-	fmt.Println("IDEOGRAPHIC:", parsedPN.Ideographic.DCM())
-	fmt.Println("PHONETIC:", parsedPN.Phonetic.DCM())
+	fmt.Println("ALPHABETIC:", parsedPN.Alphabetic.MustDCM())
+	fmt.Println("IDEOGRAPHIC:", parsedPN.Ideographic.MustDCM())
+	fmt.Println("PHONETIC:", parsedPN.Phonetic.MustDCM())
 
 	// We can check to what level of trailing null separators were present, because
 	// there are no null groups, the level will be NONE.
@@ -41,8 +41,8 @@ func ExampleParse() {
 	// null separators and the maximum allowed number is present.
 	fmt.Println("ALPHABETIC NULL SEPS:", parsedPN.Alphabetic.TrailingNullLevel)
 
-	// To print the original Raw value, simply use the DCM() method.
-	fmt.Println("DCM OUTPUT :", parsedPN.DCM())
+	// To print the original Raw value, simply use the DCM() or MustDCM() methods.
+	fmt.Println("DCM OUTPUT :", parsedPN.MustDCM())
 
 	// Outputs:
 	// ALPHABETIC: Potter^Harry^James^^
@@ -77,8 +77,8 @@ func ExampleParse_partialNullSeparators() {
 	// be the name of the segment that comes after the highest present null separator:
 	fmt.Println("NULL SEP LEVEL:", parsedPN.Alphabetic.TrailingNullLevel)
 
-	// Print the DCM() method, the missing null separators are preserved.
-	fmt.Println("DCM OUTPUT    :", parsedPN.DCM())
+	// Print the MustDCM() method, the missing null separators are preserved.
+	fmt.Println("DCM OUTPUT    :", parsedPN.MustDCM())
 
 	// Output:
 	// NULL SEP LEVEL: MiddleName
@@ -94,7 +94,7 @@ func ExampleNew() {
 			GivenName:  "Harry",
 			MiddleName: "James",
 			// This group will print null separators, but the rest will not.
-			TrailingNullLevel: personname.GroupNullAll,
+			TrailingNullLevel: personname.GroupNullLevelAll,
 		},
 		// Add empty group that will not render its separators.
 		Ideographic: personname.GroupInfo{},
@@ -103,7 +103,7 @@ func ExampleNew() {
 	}
 
 	// Print the string, should render as 'Potter^Harry^James^^'.
-	fmt.Println("PN 1:", pnVal.DCM())
+	fmt.Println("PN 1:", pnVal.MustDCM())
 
 	// Now let's make one that still renders empty groups with DCM().
 	pnVal = personname.Info{
@@ -111,21 +111,21 @@ func ExampleNew() {
 			FamilyName:        "Potter",
 			GivenName:         "Harry",
 			MiddleName:        "James",
-			TrailingNullLevel: personname.GroupNullAll,
+			TrailingNullLevel: personname.GroupNullLevelAll,
 		},
 		// Add empty group that will render its separators.
 		Ideographic: personname.GroupInfo{
-			TrailingNullLevel: personname.GroupNullAll,
+			TrailingNullLevel: personname.GroupNullLevelAll,
 		},
 		// Add empty group that will render its separators.
 		Phonetic: personname.GroupInfo{
-			TrailingNullLevel: personname.GroupNullAll,
+			TrailingNullLevel: personname.GroupNullLevelAll,
 		},
-		TrailingNullLevel: personname.InfoNullAll,
+		TrailingNullLevel: personname.InfoNullLevelAll,
 	}
 
 	// This will render as 'Potter^Harry^James^^=^^^^=^^^^'
-	fmt.Println("PN 2:", pnVal.DCM())
+	fmt.Println("PN 2:", pnVal.MustDCM())
 
 	// Output:
 	// PN 1: Potter^Harry^James^^
@@ -142,10 +142,10 @@ func ExampleInfo_WithTrailingNulls() {
 		panic(err)
 	}
 
-	fmt.Println("ORIGINAL   :", parsedPN.DCM())
+	fmt.Println("ORIGINAL   :", parsedPN.MustDCM())
 
 	reformatted := parsedPN.WithTrailingNulls()
-	fmt.Println("REFORMATTED:", reformatted.DCM())
+	fmt.Println("REFORMATTED:", reformatted.MustDCM())
 
 	// Output:
 	// ORIGINAL   : Potter^Harry
@@ -162,10 +162,10 @@ func ExampleInfo_WithoutTrailingNulls() {
 		panic(err)
 	}
 
-	fmt.Println("ORIGINAL   :", parsedPN.DCM())
+	fmt.Println("ORIGINAL   :", parsedPN.MustDCM())
 
 	reformatted := parsedPN.WithoutTrailingNulls()
-	fmt.Println("REFORMATTED:", reformatted.DCM())
+	fmt.Println("REFORMATTED:", reformatted.MustDCM())
 
 	// Output:
 	// ORIGINAL   : Potter^Harry^^^=^^^^=^^^^
@@ -182,16 +182,16 @@ func ExampleInfo_WithFormat() {
 		panic(err)
 	}
 
-	fmt.Println("ORIGINAL   :", parsedPN.DCM())
+	fmt.Println("ORIGINAL   :", parsedPN.MustDCM())
 
 	reformatted := parsedPN.WithFormat(
-		personname.InfoNullNone, // groupTrailingNulls
+		personname.InfoNullLevelNone, // groupTrailingNulls
 		// We will keep empty separators for the Alphabetic group.
-		personname.GroupNullAll,  // alphabeticTrailingNulls
-		personname.GroupNullNone, // ideographicTrailingNulls
-		personname.GroupNullNone, // phoneticTrailingNulls
+		personname.GroupNullLevelAll,  // alphabeticTrailingNulls
+		personname.GroupNullLevelNone, // ideographicTrailingNulls
+		personname.GroupNullLevelNone, // phoneticTrailingNulls
 	)
-	fmt.Println("REFORMATTED:", reformatted.DCM())
+	fmt.Println("REFORMATTED:", reformatted.MustDCM())
 
 	// Output:
 	// ORIGINAL   : Potter^Harry^^^=^^^^=^^^^
@@ -208,10 +208,10 @@ func ExampleInfo_WithoutEmptyGroups() {
 		panic(err)
 	}
 
-	fmt.Println("ORIGINAL   :", parsedPN.DCM())
+	fmt.Println("ORIGINAL   :", parsedPN.MustDCM())
 
 	reformatted := parsedPN.WithoutEmptyGroups()
-	fmt.Println("REFORMATTED:", reformatted.DCM())
+	fmt.Println("REFORMATTED:", reformatted.MustDCM())
 
 	// Output:
 	// ORIGINAL   : Potter^Harry^^^=^^^^=^^^^
@@ -229,10 +229,10 @@ func ExampleInfo_WithoutEmptyGroups_hasPhonetic() {
 		panic(err)
 	}
 
-	fmt.Println("ORIGINAL   :", parsedPN.DCM())
+	fmt.Println("ORIGINAL   :", parsedPN.MustDCM())
 
 	reformatted := parsedPN.WithoutEmptyGroups()
-	fmt.Println("REFORMATTED:", reformatted.DCM())
+	fmt.Println("REFORMATTED:", reformatted.MustDCM())
 
 	// Output:
 	// ORIGINAL   : Potter^Harry^^^=^^^^=hɛər.i^pɒ.tər^dʒeɪmz^^

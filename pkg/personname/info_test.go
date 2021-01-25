@@ -26,7 +26,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "aMiddle",
 					NamePrefix:        "aPrefix",
 					NameSuffix:        "aSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "iFamily",
@@ -34,7 +34,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "iMiddle",
 					NamePrefix:        "iPrefix",
 					NameSuffix:        "iSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "pFamily",
@@ -42,9 +42,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "pMiddle",
 					NamePrefix:        "pPrefix",
 					NameSuffix:        "pSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullNone,
+				TrailingNullLevel: InfoNullLevelNone,
 			},
 			IsEmpty: false,
 		},
@@ -60,7 +60,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "aMiddle",
 					NamePrefix:        "aPrefix",
 					NameSuffix:        "aSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "iFamily",
@@ -68,7 +68,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "iMiddle",
 					NamePrefix:        "iPrefix",
 					NameSuffix:        "iSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "",
@@ -76,9 +76,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullAll,
+				TrailingNullLevel: InfoNullLevelAll,
 			},
 			IsEmpty: false,
 		},
@@ -94,7 +94,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "aMiddle",
 					NamePrefix:        "aPrefix",
 					NameSuffix:        "aSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "iFamily",
@@ -102,7 +102,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "iMiddle",
 					NamePrefix:        "iPrefix",
 					NameSuffix:        "iSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "",
@@ -110,9 +110,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullNone,
+				TrailingNullLevel: InfoNullLevelNone,
 			},
 			IsEmpty: false,
 		},
@@ -128,7 +128,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "aMiddle",
 					NamePrefix:        "aPrefix",
 					NameSuffix:        "aSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "",
@@ -136,7 +136,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "",
@@ -144,9 +144,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullAll,
+				TrailingNullLevel: InfoNullLevelAll,
 			},
 			IsEmpty: false,
 		},
@@ -160,7 +160,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "aMiddle",
 					NamePrefix:        "aPrefix",
 					NameSuffix:        "aSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "",
@@ -168,7 +168,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "",
@@ -176,9 +176,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullNone,
+				TrailingNullLevel: InfoNullLevelNone,
 			},
 			IsEmpty: false,
 		},
@@ -194,7 +194,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "iFamily",
@@ -202,7 +202,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "iMiddle",
 					NamePrefix:        "iPrefix",
 					NameSuffix:        "iSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "pFamily",
@@ -210,7 +210,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "pMiddle",
 					NamePrefix:        "pPrefix",
 					NameSuffix:        "pSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 			},
 			IsEmpty: false,
@@ -225,7 +225,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "aMiddle",
 					NamePrefix:        "aPrefix",
 					NameSuffix:        "aSuffix",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "",
@@ -233,7 +233,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "",
@@ -241,9 +241,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullIdeographic,
+				TrailingNullLevel: InfoNullLevelIdeographic,
 			},
 			IsEmpty: false,
 		},
@@ -259,7 +259,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "",
@@ -267,7 +267,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "",
@@ -275,9 +275,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullAll,
+				TrailingNullLevel: InfoNullLevelAll,
 			},
 			IsEmpty: true,
 		},
@@ -291,7 +291,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Ideographic: GroupInfo{
 					FamilyName:        "",
@@ -299,7 +299,7 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
 				Phonetic: GroupInfo{
 					FamilyName:        "",
@@ -307,9 +307,9 @@ func TestInfo(t *testing.T) {
 					MiddleName:        "",
 					NamePrefix:        "",
 					NameSuffix:        "",
-					TrailingNullLevel: GroupNullNone,
+					TrailingNullLevel: GroupNullLevelNone,
 				},
-				TrailingNullLevel: InfoNullNone,
+				TrailingNullLevel: InfoNullLevelNone,
 			},
 			IsEmpty: true,
 		},
@@ -326,11 +326,16 @@ func TestInfo(t *testing.T) {
 				TrailingNullLevel: tc.Expected.TrailingNullLevel,
 			}
 
-			if tc.Raw != newInfo.DCM() {
+			dcm, err := newInfo.DCM()
+			if err != nil {
+				t.Fatal("DCM() returned error:", err)
+			}
+
+			if tc.Raw != dcm {
 				t.Errorf(
 					"formatted string: expected '%v', got '%v'",
 					tc.Raw,
-					newInfo.DCM(),
+					dcm,
 				)
 			}
 		})
@@ -347,21 +352,21 @@ func TestInfo(t *testing.T) {
 				t,
 				tc.Expected.Alphabetic,
 				parsed.Alphabetic,
-				tc.Expected.Alphabetic.DCM(),
+				tc.Expected.Alphabetic.MustDCM(),
 				"Alphabetic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Ideographic,
 				parsed.Ideographic,
-				tc.Expected.Ideographic.DCM(),
+				tc.Expected.Ideographic.MustDCM(),
 				"Ideographic",
 			)
 			checkGroupInfo(
 				t,
 				tc.Expected.Phonetic,
 				parsed.Phonetic,
-				tc.Expected.Phonetic.DCM(),
+				tc.Expected.Phonetic.MustDCM(),
 				"Phonetic",
 			)
 		})
@@ -450,8 +455,14 @@ func TestInfo_WithNullSeparators(t *testing.T) {
 	altered := parsed.WithTrailingNulls()
 
 	expected := "Potter^Harry^^^=^^^^=^^^^"
-	if altered.DCM() != expected {
-		t.Errorf("expected '%v', got '%v'", expected, altered.DCM())
+
+	dcm, err := altered.DCM()
+	if err != nil {
+		t.Fatal("DCM() returned error:", err)
+	}
+
+	if dcm != expected {
+		t.Errorf("expected '%v', got '%v'", expected, dcm)
 	}
 }
 
@@ -466,8 +477,14 @@ func TestInfo_WithoutNullSeparators(t *testing.T) {
 	altered := parsed.WithoutTrailingNulls()
 
 	expected := "Potter^Harry"
-	if altered.DCM() != expected {
-		t.Errorf("expected '%v', got '%v'", expected, altered.DCM())
+
+	dcm, err := altered.DCM()
+	if err != nil {
+		t.Fatal("DCM() returned error", err)
+	}
+
+	if dcm != expected {
+		t.Errorf("expected '%v', got '%v'", expected, dcm)
 	}
 }
 
@@ -482,16 +499,16 @@ func TestInfo_DCM_panic(t *testing.T) {
 		defer func() {
 			recovered = recover()
 		}()
-		groupInfo.DCM()
+		groupInfo.MustDCM()
 	}()
 
 	if recovered == nil {
-		t.Error("did not recover panic")
+		t.Fatal("did not recover panic")
 	}
 
 	err, ok := recovered.(error)
 	if !ok {
-		t.Error("recovered panic was not error")
+		t.Fatal("recovered panic was not error")
 	}
 
 	if err.Error() != "TrailingNullLevel exceeded maximum: cannot be greater than 2, got 3" {

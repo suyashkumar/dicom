@@ -20,18 +20,18 @@ type GroupTrailingNullLevel uint
 // Otherwise, returns the name of the section that comes after the highest present null
 // separator.
 //
-// String will panic if called on a value that exceeds GroupNullAll.
+// String will panic if called on a value that exceeds GroupNullLevelAll.
 func (level GroupTrailingNullLevel) String() string {
 	switch level {
-	case GroupNullNone:
+	case GroupNullLevelNone:
 		return "NONE"
-	case GroupNullGiven:
+	case GroupNullLevelGiven:
 		return "GivenName"
-	case GroupNullMiddle:
+	case GroupNullLevelMiddle:
 		return "MiddleName"
-	case GroupNullPrefix:
+	case GroupNullLevelPrefix:
 		return "NamePrefix"
-	case GroupNullAll:
+	case GroupNullLevelAll:
 		return "ALL"
 	default:
 		panic(validateGroupNullSepLevel(level))
@@ -39,32 +39,32 @@ func (level GroupTrailingNullLevel) String() string {
 }
 
 const (
-	// GroupNullNone will render no null seps.
-	GroupNullNone GroupTrailingNullLevel = iota
+	// GroupNullLevelNone will render no null seps.
+	GroupNullLevelNone GroupTrailingNullLevel = iota
 
 	// NullSepGiven will render null separators up to the separator before the
 	// GroupInfo.GivenName segment
-	GroupNullGiven
+	GroupNullLevelGiven
 
 	// NullSepGiven will render null separators up to the separator before the
 	// GroupInfo.MiddleName segment
-	GroupNullMiddle
+	GroupNullLevelMiddle
 
 	// NullSepGiven will render null separators up to the separator before the
 	// GroupInfo.NamePrefix segment
-	GroupNullPrefix
+	GroupNullLevelPrefix
 
 	// NullSepGiven will render null separators up to the separator before the
 	// GroupInfo.NameSuffix segment (ALL possible separators).
-	GroupNullAll
+	GroupNullLevelAll
 )
 
 func validateGroupNullSepLevel(level GroupTrailingNullLevel) error {
-	if level <= GroupNullAll {
+	if level <= GroupNullLevelAll {
 		return nil
 	}
 
-	return newErrNullSepLevelInvalid(uint(GroupNullAll), uint(level))
+	return newErrNullSepLevelInvalid(uint(GroupNullLevelAll), uint(level))
 }
 
 // GroupInfo holds the parsed information for any one of these groups the person name
@@ -86,7 +86,7 @@ type GroupInfo struct {
 	NameSuffix string
 
 	// TrailingNullLevel contains the highest present null '^' separator in the DCM()
-	// value. For most use cases GroupNullAll or GroupNullNone should be used when
+	// value. For most use cases GroupNullLevelAll or GroupNullLevelNone should be used when
 	// creating new PN values. Use other levels only if you know what you are doing!
 	TrailingNullLevel GroupTrailingNullLevel
 }
@@ -113,12 +113,14 @@ func (group GroupInfo) DCM() (string, error) {
 }
 
 // MustDCM is as DCM, but panics on error.
-func (group GroupInfo) MustDCM() (string, error) {
+//
+// MustDCM will only panic if TrailingNullLevel exceeds GroupNullLevelAll.
+func (group GroupInfo) MustDCM() string {
 	dcm, err := group.DCM()
 	if err != nil {
 		panic(err)
 	}
-	return dcm, nil
+	return dcm
 }
 
 // IsEmpty returns true if all group segments are empty, even if Raw value was "^^^^".
@@ -143,7 +145,7 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 	groupInfo := GroupInfo{}
 
 	// Start off with our null segment level being None
-	nullSepLevel := GroupNullNone
+	nullSepLevel := GroupNullLevelNone
 	for i, groupValue := range segments {
 		// If this segment is empty, it means there is a null sep here. Our null sep
 		// level needs to reflect this.
@@ -152,7 +154,7 @@ func groupFromValueString(groupString string, group pnGroup) (GroupInfo, error) 
 		} else {
 			// Otherwise, if there is a non-zero string value, there is no null sep
 			// after it.
-			nullSepLevel = GroupNullNone
+			nullSepLevel = GroupNullLevelNone
 		}
 
 		switch i {

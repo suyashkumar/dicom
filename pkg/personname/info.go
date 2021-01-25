@@ -54,7 +54,7 @@ func (level InfoTrailingNullLevel) String() string {
 	case InfoNullLevelAll:
 		return "ALL"
 	default:
-		return "INVALID"
+		return "[INVALID]"
 	}
 }
 

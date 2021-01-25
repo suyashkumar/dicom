@@ -370,7 +370,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 }
 
 // TestGroupInfo_DCM_interiorNullsExceedTrailingLevel tests that if a group has interior
-// null values that exceed the
+// null values that exceed the TrailingNullLevel, the interior nulls still get rendered.
 func TestGroupInfo_DCM_interiorNullsExceedTrailingLevel(t *testing.T) {
 	groupInfo := GroupInfo{
 		FamilyName:        "CROUCH",

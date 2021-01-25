@@ -34,7 +34,7 @@ func (level GroupTrailingNullLevel) String() string {
 	case GroupNullLevelAll:
 		return "ALL"
 	default:
-		panic(validateGroupNullSepLevel(level))
+		return "[INVALID]"
 	}
 }
 

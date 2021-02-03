@@ -2,6 +2,7 @@ package dcmtime
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -20,29 +21,52 @@ type Time struct {
 // NOTE: Time zones are ignored in this operation, as TM does not support encoding them.
 // Make sure values are converted to UTC before passing if that is the desired output.
 func (tm Time) DCM() string {
-	tmVal := fmt.Sprintf("%02d", tm.Time.Hour())
+	builder := new(strings.Builder)
+
+	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
 	if !isIncluded(PrecisionMinutes, tm.Precision) {
-		return tmVal
+		return builder.String()
 	}
 
-	tmVal += fmt.Sprintf("%02d", tm.Time.Minute())
+	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Minute()))
 	if !isIncluded(PrecisionSeconds, tm.Precision) {
-		return tmVal
+		return builder.String()
 	}
 
-	tmVal += fmt.Sprintf("%02d", tm.Time.Second())
+	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Second()))
 	if !isIncluded(PrecisionMS1, tm.Precision) {
-		return tmVal
+		return builder.String()
 	}
 
-	tmVal += "." + truncateMilliseconds(tm.Time.Nanosecond(), tm.Precision)
+	builder.WriteRune('.')
+	builder.WriteString(truncateMilliseconds(tm.Time.Nanosecond(), tm.Precision))
 
-	return tmVal
+	return builder.String()
 }
 
 // String implements fmt.Stringer.
 func (tm Time) String() string {
-	return tm.DCM()
+	builder := new(strings.Builder)
+
+	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
+	if !isIncluded(PrecisionMinutes, tm.Precision) {
+		return builder.String()
+	}
+
+	builder.WriteString(fmt.Sprintf(":%02d", tm.Time.Minute()))
+	if !isIncluded(PrecisionSeconds, tm.Precision) {
+		return builder.String()
+	}
+
+	builder.WriteString(fmt.Sprintf(":%02d", tm.Time.Second()))
+	if !isIncluded(PrecisionMS1, tm.Precision) {
+		return builder.String()
+	}
+
+	builder.WriteRune('.')
+	builder.WriteString(truncateMilliseconds(tm.Time.Nanosecond(), tm.Precision))
+
+	return builder.String()
 }
 
 // Holds group indexes for a given source types regex.

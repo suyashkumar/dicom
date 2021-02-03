@@ -3,6 +3,7 @@ package dcmtime
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -10,9 +11,13 @@ import (
 type Date struct {
 	// Time is the underlying time.Time value.
 	Time time.Time
+
 	// Precision with which the raw DA value was stored. For instance, a Date value
 	// with a precision of PrecisionYear ONLY stored the year.
 	Precision PrecisionLevel
+
+	// IsNEMA will be true if this is a legacy NEMA-300 formatted value (1999.01.03).
+	IsNEMA bool
 }
 
 // DCM converts time.Time value to dicom DA string. Values are truncated to the
@@ -22,24 +27,43 @@ type Date struct {
 // Make sure values are converted to UTC before passing if that is the desired output.
 func (da Date) DCM() string {
 	year, month, day := da.Time.Date()
+	builder := new(strings.Builder)
 
-	daVal := fmt.Sprintf("%04d", year)
+	builder.WriteString(fmt.Sprintf("%04d", year))
 	if !isIncluded(PrecisionMonth, da.Precision) {
-		return daVal
+		return builder.String()
 	}
 
-	daVal += fmt.Sprintf("%02d", month)
+	if da.IsNEMA {
+		builder.WriteString(".")
+	}
+	builder.WriteString(fmt.Sprintf("%02d", month))
 	if !isIncluded(PrecisionDay, da.Precision) {
-		return daVal
+		return builder.String()
 	}
 
-	daVal += fmt.Sprintf("%02d", day)
-	return daVal
+	if da.IsNEMA {
+		builder.WriteString(".")
+	}
+	builder.WriteString(fmt.Sprintf("%02d", day))
+	return builder.String()
 }
 
 // String implements fmt.Stringer.
 func (da Date) String() string {
-	return da.DCM()
+	builder := new(strings.Builder)
+	_, _ = builder.WriteString(fmt.Sprintf("%04d", da.Time.Year()))
+	if !isIncluded(PrecisionMonth, da.Precision) {
+		return builder.String()
+	}
+
+	_, _ = builder.WriteString(fmt.Sprintf("-%02d", da.Time.Month()))
+	if !isIncluded(PrecisionDay, da.Precision) {
+		return builder.String()
+	}
+
+	_, _ = builder.WriteString(fmt.Sprintf("-%02d", da.Time.Day()))
+	return builder.String()
 }
 
 // Holds group indexes for a given source types regex.
@@ -121,6 +145,7 @@ func ParseDate(daString string, allowNEMA bool) (Date, error) {
 
 	// Iterate over our two regexes and attempt them.
 	var matchesFound bool
+	var isNema bool
 	for _, thisRegex := range [2]*regexp.Regexp{daRegex, daRegexNema} {
 		matches = thisRegex.FindStringSubmatch(daString)
 		if hasMatches(matches, daString) {
@@ -132,6 +157,7 @@ func ParseDate(daString string, allowNEMA bool) (Date, error) {
 			// marking we have found a match
 			break
 		}
+		isNema = true
 	}
 
 	if !matchesFound {
@@ -157,6 +183,7 @@ func ParseDate(daString string, allowNEMA bool) (Date, error) {
 
 	return Date{
 		Time:      parsed,
+		IsNEMA:    isNema,
 		Precision: precision,
 	}, nil
 }

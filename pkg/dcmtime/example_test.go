@@ -7,7 +7,7 @@ import (
 )
 
 // Parse a date string.
-func ExampleParseDA() {
+func ExampleParseDate() {
 	// This is a DA value like we would expect
 	daString := "20201210"
 
@@ -18,19 +18,19 @@ func ExampleParseDA() {
 	}
 
 	fmt.Println("TIME VALUE:", da.Time)
-	fmt.Println("PRECISION : ", da.Precision)
+	fmt.Println("PRECISION :", da.Precision)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 00:00:00 +0000 +0000
-	// PRECISION :  FULL
+	// PRECISION : FULL
 }
 
 // Parse a date string missing dat values.
-func ExampleParseDA_lessPrecision() {
+func ExampleParseDate_lessPrecision() {
 	// This is a DA value like we would expect, but it is missing the day value.
 	daString := "202012"
 
-	// We are parsing the date string without allowing nema.
+	// We are parsing the date string without allowing NEMA-300 formatted dates.
 	da, err := ParseDate(daString, false)
 	if err != nil {
 		panic(err)
@@ -40,15 +40,20 @@ func ExampleParseDA_lessPrecision() {
 	fmt.Println("TIME MONTH:", da.Time.Month())
 	// It also reports the precision, of the value. This value is Precision.Month,
 	// so we know that even though da.Time.Day() will equal 1, we should disregard it.
-	fmt.Println("PRECISION : ", da.Precision)
+
+	fmt.Println("PRECISION :", da.Precision)
+
+	// This date is not a NEMA-300 date.
+	fmt.Println("IS NEMA   :", da.IsNEMA)
 
 	// Output:
 	// TIME MONTH: December
-	// PRECISION :  MONTH
+	// PRECISION : MONTH
+	// IS NEMA   : false
 }
 
 // Parse a NEMA date string.
-func ExampleParseDA_nema() {
+func ExampleParseDate_nema() {
 	// This is a DA value like we would expect, but it is missing the day value.
 	daString := "2020.12.10"
 
@@ -72,12 +77,15 @@ func ExampleParseDA_nema() {
 	}
 
 	fmt.Println("TIME VALUE:", da.Time)
-	fmt.Println("PRECISION : ", da.Precision)
+	fmt.Println("PRECISION :", da.Precision)
+	// This is a NEMA-300 date.
+	fmt.Println("IS NEMA   :", da.IsNEMA)
 
 	// Output:
 	// ERROR     : error parsing dicom DA (date) value -- expected format is 'YYYYMMDD'. for more details on proper DA value formatting, see here: http://dicom.nema.org/medical/dicom/current/output/html/part05.html#table_6.2-1
 	// TIME VALUE: 2020-12-10 00:00:00 +0000 +0000
-	// PRECISION :  FULL
+	// PRECISION : FULL
+	// IS NEMA   : true
 }
 
 func ExampleDate() {
@@ -91,13 +99,49 @@ func ExampleDate() {
 	}
 
 	// Create a nw DA object like so:
-	da := Date{Time: date, Precision: PrecisionFull}
+	da := Date{
+		Time:      date,
+		Precision: PrecisionFull,
+		IsNEMA:    false,
+	}
 
 	// Get the DICOM string value
-	fmt.Println("DA:", da.DCM())
+	fmt.Println("DCM   :", da.DCM())
+
+	// Our String() method will yield a more readable non-DICOM-compliant value.
+	fmt.Println("STRING:", da.String())
 
 	// Output:
-	// DA: 20060102
+	// DCM   : 20060102
+	// STRING: 2006-01-02
+}
+
+func ExampleDate_nema300() {
+	// We'll use the reference date as our date
+	date, err := time.Parse(
+		"Mon Jan 2, 2006",
+		"Mon Jan 2, 2006",
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a nw DA object like so:
+	da := Date{
+		Time:      date,
+		Precision: PrecisionFull,
+		IsNEMA:    true,
+	}
+
+	// Get the DICOM string value, this will have period separators ala NEMA-300.
+	fmt.Println("DCM   :", da.DCM())
+
+	// Our String() method will yield a more readable non-DICOM-compliant value.
+	fmt.Println("STRING:", da.String())
+
+	// Output:
+	// DCM   : 2006.01.02
+	// STRING: 2006-01-02
 }
 
 func ExampleDate_precisionYear() {
@@ -108,16 +152,24 @@ func ExampleDate_precisionYear() {
 	}
 
 	// Create a nw DA object that only represent the year like so:
-	da := Date{Time: date, Precision: PrecisionMonth}
+	da := Date{
+		Time:      date,
+		Precision: PrecisionMonth,
+		IsNEMA:    false,
+	}
 
 	// Get the DICOM string value
-	fmt.Println("DA:", da.DCM())
+	fmt.Println("DCM   :", da.DCM())
+
+	// Our String() method will yield a more readable non-DICOM-compliant value.
+	fmt.Println("STRING:", da.String())
 
 	// Output:
-	// DA: 200601
+	// DCM   : 200601
+	// STRING: 2006-01
 }
 
-func ExampleParseTM() {
+func ExampleParseTime() {
 	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
 	tmString := "123001.000431"
 
@@ -127,14 +179,14 @@ func ExampleParseTM() {
 	}
 
 	fmt.Println("TIME VALUE:", tm.Time)
-	fmt.Println("PRECISION : ", tm.Precision)
+	fmt.Println("PRECISION :", tm.Precision)
 
 	// Output:
 	// TIME VALUE: 0001-01-01 12:30:01.000431 +0000 +0000
-	// PRECISION :  FULL
+	// PRECISION : FULL
 }
 
-func ExampleParseTM_precisionMS() {
+func ExampleParseTime_precisionMS() {
 	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
 	tmString := "123001.431"
 
@@ -144,14 +196,14 @@ func ExampleParseTM_precisionMS() {
 	}
 
 	fmt.Println("TIME VALUE:", tm.Time)
-	fmt.Println("PRECISION : ", tm.Precision)
+	fmt.Println("PRECISION :", tm.Precision)
 
 	// Output:
 	// TIME VALUE: 0001-01-01 12:30:01.431 +0000 +0000
-	// PRECISION :  MS3
+	// PRECISION : MS3
 }
 
-func ExampleParseTM_precisionHour() {
+func ExampleParseTime_precisionHour() {
 	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
 	tmString := "12"
 
@@ -161,14 +213,14 @@ func ExampleParseTM_precisionHour() {
 	}
 
 	fmt.Println("TIME VALUE:", tm.Time)
-	fmt.Println("PRECISION : ", tm.Precision)
+	fmt.Println("PRECISION :", tm.Precision)
 
 	// Output:
 	// TIME VALUE: 0001-01-01 12:00:00 +0000 +0000
-	// PRECISION :  HOURS
+	// PRECISION : HOURS
 }
 
-func ExampleNewTM() {
+func ExampleTime() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"15:04:05.000",
@@ -185,13 +237,17 @@ func ExampleNewTM() {
 	}
 
 	// Get the DICOM string value
-	fmt.Println("TM:", tm.DCM())
+	fmt.Println("DCM   :", tm.DCM())
+
+	// Our String() method will yield a more readable non-DICOM-compliant value.
+	fmt.Println("STRING:", tm.String())
 
 	// Output:
-	// TM: 150405.431000
+	// DCM   : 150405.431000
+	// STRING: 15:04:05.431000
 }
 
-func ExampleNewTM_precision3MS() {
+func ExampleTime_precision3MS() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"15:04:05.000",
@@ -208,13 +264,17 @@ func ExampleNewTM_precision3MS() {
 	}
 
 	// Get the DICOM string value
-	fmt.Println("TM:", tm.DCM())
+	fmt.Println("DCM   :", tm.DCM())
+
+	// Our String() method will yield a more readable non-DICOM-compliant value.
+	fmt.Println("STRING:", tm.String())
 
 	// Output:
-	// TM: 150405.431
+	// DCM   : 150405.431
+	// STRING: 15:04:05.431
 }
 
-func ExampleNewTM_precisionMinutes() {
+func ExampleTime_precisionMinutes() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"15:04",
@@ -231,14 +291,18 @@ func ExampleNewTM_precisionMinutes() {
 	}
 
 	// Get the DICOM string value
-	fmt.Println("TM:", tm.DCM())
+	fmt.Println("DCM   :", tm.DCM())
+
+	// Our String() method will yield a more readable non-DICOM-compliant value.
+	fmt.Println("STRING:", tm.String())
 
 	// Output:
-	// TM: 1504
+	// DCM   : 1504
+	// STRING: 15:04
 }
 
 // Parse a datetime string.
-func ExampleParseDT() {
+func ExampleParseDatetime() {
 	// This is a DT value like we would expect
 	daString := "20201210123001.000431+0100"
 
@@ -259,7 +323,7 @@ func ExampleParseDT() {
 }
 
 // Parse a datetime string with no timezone.
-func ExampleParseDT_noTimezone() {
+func ExampleParseDatetime_noTimezone() {
 	// This is a DT value like we would expect
 	daString := "20201210123001.000431"
 
@@ -280,7 +344,7 @@ func ExampleParseDT_noTimezone() {
 }
 
 // Parse a datetime string with no timezone.
-func ExampleParseDT_precisionHour() {
+func ExampleParseDatetime_precisionHour() {
 	// This is a DT value like we would expect
 	daString := "2020121012"
 
@@ -318,10 +382,15 @@ func ExampleDatetime() {
 	}
 
 	// Get the DICOM string value
-	fmt.Println("DT:", dt.DCM())
+	fmt.Println("DCM   :", dt.DCM())
+
+	// Our String() method will yield a more readable non-DICOM-compliant value.
+	fmt.Println("STRING:", dt.String())
+
 
 	// Output:
-	// DT: 20060102150405.123456+0100
+	// DCM   : 20060102150405.123456+0100
+	// STRING: 2006-01-02 15:04:05.123456 +01:00
 }
 
 func ExampleDatetime_noOffset() {

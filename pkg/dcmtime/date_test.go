@@ -8,13 +8,15 @@ import (
 func TestParseDate(t *testing.T) {
 	testCases := []struct {
 		DAValue           string
+		ExpectedString    string
 		Expected          time.Time
 		ExpectedPrecision PrecisionLevel
 		AllowNema         bool
 	}{
 		// DICOM full date
 		{
-			DAValue: "20200304",
+			DAValue:        "20200304",
+			ExpectedString: "2020-03-04",
 			Expected: time.Date(
 				2020,
 				3,
@@ -30,7 +32,8 @@ func TestParseDate(t *testing.T) {
 		},
 		// DICOM no day
 		{
-			DAValue: "202003",
+			DAValue:        "202003",
+			ExpectedString: "2020-03",
 			Expected: time.Date(
 				2020,
 				3,
@@ -46,7 +49,8 @@ func TestParseDate(t *testing.T) {
 		},
 		// DICOM no month
 		{
-			DAValue: "2020",
+			DAValue:        "2020",
+			ExpectedString: "2020",
 			Expected: time.Date(
 				2020,
 				1,
@@ -62,7 +66,8 @@ func TestParseDate(t *testing.T) {
 		},
 		// NEMA full date
 		{
-			DAValue: "2020.03.04",
+			DAValue:        "2020.03.04",
+			ExpectedString: "2020-03-04",
 			Expected: time.Date(
 				2020,
 				3,
@@ -78,7 +83,8 @@ func TestParseDate(t *testing.T) {
 		},
 		// NEMA no day
 		{
-			DAValue: "2020.03",
+			DAValue:        "2020.03",
+			ExpectedString: "2020-03",
 			Expected: time.Date(
 				2020,
 				3,
@@ -94,7 +100,8 @@ func TestParseDate(t *testing.T) {
 		},
 		// NEMA no month
 		{
-			DAValue: "2020",
+			DAValue:        "2020",
+			ExpectedString: "2020",
 			Expected: time.Date(
 				2020,
 				1,
@@ -111,8 +118,15 @@ func TestParseDate(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.DAValue, func(t *testing.T) {
-			parsed, err := ParseDate(tc.DAValue, tc.AllowNema)
+		nameNema := ""
+		if tc.AllowNema {
+			nameNema = "_AllowNema"
+		}
+
+		var parsed Date
+		t.Run(tc.DAValue+nameNema, func(t *testing.T) {
+			var err error
+			parsed, err = ParseDate(tc.DAValue, tc.AllowNema)
 			if err != nil {
 				t.Fatal("parse err:", err)
 			}
@@ -131,6 +145,26 @@ func TestParseDate(t *testing.T) {
 					"precision: expected %v, got %v",
 					tc.ExpectedPrecision.String(),
 					parsed.Precision.String(),
+				)
+			}
+		})
+
+		t.Run(tc.DAValue+nameNema+"_String", func(t *testing.T) {
+			stringVal := parsed.String()
+			if stringVal != tc.ExpectedString {
+				t.Fatalf(
+					"got String() value '%v', expected '%v'",
+					stringVal,
+					tc.ExpectedString,
+				)
+			}
+		})
+
+		t.Run(tc.DAValue+nameNema+"_DCM", func(t *testing.T) {
+			dcmVal := parsed.DCM()
+			if dcmVal != tc.DAValue {
+				t.Fatalf(
+					"got DCM() value '%v', expected '%v'", dcmVal, tc.DAValue,
 				)
 			}
 		})

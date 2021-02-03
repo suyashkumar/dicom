@@ -188,11 +188,12 @@ func TestParseTime(t *testing.T) {
 	}
 }
 
-func TestTime_DCM(t *testing.T) {
+func TestTime_Methods(t *testing.T) {
 	testCases := []struct {
-		Time      time.Time
-		Precision PrecisionLevel
-		Expected  string
+		Time           time.Time
+		Precision      PrecisionLevel
+		ExpectedDCM    string
+		ExpectedString string
 	}{
 		// Precision.Full
 		{
@@ -206,8 +207,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionFull,
-			Expected:  "010203.456789",
+			Precision:      PrecisionFull,
+			ExpectedDCM:    "010203.456789",
+			ExpectedString: "01:02:03.456789",
 		},
 		// Precision.Full, leading zeros
 		{
@@ -221,8 +223,9 @@ func TestTime_DCM(t *testing.T) {
 				456789,
 				time.UTC,
 			),
-			Precision: PrecisionFull,
-			Expected:  "010203.000456",
+			Precision:      PrecisionFull,
+			ExpectedDCM:    "010203.000456",
+			ExpectedString: "01:02:03.000456",
 		},
 		// Precision.Full, tail truncated
 		{
@@ -236,8 +239,9 @@ func TestTime_DCM(t *testing.T) {
 				456789999,
 				time.UTC,
 			),
-			Precision: PrecisionFull,
-			Expected:  "010203.456789",
+			Precision:      PrecisionFull,
+			ExpectedDCM:    "010203.456789",
+			ExpectedString: "01:02:03.456789",
 		},
 		// Precision.MS5
 		{
@@ -251,8 +255,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionMS5,
-			Expected:  "010203.45678",
+			Precision:      PrecisionMS5,
+			ExpectedDCM:    "010203.45678",
+			ExpectedString: "01:02:03.45678",
 		},
 		// Precision.MS4
 		{
@@ -266,8 +271,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionMS4,
-			Expected:  "010203.4567",
+			Precision:      PrecisionMS4,
+			ExpectedDCM:    "010203.4567",
+			ExpectedString: "01:02:03.4567",
 		},
 		// Precision.MS3
 		{
@@ -281,8 +287,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionMS3,
-			Expected:  "010203.456",
+			Precision:      PrecisionMS3,
+			ExpectedDCM:    "010203.456",
+			ExpectedString: "01:02:03.456",
 		},
 		// Precision.MS2
 		{
@@ -296,8 +303,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionMS2,
-			Expected:  "010203.45",
+			Precision:      PrecisionMS2,
+			ExpectedDCM:    "010203.45",
+			ExpectedString: "01:02:03.45",
 		},
 		// Precision.MS1
 		{
@@ -311,8 +319,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionMS1,
-			Expected:  "010203.4",
+			Precision:      PrecisionMS1,
+			ExpectedDCM:    "010203.4",
+			ExpectedString: "01:02:03.4",
 		},
 		// Precision.Seconds
 		{
@@ -326,8 +335,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionSeconds,
-			Expected:  "010203",
+			Precision:      PrecisionSeconds,
+			ExpectedDCM:    "010203",
+			ExpectedString: "01:02:03",
 		},
 		// Precision.Minutes
 		{
@@ -341,8 +351,9 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionMinutes,
-			Expected:  "0102",
+			Precision:      PrecisionMinutes,
+			ExpectedDCM:    "0102",
+			ExpectedString: "01:02",
 		},
 		// Precision.Hours
 		{
@@ -356,20 +367,35 @@ func TestTime_DCM(t *testing.T) {
 				456789000,
 				time.UTC,
 			),
-			Precision: PrecisionHours,
-			Expected:  "01",
+			Precision:      PrecisionHours,
+			ExpectedDCM:    "01",
+			ExpectedString: "01",
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.Expected, func(t *testing.T) {
-			tm := Time{
-				Time:      tc.Time,
-				Precision: tc.Precision,
-			}
+		tm := Time{
+			Time:      tc.Time,
+			Precision: tc.Precision,
+		}
 
-			if tm.DCM() != tc.Expected {
-				t.Errorf("DCM(): expected '%v', got '%v'", tc.Expected, tm.DCM())
+		t.Run(tc.ExpectedDCM+"_DCM", func(t *testing.T) {
+			dcmVal := tm.DCM()
+			if dcmVal != tc.ExpectedDCM {
+				t.Errorf(
+					"DCM(): expected '%v', got '%v'", tc.ExpectedDCM, dcmVal,
+				)
+			}
+		})
+
+		t.Run(tc.ExpectedDCM+"_String", func(t *testing.T) {
+			strVal := tm.String()
+			if strVal != tc.ExpectedString {
+				t.Errorf(
+					"String(): expected '%v', got '%v'",
+					tc.ExpectedString,
+					strVal,
+				)
 			}
 		})
 	}

@@ -387,7 +387,6 @@ func ExampleDatetime() {
 	// Our String() method will yield a more readable non-DICOM-compliant value.
 	fmt.Println("STRING:", dt.String())
 
-
 	// Output:
 	// DCM   : 20060102150405.123456+0100
 	// STRING: 2006-01-02 15:04:05.123456 +01:00

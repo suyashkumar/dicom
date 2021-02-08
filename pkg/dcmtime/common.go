@@ -17,14 +17,12 @@ func isIncluded(check PrecisionLevel, precision PrecisionLevel) bool {
 }
 
 // truncateMilliseconds truncate nanosecond time.Time value to arbitrary precision.
-func truncateMilliseconds(
-	nanoSeconds int, precision PrecisionLevel,
-) (millisecondsStr string) {
+func truncateMilliseconds(nanoSeconds int, precision PrecisionLevel) (millis string) {
 	milliseconds := nanoSeconds / 1000
-	millisecondsStr = fmt.Sprintf("%06d", milliseconds)
-	millisecondsStr = millisecondsStr[:6-(PrecisionFull-precision)]
+	millis = fmt.Sprintf("%06d", milliseconds)
+	millis = millis[:6-(PrecisionFull-precision)]
 
-	return millisecondsStr
+	return millis
 }
 
 // Const for time.Time timezone. We don't want a timezone because we don't REALLY know
@@ -41,19 +39,24 @@ type durationInfo struct {
 	FractalPrecision PrecisionLevel
 }
 
-// extractDurationInfo extracts a piece of DA, TM, or DT info from a parsed regex.
-func extractDurationInfo(subMatches []string, index int, fractal bool) (
-	info durationInfo, err error,
-) {
+// extractDurationInfo extracts a piece of DA, TM, or DT info from a parsed regex,
+// handling all validation checks, emtpy values, etc.
+func extractDurationInfo(subMatches []string, index int, fractal bool) (durationInfo, error) {
+	info := durationInfo{}
+
+	// If the submatch array does not contain the group index we are looking for, then
+	// we need to return a parsing error.
 	if len(subMatches) <= index {
 		return info, errors.New("not enough sub-matches")
 	}
 
+	// Get the value of our capture group.
 	valueStr := subMatches[index]
-	// If there was no match for the specific subgroup, this value is 0.
-	if valueStr == "" {
-		valueStr = "0"
-	} else {
+
+	// If there was no match for the specific subgroup, this value is 0, and we leave
+	// info.Present as false.
+	if valueStr != "" {
+		// Otherwise set the info.Present to true
 		info.Present = true
 	}
 
@@ -67,9 +70,13 @@ func extractDurationInfo(subMatches []string, index int, fractal bool) (
 		info.FractalPrecision = PrecisionFull - PrecisionLevel(missingPlaces-3)
 	}
 
-	info.Value, err = strconv.Atoi(valueStr)
-	if err != nil {
-		return info, fmt.Errorf("error parsing int: %w", err)
+	// If our info is present, parse the value into an int.
+	if info.Present {
+		var err error
+		info.Value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			return info, fmt.Errorf("error parsing int: %w", err)
+		}
 	}
 
 	return info, nil
@@ -79,7 +86,8 @@ func extractDurationInfo(subMatches []string, index int, fractal bool) (
 // updates the precision based on whether the info was present.
 //
 // levelIsFull should be set to true if the level we are checking is "Full" for the
-// type of value we are parsing.
+// type of value we are parsing. For instance, PrecisionHours would be the full
+// precision of a TM value, and we'll use PrecisionFull instead.
 func updatePrecision(
 	current PrecisionLevel,
 	info durationInfo,
@@ -97,15 +105,26 @@ func updatePrecision(
 	return infoLevel
 }
 
-// hasMatches checks if a regex result has matches.
-func hasMatches(matches []string, original string) bool {
-	// There must be at least one full match
-	if len(matches) < 1 {
+// validateRegexpMatchResult validates a regexp.Match result from a match on the
+// rawValue string.
+func validateRegexpMatchResult(matchResult []string, rawValue string) bool {
+	// There must be at least one full match. If the result is empty, then there was no
+	// match, and we can return false immediately.
+	if len(matchResult) == 0 {
 		return false
 	}
 
-	// If the full match is not the entire original string, then it is not a match.
-	if matches[0] != original {
+	// If the full match is not the entire rawValue string, then it is not a valid
+	// value.
+	//
+	// For example, when parsing a TM value, "123004.4567SomeText" would
+	// return a valid result with the first entry being the full match of "123004.4567",
+	// even though the input is obviously an illegal value.
+	//
+	// We need to validate that the first entry (full expression match) matchResult the
+	// ENTIRE rawValue string. Otherwise we are dealing with a non-valid value that
+	// HAPPENS to contain a valid value inside of it.
+	if matchResult[0] != rawValue {
 		return false
 	}
 
@@ -115,33 +134,13 @@ func hasMatches(matches []string, original string) bool {
 
 // writeTimezoneString writes the string representation of time to builder.
 //
-// if useSeps is true, hours and minutes will be separated by a ":",
+// if useSeps is true, hours and minutes will be separated by a ":". This is used for
+// the human-readable string.
 func writeTimezoneString(builder *strings.Builder, time time.Time, useSeps bool) {
-	// Get the seconds offset from the zone.
-	_, offset := time.Zone()
-
-	// Deduce the offset sign, then invert the offset to positive if it is negative.
-	offsetSign := "+"
-	if offset < 0 {
-		offsetSign = "-"
-		offset *= -1
-	}
-
-	// Divide seconds by 60 to get minutes
-	offsetMinutes := offset / 60
-	// Hours equal minutes divided by 60
-	offsetHours := offsetMinutes / 60
-	// Set minutes to remainder of minutes divided by 60
-	offsetMinutes %= 60
-
-	// Add the offset sign and hours.
-	builder.WriteString(fmt.Sprintf("%v%02d", offsetSign, offsetHours))
-
-	// If we are using seps, add a colon.
+	layout := "-0700"
 	if useSeps {
-		builder.WriteRune(':')
+		layout = "-07:00"
 	}
-
-	// Add the Minutes.
-	builder.WriteString(fmt.Sprintf("%02d", offsetMinutes))
+	tzString := time.Format(layout)
+	builder.WriteString(tzString)
 }

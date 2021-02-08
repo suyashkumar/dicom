@@ -73,7 +73,7 @@ func (dt Datetime) String() string {
 // offset presence as UTC.
 func ParseDatetime(dtString string) (Datetime, error) {
 	matches := dtRegex.FindStringSubmatch(dtString)
-	if !hasMatches(matches, dtString) {
+	if !validateRegexpMatchResult(matches, dtString) {
 		return Datetime{}, ErrParseDT
 	}
 
@@ -89,7 +89,7 @@ func ParseDatetime(dtString string) (Datetime, error) {
 		return Datetime{}, err
 	}
 
-	var hasOffet bool
+	var hasOffset bool
 
 	offsetHours, err := extractDurationInfo(matches, dtRegexGroupOffsetHours, false)
 	if err != nil {
@@ -98,7 +98,7 @@ func ParseDatetime(dtString string) (Datetime, error) {
 	// If hours are not present, there is either no offset or the regex will fail,
 	// so we only need to check this here.
 	if offsetHours.Present {
-		hasOffet = true
+		hasOffset = true
 	}
 
 	offsetMinutes, err := extractDurationInfo(matches, dtRegexGroupOffsetMinutes, false)
@@ -133,6 +133,6 @@ func ParseDatetime(dtString string) (Datetime, error) {
 	return Datetime{
 		Time:      parsed,
 		Precision: precision,
-		NoOffset:  hasOffet,
+		NoOffset:  hasOffset,
 	}, nil
 }

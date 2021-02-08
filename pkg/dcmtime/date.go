@@ -34,9 +34,11 @@ func (da Date) DCM() string {
 		return builder.String()
 	}
 
+	// If this is a NEMA-formatted time we need to separate the values with a ".".
 	if da.IsNEMA {
 		builder.WriteString(".")
 	}
+
 	builder.WriteString(fmt.Sprintf("%02d", month))
 	if !isIncluded(PrecisionDay, da.Precision) {
 		return builder.String()
@@ -45,6 +47,7 @@ func (da Date) DCM() string {
 	if da.IsNEMA {
 		builder.WriteString(".")
 	}
+
 	builder.WriteString(fmt.Sprintf("%02d", day))
 	return builder.String()
 }
@@ -145,10 +148,10 @@ func ParseDate(daString string, allowNEMA bool) (Date, error) {
 
 	// Iterate over our two regexes and attempt them.
 	var matchesFound bool
-	var isNema bool
+	var isNEMA bool
 	for _, thisRegex := range [2]*regexp.Regexp{daRegex, daRegexNema} {
 		matches = thisRegex.FindStringSubmatch(daString)
-		if hasMatches(matches, daString) {
+		if validateRegexpMatchResult(matches, daString) {
 			// If we find a match, mark it as found and, break out.
 			matchesFound = true
 			break
@@ -157,7 +160,10 @@ func ParseDate(daString string, allowNEMA bool) (Date, error) {
 			// marking we have found a match
 			break
 		}
-		isNema = true
+
+		// Otherwise mark that we are failed parsing a modern DICOM value and a valid
+		// result will be a NEMA-300 value.
+		isNEMA = true
 	}
 
 	if !matchesFound {
@@ -183,7 +189,7 @@ func ParseDate(daString string, allowNEMA bool) (Date, error) {
 
 	return Date{
 		Time:      parsed,
-		IsNEMA:    isNema,
+		IsNEMA:    isNEMA,
 		Precision: precision,
 	}, nil
 }

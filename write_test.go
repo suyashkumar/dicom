@@ -287,8 +287,6 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-				mustNewElement(tag.Rows, []int{2}),
-				mustNewElement(tag.Columns, []int{2}),
 				mustNewElement(tag.BitsAllocated, []int{8}),
 				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: true,
@@ -296,6 +294,31 @@ func TestWrite(t *testing.T) {
 						{
 							Encapsulated:     true,
 							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
+						},
+					},
+				})),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "encapsulated PixelData: multiframe",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: true,
+					Frames: []frame.Frame{
+						{
+							Encapsulated:     true,
+							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
+						},
+						{
+							Encapsulated:     true,
+							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 8}},
 						},
 					},
 				})),

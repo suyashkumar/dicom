@@ -281,6 +281,52 @@ func TestWrite(t *testing.T) {
 			}},
 			expectedError: nil,
 		},
+		{
+			name: "encapsulated PixelData",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: true,
+					Frames: []frame.Frame{
+						{
+							Encapsulated:     true,
+							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
+						},
+					},
+				})),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "encapsulated PixelData: multiframe",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: true,
+					Frames: []frame.Frame{
+						{
+							Encapsulated:     true,
+							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
+						},
+						{
+							Encapsulated:     true,
+							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 8}},
+						},
+					},
+				})),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+			}},
+			expectedError: nil,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -320,8 +366,8 @@ func TestWrite(t *testing.T) {
 				cmpOpts = append(cmpOpts, tc.cmpOpts...)
 
 				if diff := cmp.Diff(
-					readDS.Elements,
 					wantElems,
+					readDS.Elements,
 					cmpOpts...,
 				); diff != "" {
 					t.Errorf("Reading back written dataset led to unexpected diff from source data: %s", diff)
@@ -451,4 +497,9 @@ func TestWriteFloats(t *testing.T) {
 		})
 	}
 
+}
+
+func setUndefinedLength(e *Element) *Element {
+	e.ValueLength = tag.VLUndefinedLength
+	return e
 }

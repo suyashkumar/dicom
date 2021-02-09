@@ -104,16 +104,3 @@ func updatePrecision(
 	}
 	return infoLevel
 }
-
-// writeTimezoneString writes the string representation of time to builder.
-//
-// if useSeps is true, hours and minutes will be separated by a ":". This is used for
-// the human-readable string.
-func writeTimezoneString(builder *strings.Builder, time time.Time, useSeps bool) {
-	layout := "-0700"
-	if useSeps {
-		layout = "-07:00"
-	}
-	tzString := time.Format(layout)
-	builder.WriteString(tzString)
-}

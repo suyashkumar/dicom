@@ -38,7 +38,8 @@ func (dt Datetime) DCM() string {
 		return builder.String()
 	}
 
-	writeTimezoneString(builder, dt.Time, false)
+	// Write the timezone info.
+	builder.WriteString(dt.Time.Format("-0700"))
 
 	return builder.String()
 }
@@ -62,9 +63,8 @@ func (dt Datetime) String() string {
 		return builder.String()
 	}
 
-	// Add the timezone string.
-	builder.WriteRune(' ')
-	writeTimezoneString(builder, dt.Time, true)
+	// Write the timezone info.
+	builder.WriteString(dt.Time.Format(" -07:00"))
 
 	return builder.String()
 }

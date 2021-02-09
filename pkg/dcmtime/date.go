@@ -151,7 +151,7 @@ func ParseDate(daString string, allowNEMA bool) (Date, error) {
 	var isNEMA bool
 	for _, thisRegex := range [2]*regexp.Regexp{daRegex, daRegexNema} {
 		matches = thisRegex.FindStringSubmatch(daString)
-		if validateRegexpMatchResult(matches, daString) {
+		if len(matches) > 0 {
 			// If we find a match, mark it as found and, break out.
 			matchesFound = true
 			break

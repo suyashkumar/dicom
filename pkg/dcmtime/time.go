@@ -142,7 +142,7 @@ func extractTime(
 func ParseTime(tmString string) (Time, error) {
 	matches := tmRegex.FindStringSubmatch(tmString)
 	// If no full match is found, return an error
-	if !validateRegexpMatchResult(matches, tmString) {
+	if len(matches) == 0 {
 		return Time{}, ErrParseTM
 	}
 

@@ -1,6 +1,7 @@
 package dcmtime
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -166,6 +167,69 @@ func TestParseDate(t *testing.T) {
 				t.Fatalf(
 					"got DCM() value '%v', expected '%v'", dcmVal, tc.DAValue,
 				)
+			}
+		})
+	}
+}
+
+func TestParseDateErr(t *testing.T) {
+	testCases := []struct {
+		Name      string
+		BadValue  string
+		AllowNema bool
+	}{
+		{
+			Name:      "TooManyDigits",
+			BadValue:  "101002034",
+			AllowNema: false,
+		},
+		{
+			Name:      "TooManyDigits_AllowNema",
+			BadValue:  "101002034",
+			AllowNema: true,
+		},
+		{
+			Name:      "MissingDigit_Days",
+			BadValue:  "1010023",
+			AllowNema: false,
+		},
+		{
+			Name:      "MissingDigit_Days_AllowNema",
+			BadValue:  "1010023",
+			AllowNema: true,
+		},
+		{
+			Name:      "MissingDigit_Months",
+			BadValue:  "10102",
+			AllowNema: false,
+		},
+		{
+			Name:      "MissingDigit_Months_AllowNema",
+			BadValue:  "10102",
+			AllowNema: true,
+		},
+		{
+			Name:      "MissingDigit_Year",
+			BadValue:  "101",
+			AllowNema: false,
+		},
+		{
+			Name:      "MissingDigit_Year_AllowNema",
+			BadValue:  "101",
+			AllowNema: true,
+		},
+		{
+			Name:      "NemaDate_AllowNemaFalse",
+			BadValue:  "1010.02.03",
+			AllowNema: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			_, err := ParseDate(tc.BadValue, tc.AllowNema)
+			if !errors.Is(err, ErrParseDA) {
+				t.Errorf("expected ErrParseDA, got %v", err)
 			}
 		})
 	}

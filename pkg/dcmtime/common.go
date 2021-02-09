@@ -105,33 +105,6 @@ func updatePrecision(
 	return infoLevel
 }
 
-// validateRegexpMatchResult validates a regexp.Match result from a match on the
-// rawValue string.
-func validateRegexpMatchResult(matchResult []string, rawValue string) bool {
-	// There must be at least one full match. If the result is empty, then there was no
-	// match, and we can return false immediately.
-	if len(matchResult) == 0 {
-		return false
-	}
-
-	// If the full match is not the entire rawValue string, then it is not a valid
-	// value.
-	//
-	// For example, when parsing a TM value, "123004.4567SomeText" would
-	// return a valid result with the first entry being the full match of "123004.4567",
-	// even though the input is obviously an illegal value.
-	//
-	// We need to validate that the first entry (full expression match) matchResult the
-	// ENTIRE rawValue string. Otherwise we are dealing with a non-valid value that
-	// HAPPENS to contain a valid value inside of it.
-	if matchResult[0] != rawValue {
-		return false
-	}
-
-	// Otherwise it's good.
-	return true
-}
-
 // writeTimezoneString writes the string representation of time to builder.
 //
 // if useSeps is true, hours and minutes will be separated by a ":". This is used for

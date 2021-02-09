@@ -1,6 +1,7 @@
 package dcmtime
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -183,6 +184,87 @@ func TestParseTime(t *testing.T) {
 					tc.ExpectedPrecision.String(),
 					parsed.Precision.String(),
 				)
+			}
+		})
+	}
+}
+
+func TestParseTimeErr(t *testing.T) {
+	badValues := []struct {
+		Name     string
+		BadValue string
+	}{
+		{
+			Name:     "Totally Wrong",
+			BadValue: "NotADate",
+		},
+		{
+			Name:     "ValidAtHead",
+			BadValue: "120304.12345SomeText",
+		},
+		{
+			Name:     "ValidAtHead_LineBreak",
+			BadValue: "120304.12345\nSomeText",
+		},
+		{
+			Name:     "ValidAtHead_WhiteSpace",
+			BadValue: "120304.12345 SomeText",
+		},
+		{
+			Name:     "ValidAtTail",
+			BadValue: "SomeText120304.12345",
+		},
+		{
+			Name:     "ValidAtTail_LineBreak",
+			BadValue: "SomeText\n120304.12345",
+		},
+		{
+			Name:     "ExtraDigit_Milliseconds",
+			BadValue: "010304.1234567",
+		},
+		{
+			Name:     "NoMillisecondsWithSeparator",
+			BadValue: "010304.",
+		},
+		{
+			Name:     "ExtraDigit_Seconds",
+			BadValue: "01030405.345",
+		},
+		{
+			Name:     "ExtraDigit_Seconds_NoMilliseconds",
+			BadValue: "01030405",
+		},
+		{
+			Name:     "MissingDigit_Seconds",
+			BadValue: "01034.123456",
+		},
+		{
+			Name:     "MissingDigit_Seconds_NoMilliseconds",
+			BadValue: "01034",
+		},
+		{
+			Name:     "MissingDigit_Minutes",
+			BadValue: "013.123456",
+		},
+		{
+			Name:     "MissingDigit_Minutes_NoMilliseconds",
+			BadValue: "013",
+		},
+		{
+			Name:     "MissingDigit_Hours",
+			BadValue: "1.123456",
+		},
+		{
+			Name:     "MissingDigit_Hours_NoMilliseconds",
+			BadValue: "1",
+		},
+	}
+
+	for _, tc := range badValues {
+		t.Run(tc.Name, func(t *testing.T) {
+			_, err := ParseTime(tc.BadValue)
+			if !errors.Is(err, ErrParseTM) {
+				t.Errorf("got %v, expected error value of type ErrParseTM", err)
 			}
 		})
 	}

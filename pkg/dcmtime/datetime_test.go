@@ -1,6 +1,7 @@
 package dcmtime
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -612,6 +613,171 @@ func TestParseDatetime(t *testing.T) {
 					tc.ExpectedPrecision.String(),
 					parsed.Precision.String(),
 				)
+			}
+		})
+	}
+}
+
+func TestParseDatetimeErr(t *testing.T) {
+	testCases := []struct {
+		Name     string
+		BadValue string
+	}{
+		{
+			Name:     "TotallyWrong",
+			BadValue: "notaDT",
+		},
+		{
+			Name:     "ContainsValidHead",
+			BadValue: "10100203040506.456789+0102SomeText",
+		},
+		{
+			Name:     "ContainsValidHead_LineBreak",
+			BadValue: "10100203040506.456789+0102\nSomeText",
+		},
+		{
+			Name:     "ContainsValidHead_WhiteSpace",
+			BadValue: "10100203040506.456789+0102 SomeText",
+		},
+		{
+			Name:     "ContainsValidTail",
+			BadValue: "SomeText10100203040506.456789+0102",
+		},
+		{
+			Name:     "ContainsValidTail_LineBreak",
+			BadValue: "SomeText\n10100203040506.456789+0102",
+		},
+		{
+			Name:     "ContainsValidTail_WhiteSpace",
+			BadValue: "SomeText 10100203040506.456789+0102",
+		},
+		{
+			Name:     "ExtraDigit_TZ",
+			BadValue: "10100203040506.456789+01023",
+		},
+		{
+			Name:     "MissingDigit_TZ",
+			BadValue: "10100203040506.456789+010",
+		},
+		{
+			Name:     "TZ_NoMinutes",
+			BadValue: "10100203040506.456789+01",
+		},
+		{
+			Name:     "TZ_SingleDigit",
+			BadValue: "10100203040506.456789+1",
+		},
+		{
+			Name:     "TZ_DoubleSign",
+			BadValue: "10100203040506.456789++0102",
+		},
+		{
+			Name:     "TZ_BadSign",
+			BadValue: "10100203040506.456789&0102",
+		},
+		{
+			Name:     "ExtraDigit_Milliseconds",
+			BadValue: "10100203040506.4567891+0102",
+		},
+		{
+			Name:     "ExtraDigit_Milliseconds_NoTZ",
+			BadValue: "10100203040506.4567891",
+		},
+		{
+			Name:     "ExtraDigit_Seconds",
+			BadValue: "101002030405061.456789+0102",
+		},
+		{
+			Name:     "ExtraDigit_Seconds_NoTZ",
+			BadValue: "101002030405061.456789",
+		},
+		{
+			Name:     "ExtraDigit_Seconds_NoMilliseconds",
+			BadValue: "101002030405061",
+		},
+		{
+			Name:     "MissingDigit_Seconds",
+			BadValue: "1010020304056.456789+0102",
+		},
+		{
+			Name:     "MissingDigit_Seconds_NoTZ",
+			BadValue: "1010020304056.456789",
+		},
+		{
+			Name:     "MissingDigit_Seconds_NoMilliseconds",
+			BadValue: "1010020304056",
+		},
+		{
+			Name:     "MissingDigit_Minutes",
+			BadValue: "10100203045.456789+0102",
+		},
+		{
+			Name:     "MissingDigit_Minutes_NoTZ",
+			BadValue: "10100203045.456789",
+		},
+		{
+			Name:     "MissingDigit_Minutes_NoMilliseconds",
+			BadValue: "10100203045",
+		},
+		{
+			Name:     "MissingDigit_Hours",
+			BadValue: "101002034.456789+0102",
+		},
+		{
+			Name:     "MissingDigit_Hours_NoTZ",
+			BadValue: "101002034.456789",
+		},
+		{
+			Name:     "MissingDigit_Hours_NoMilliseconds",
+			BadValue: "101002034",
+		},
+		{
+			Name:     "MissingDigit_Days",
+			BadValue: "1010023.456789+0102",
+		},
+		{
+			Name:     "MissingDigit_Days_NoTZ",
+			BadValue: "1010023.456789",
+		},
+		{
+			Name:     "MissingDigit_Days_NoMilliseconds",
+			BadValue: "1010023",
+		},
+		{
+			Name:     "MissingDigit_Months",
+			BadValue: "10102.456789+0102",
+		},
+		{
+			Name:     "MissingDigit_Months_NoTZ",
+			BadValue: "10102.456789",
+		},
+		{
+			Name:     "MissingDigit_Months_NoMilliseconds",
+			BadValue: "10102.456789",
+		},
+		{
+			Name:     "MissingDigit_Years",
+			BadValue: "101.456789+0102",
+		},
+		{
+			Name:     "MissingDigit_Years_NoTZ",
+			BadValue: "101.456789",
+		},
+		{
+			Name:     "MissingDigit_Years_NoMilliseconds",
+			BadValue: "101.456789",
+		},
+		{
+			Name:     "NoMillisecondsWithSeparator",
+			BadValue: "10100203040506.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			_, err := ParseDatetime(tc.BadValue)
+			if !errors.Is(err, ErrParseDT) {
+				t.Errorf("expected ErrParseDT, got %v", err)
 			}
 		})
 	}

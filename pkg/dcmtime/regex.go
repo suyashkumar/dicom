@@ -4,12 +4,12 @@ import "regexp"
 
 // Parses dicom DA (date) of YYYYMMDD
 var daRegex = regexp.MustCompile(
-	`(?P<YEAR>[0-9]{4})(?P<MONTH>[0-9]{2})?(?P<DAY>[0-9]{2})?`,
+	`^(?P<YEAR>[0-9]{4})(?P<MONTH>[0-9]{2})?(?P<DAY>[0-9]{2})?$`,
 )
 
 // Parses old pre-dicom NEMA spec date of YYYY.MM.DD.
 var daRegexNema = regexp.MustCompile(
-	`(?P<YEAR>[0-9]{4})(?:\.(?P<MONTH>[0-9]{2}))?(?:\.(?P<DAY>[0-9]{2}))?`,
+	`^(?P<YEAR>[0-9]{4})(?:\.(?P<MONTH>[0-9]{2}))?(?:\.(?P<DAY>[0-9]{2}))?$`,
 )
 
 // Sub-match group indexes for DA
@@ -19,14 +19,14 @@ const daRegexGroupDay = 3
 
 // Parses dicom DT (datetime) value of YYYYMMDDHHMMSS.FFFFFF&ZZXX
 var dtRegex = regexp.MustCompile(
-	`(?P<YEAR>[0-9]{4})` +
+	`^(?P<YEAR>[0-9]{4})` +
 		`(?P<MONTH>[0-9]{2})?` +
 		`(?P<DAY>[0-9]{2})?` +
 		`(?P<HOURS>[0-9]{2})?` +
 		`(?P<MINUTES>[0-9]{2})?` +
 		`(?P<SECONDS>[0-9]{2})?` +
-		`(:?\.(?P<FRACTAL>[0-9]+))?(:?(?P<OFFSET_SIGN>[-+])` +
-		`(?P<OFFSET_HOURS>[0-9]{2})(?P<OFFSET_SECONDS>[0-9]{2}))?`,
+		`(:?\.(?P<FRACTAL>[0-9]{1,6}))?(:?(?P<OFFSET_SIGN>[-+])` +
+		`(?P<OFFSET_HOURS>[0-9]{2})(?P<OFFSET_SECONDS>[0-9]{2}))?$`,
 )
 
 // Sub-match group indexes for DT
@@ -43,7 +43,7 @@ const dtRegexGroupOffsetMinutes = 12
 
 // Parses dicom TM (time) value of HHMMSS.FFFFFF.
 var tmRegex = regexp.MustCompile(
-	`(?P<HOURS>[0-9]{2})?(?P<MINUTES>[0-9]{2})?(?P<SECONDS>[0-9]{2})?(?:\.(?P<FRACTAL>[0-9]+))?`,
+	`^(?P<HOURS>[0-9]{2})?(?P<MINUTES>[0-9]{2})?(?P<SECONDS>[0-9]{2})?(?:\.(?P<FRACTAL>[0-9]{1,6}))?$`,
 )
 
 // Sub-match group indexes for TM

@@ -73,7 +73,7 @@ func (dt Datetime) String() string {
 // offset presence as UTC.
 func ParseDatetime(dtString string) (Datetime, error) {
 	matches := dtRegex.FindStringSubmatch(dtString)
-	if !validateRegexpMatchResult(matches, dtString) {
+	if len(matches) == 0 {
 		return Datetime{}, ErrParseDT
 	}
 

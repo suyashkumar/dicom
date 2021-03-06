@@ -22,7 +22,7 @@ type Datetime struct {
 //
 // If NoOffset is true, no offset will be encoded.
 func (dt Datetime) DCM() string {
-	builder := new(strings.Builder)
+	builder := strings.Builder{}
 
 	// We start by using the existing DA and TM formatters, since the bulk of datetime
 	// is just those two formats slammed together.
@@ -46,7 +46,7 @@ func (dt Datetime) DCM() string {
 
 // String implements fmt.Stringer.
 func (dt Datetime) String() string {
-	builder := new(strings.Builder)
+	builder := strings.Builder{}
 
 	// We start by using the existing DA and TM formatters, since the bulk of datetime
 	// is just those two formats slammed together.
@@ -97,7 +97,7 @@ func ParseDatetime(dtString string) (Datetime, error) {
 	}
 	// If hours are not present, there is either no offset or the regex will fail,
 	// so we only need to check this here.
-	if offsetHours.Present {
+	if offsetHours.PresentInSource {
 		hasOffset = true
 	}
 

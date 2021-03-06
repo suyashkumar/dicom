@@ -1,7 +1,6 @@
 package dcmtime
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
@@ -12,7 +11,7 @@ func ExampleParseDate() {
 	daString := "20201210"
 
 	// We are parsing the date string without allowing nema
-	da, err := ParseDate(daString, false)
+	da, err := ParseDate(daString)
 	if err != nil {
 		panic(err)
 	}
@@ -31,7 +30,7 @@ func ExampleParseDate_lessPrecision() {
 	daString := "202012"
 
 	// We are parsing the date string without allowing NEMA-300 formatted dates.
-	da, err := ParseDate(daString, false)
+	da, err := ParseDate(daString)
 	if err != nil {
 		panic(err)
 	}
@@ -54,24 +53,10 @@ func ExampleParseDate_lessPrecision() {
 
 // Parse a NEMA date string.
 func ExampleParseDate_nema() {
-	// This is a DA value like we would expect, but it is missing the day value.
+	// This is a DA value using the legacy NEMA-format.
 	daString := "2020.12.10"
 
-	// We are parsing the date string without allowing nema. This will result in an
-	// error.
-	_, err := ParseDate(daString, false)
-	if err == nil {
-		panic("should have error")
-	}
-	fmt.Println("ERROR     :", err)
-
-	// This error is a ErrParseDA with some extra context, which we can test like so:
-	if !errors.Is(err, ErrParseDA) {
-		panic("bad error test")
-	}
-
-	// But if we allow NEMA-formatted values...
-	da, err := ParseDate(daString, true)
+	da, err := ParseDate(daString)
 	if err != nil {
 		panic(err)
 	}
@@ -82,13 +67,12 @@ func ExampleParseDate_nema() {
 	fmt.Println("IS NEMA   :", da.IsNEMA)
 
 	// Output:
-	// ERROR     : error parsing dicom DA (date) value -- expected format is 'YYYYMMDD'. for more details on proper DA value formatting, see here: http://dicom.nema.org/medical/dicom/current/output/html/part05.html#table_6.2-1
 	// TIME VALUE: 2020-12-10 00:00:00 +0000 +0000
 	// PRECISION : FULL
 	// IS NEMA   : true
 }
 
-func ExampleDate() {
+func ExampleDate_create() {
 	// We'll use the reference date as our date
 	date, err := time.Parse(
 		"Mon Jan 2, 2006",
@@ -116,7 +100,7 @@ func ExampleDate() {
 	// STRING: 2006-01-02
 }
 
-func ExampleDate_nema300() {
+func ExampleDate_createNEMA300() {
 	// We'll use the reference date as our date
 	date, err := time.Parse(
 		"Mon Jan 2, 2006",
@@ -220,7 +204,7 @@ func ExampleParseTime_precisionHour() {
 	// PRECISION : HOURS
 }
 
-func ExampleTime() {
+func ExampleTime_create() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"15:04:05.000",
@@ -364,7 +348,7 @@ func ExampleParseDatetime_precisionHour() {
 	// HAS OFFSET: false
 }
 
-func ExampleDatetime() {
+func ExampleDatetime_create() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"2006-01-02T15:04:05.000000-07:00",
@@ -392,7 +376,7 @@ func ExampleDatetime() {
 	// STRING: 2006-01-02 15:04:05.123456 +01:00
 }
 
-func ExampleDatetime_noOffset() {
+func ExampleDatetime_createNoOffset() {
 	// We'll use the reference date as our date
 	timeVal, err := time.Parse(
 		"2006-01-02T15:04:05.000000",

@@ -21,7 +21,7 @@ type Time struct {
 // NOTE: Time zones are ignored in this operation, as TM does not support encoding them.
 // Make sure values are converted to UTC before passing if that is the desired output.
 func (tm Time) DCM() string {
-	builder := new(strings.Builder)
+	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
 	if !isIncluded(PrecisionMinutes, tm.Precision) {
@@ -46,7 +46,7 @@ func (tm Time) DCM() string {
 
 // String implements fmt.Stringer.
 func (tm Time) String() string {
-	builder := new(strings.Builder)
+	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
 	if !isIncluded(PrecisionMinutes, tm.Precision) {
@@ -114,24 +114,24 @@ func extractTime(
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionIn, hours, PrecisionHours, false)
+	precisionOut = updatePrecision(hours, precisionIn, PrecisionHours, false)
 
 	minutes, err = extractDurationInfo(matches, groupIndexes.Minutes, false)
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionOut, minutes, PrecisionMinutes, false)
+	precisionOut = updatePrecision(minutes, precisionOut, PrecisionMinutes, false)
 
 	seconds, err = extractDurationInfo(matches, groupIndexes.Seconds, false)
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionOut, seconds, PrecisionSeconds, false)
+	precisionOut = updatePrecision(seconds, precisionOut, PrecisionSeconds, false)
 
 	nanos, err = extractDurationInfo(matches, groupIndexes.Fractal, true)
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
-	} else if nanos.Present {
+	} else if nanos.PresentInSource {
 		precisionOut = nanos.FractalPrecision
 	}
 

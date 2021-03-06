@@ -2,7 +2,6 @@ package dcmtime
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -27,7 +26,7 @@ type Date struct {
 // Make sure values are converted to UTC before passing if that is the desired output.
 func (da Date) DCM() string {
 	year, month, day := da.Time.Date()
-	builder := new(strings.Builder)
+	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%04d", year))
 	if !isIncluded(PrecisionMonth, da.Precision) {
@@ -54,7 +53,7 @@ func (da Date) DCM() string {
 
 // String implements fmt.Stringer.
 func (da Date) String() string {
-	builder := new(strings.Builder)
+	builder := strings.Builder{}
 	_, _ = builder.WriteString(fmt.Sprintf("%04d", da.Time.Year()))
 	if !isIncluded(PrecisionMonth, da.Precision) {
 		return builder.String()
@@ -96,8 +95,8 @@ func extractDate(
 	precisionIn PrecisionLevel,
 	isDA bool,
 ) (
-	year durationInfo,
-	month durationInfo,
+	year,
+	month,
 	day durationInfo,
 	precisionOut PrecisionLevel,
 	err error,
@@ -112,7 +111,7 @@ func extractDate(
 	if err != nil {
 		return year, month, day, precisionOut, err
 	}
-	precisionOut = updatePrecision(precisionIn, year, PrecisionYear, false)
+	precisionOut = updatePrecision(year, precisionIn, PrecisionYear, false)
 
 	month, err = extractDurationInfo(matches, regexGroups.Month, false)
 	if err != nil {
@@ -120,10 +119,10 @@ func extractDate(
 	}
 	// If there is no month, we need to set it to 1 instead of zero, otherwise the year
 	// will roll back 1.
-	if !month.Present {
+	if !month.PresentInSource {
 		month.Value = 1
 	}
-	precisionOut = updatePrecision(precisionOut, month, PrecisionMonth, false)
+	precisionOut = updatePrecision(month, precisionOut, PrecisionMonth, false)
 
 	day, err = extractDurationInfo(matches, regexGroups.Day, false)
 	if err != nil {
@@ -131,42 +130,30 @@ func extractDate(
 	}
 	// If there is no day, we need to set it to 1 instead of zero, otherwise the month
 	// will roll back 1, ie December -> November.
-	if !day.Present {
+	if !day.PresentInSource {
 		day.Value = 1
 	}
-	precisionOut = updatePrecision(precisionOut, day, PrecisionDay, isDA)
+	precisionOut = updatePrecision(day, precisionOut, PrecisionDay, isDA)
 
 	return year, month, day, precisionOut, err
 }
 
 // ParseDate converts DICOM DA (date) value to time.Time as UTC with PrecisionLevel.
-//
-// If allowNEMA is true, the old NEMA 300 specification of YYYY.MM.DD will also be
-// checked if parsing as YYYYMMDD fails.
-func ParseDate(daString string, allowNEMA bool) (Date, error) {
-	var matches []string
+func ParseDate(daString string) (Date, error) {
+	// isNema will store whether this value is a NEMA-300 formatted value.
+	isNEMA := false
 
-	// Iterate over our two regexes and attempt them.
-	var matchesFound bool
-	var isNEMA bool
-	for _, thisRegex := range [2]*regexp.Regexp{daRegex, daRegexNema} {
-		matches = thisRegex.FindStringSubmatch(daString)
-		if len(matches) > 0 {
-			// If we find a match, mark it as found and, break out.
-			matchesFound = true
-			break
-		} else if !allowNEMA {
-			// If we are not allowing parsing based on the NEMA format, break without
-			// marking we have found a match
-			break
-		}
-
-		// Otherwise mark that we are failed parsing a modern DICOM value and a valid
-		// result will be a NEMA-300 value.
+	// Try to match against the normal DA value regex
+	matches := daRegex.FindStringSubmatch(daString)
+	// If that resulted in no matches and the caller wants to allow for NEMA-300 legacy
+	// parsing, try that next.
+	if len(matches) == 0 {
+		matches = daRegexNEMA.FindStringSubmatch(daString)
 		isNEMA = true
 	}
 
-	if !matchesFound {
+	// If we did not find any matches, this is not a valid DA value, exit with an error.
+	if len(matches) == 0 {
 		return Date{}, ErrParseDA
 	}
 

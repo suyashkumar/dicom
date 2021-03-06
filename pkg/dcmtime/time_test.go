@@ -1,186 +1,117 @@
-package dcmtime
+package dcmtime_test
 
 import (
 	"errors"
+	"github.com/suyashkumar/dicom/pkg/dcmtime"
 	"testing"
 	"time"
 )
 
 func TestParseTime(t *testing.T) {
 	testCases := []struct {
+		Name              string
 		TMValue           string
 		ExpectedTime      time.Time
-		ExpectedPrecision PrecisionLevel
+		ExpectedPrecision dcmtime.PrecisionLevel
 	}{
 		// Full value, leading zeros
 		{
-			TMValue: "010203.456789",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionFull,
+			Name:              "PrecisionFull",
+			TMValue:           "010203.456789",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 3, 456789000, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionFull,
 		},
+
 		// Remove one millisecond
 		{
-			TMValue: "010203.45678",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				3,
-				456780000,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionMS5,
+			Name:              "PrecisionMS5",
+			TMValue:           "010203.45678",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 3, 456780000, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionMS5,
 		},
-		// Remove one millisecond
+
+		// Remove two millisecond
 		{
-			TMValue: "010203.4567",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				3,
-				456700000,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionMS4,
+			Name:              "PrecisionMS4",
+			TMValue:           "010203.4567",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 3, 456700000, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionMS4,
 		},
-		// Remove one millisecond
+
+		// Remove three millisecond
 		{
-			TMValue: "010203.456",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				3,
-				456000000,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionMS3,
+			Name:              "PrecisionMS3",
+			TMValue:           "010203.456",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 3, 456000000, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionMS3,
 		},
-		// Remove one millisecond
+
+		// Remove four millisecond
 		{
-			TMValue: "010203.45",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				3,
-				450000000,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionMS2,
+			Name:              "PrecisionMS2",
+			TMValue:           "010203.45",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 3, 450000000, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionMS2,
 		},
-		// Remove one millisecond
+
+		// Remove five millisecond
 		{
-			TMValue: "010203.4",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				3,
-				400000000,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionMS1,
+			Name:              "PrecisionMS1",
+			TMValue:           "010203.4",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 3, 400000000, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionMS1,
 		},
+
 		// No milliseconds
 		{
-			TMValue: "010203",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				3,
-				0,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionSeconds,
+			Name:              "PrecisionSeconds",
+			TMValue:           "010203",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 3, 0, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionSeconds,
 		},
+
 		// No seconds
 		{
-			TMValue: "0102",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				2,
-				0,
-				0,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionMinutes,
+			Name:              "PrecisionMinutes",
+			TMValue:           "0102",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 2, 0, 0, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionMinutes,
 		},
+
 		// No minutes
 		{
-			TMValue: "01",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				1,
-				0,
-				0,
-				0,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionHours,
+			Name:              "PrecisionHours",
+			TMValue:           "01",
+			ExpectedTime:      time.Date(1, 1, 1, 1, 0, 0, 0, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionHours,
 		},
+
 		// No leading zeroes
 		{
-			TMValue: "102030.456789",
-			ExpectedTime: time.Date(
-				1,
-				1,
-				1,
-				10,
-				20,
-				30,
-				456789000,
-				time.UTC,
-			),
-			ExpectedPrecision: PrecisionFull,
+			Name:              "PrecisionFullNoLeadingZeros",
+			TMValue:           "102030.456789",
+			ExpectedTime:      time.Date(1, 1, 1, 10, 20, 30, 456789000, time.UTC),
+			ExpectedPrecision: dcmtime.PrecisionFull,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.TMValue, func(t *testing.T) {
 
-			parsed, err := ParseTime(tc.TMValue)
+			parsed, err := dcmtime.ParseTime(tc.TMValue)
 			if err != nil {
 				t.Fatal("parse error:", err)
 			}
 
 			if !tc.ExpectedTime.Equal(parsed.Time) {
 				t.Errorf(
-					"parsed time (%v) != expected (%v)", parsed, tc.ExpectedTime,
+					"parsed Time (%v) != expected (%v)", parsed, tc.ExpectedTime,
 				)
 			}
 
 			if parsed.Precision != tc.ExpectedPrecision {
 				t.Errorf(
-					"precision: expected %v, got %v",
+					"Time.Precision: expected %v, got %v",
 					tc.ExpectedPrecision.String(),
 					parsed.Precision.String(),
 				)
@@ -262,8 +193,8 @@ func TestParseTimeErr(t *testing.T) {
 
 	for _, tc := range badValues {
 		t.Run(tc.Name, func(t *testing.T) {
-			_, err := ParseTime(tc.BadValue)
-			if !errors.Is(err, ErrParseTM) {
+			_, err := dcmtime.ParseTime(tc.BadValue)
+			if !errors.Is(err, dcmtime.ErrParseTM) {
 				t.Errorf("got %v, expected error value of type ErrParseTM", err)
 			}
 		})
@@ -272,213 +203,140 @@ func TestParseTimeErr(t *testing.T) {
 
 func TestTime_Methods(t *testing.T) {
 	testCases := []struct {
+		Name           string
 		Time           time.Time
-		Precision      PrecisionLevel
+		Precision      dcmtime.PrecisionLevel
 		ExpectedDCM    string
 		ExpectedString string
 	}{
-		// Precision.Full
+		// PrecisionFull
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionFull,
+			Name:           "PrecisionFull",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionFull,
 			ExpectedDCM:    "010203.456789",
 			ExpectedString: "01:02:03.456789",
 		},
-		// Precision.Full, leading zeros
+
+		// PrecisionFull, leading zeros
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789,
-				time.UTC,
-			),
-			Precision:      PrecisionFull,
+			Name:           "PrecisionFullMSLeadingZeros",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789, time.UTC),
+			Precision:      dcmtime.PrecisionFull,
 			ExpectedDCM:    "010203.000456",
 			ExpectedString: "01:02:03.000456",
 		},
-		// Precision.Full, tail truncated
+
+		// PrecisionFull, tail truncated
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789999,
-				time.UTC,
-			),
-			Precision:      PrecisionFull,
+			Name:           "PrecisionFull",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789999, time.UTC),
+			Precision:      dcmtime.PrecisionFull,
 			ExpectedDCM:    "010203.456789",
 			ExpectedString: "01:02:03.456789",
 		},
-		// Precision.MS5
+
+		// PrecisionMS5
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionMS5,
+			Name:           "PrecisionMS5",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS5,
 			ExpectedDCM:    "010203.45678",
 			ExpectedString: "01:02:03.45678",
 		},
-		// Precision.MS4
+
+		// PrecisionMS4
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionMS4,
+			Name:           "PrecisionMS4",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS4,
 			ExpectedDCM:    "010203.4567",
 			ExpectedString: "01:02:03.4567",
 		},
-		// Precision.MS3
+
+		// PrecisionMS3
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionMS3,
+			Name:           "PrecisionMS3",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS3,
 			ExpectedDCM:    "010203.456",
 			ExpectedString: "01:02:03.456",
 		},
-		// Precision.MS2
+
+		// PrecisionMS2
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionMS2,
+			Name:           "PrecisionMS2",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS2,
 			ExpectedDCM:    "010203.45",
 			ExpectedString: "01:02:03.45",
 		},
-		// Precision.MS1
+
+		// PrecisionMS1
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionMS1,
+			Name:           "PrecisionMS1",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS1,
 			ExpectedDCM:    "010203.4",
 			ExpectedString: "01:02:03.4",
 		},
-		// Precision.Seconds
+
+		// PrecisionSeconds
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionSeconds,
+			Name:           "PrecisionSeconds",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionSeconds,
 			ExpectedDCM:    "010203",
 			ExpectedString: "01:02:03",
 		},
-		// Precision.Minutes
+
+		// PrecisionMinutes
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionMinutes,
+			Name:           "PrecisionMinutes",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMinutes,
 			ExpectedDCM:    "0102",
 			ExpectedString: "01:02",
 		},
-		// Precision.Hours
+
+		// PrecisionHours
 		{
-			Time: time.Date(
-				0,
-				0,
-				0,
-				1,
-				2,
-				3,
-				456789000,
-				time.UTC,
-			),
-			Precision:      PrecisionHours,
+			Name:           "PrecisionHours",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionHours,
 			ExpectedDCM:    "01",
 			ExpectedString: "01",
 		},
 	}
 
 	for _, tc := range testCases {
-		tm := Time{
+		tm := dcmtime.Time{
 			Time:      tc.Time,
 			Precision: tc.Precision,
 		}
 
-		t.Run(tc.ExpectedDCM+"_DCM", func(t *testing.T) {
-			dcmVal := tm.DCM()
-			if dcmVal != tc.ExpectedDCM {
-				t.Errorf(
-					"DCM(): expected '%v', got '%v'", tc.ExpectedDCM, dcmVal,
-				)
-			}
-		})
+		// Run one test per case with broken out subtests for each method
+		t.Run(tc.Name, func(t *testing.T) {
 
-		t.Run(tc.ExpectedDCM+"_String", func(t *testing.T) {
-			strVal := tm.String()
-			if strVal != tc.ExpectedString {
-				t.Errorf(
-					"String(): expected '%v', got '%v'",
-					tc.ExpectedString,
-					strVal,
-				)
-			}
+			t.Run("DCM", func(t *testing.T) {
+				dcmVal := tm.DCM()
+				if dcmVal != tc.ExpectedDCM {
+					t.Errorf(
+						"DCM(): expected '%v', got '%v'", tc.ExpectedDCM, dcmVal,
+					)
+				}
+			})
+
+			t.Run("String", func(t *testing.T) {
+				strVal := tm.String()
+				if strVal != tc.ExpectedString {
+					t.Errorf(
+						"String(): expected '%v', got '%v'",
+						tc.ExpectedString,
+						strVal,
+					)
+				}
+			})
 		})
 	}
 }

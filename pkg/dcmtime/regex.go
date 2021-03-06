@@ -8,7 +8,7 @@ var daRegex = regexp.MustCompile(
 )
 
 // Parses old pre-dicom NEMA spec date of YYYY.MM.DD.
-var daRegexNema = regexp.MustCompile(
+var daRegexNEMA = regexp.MustCompile(
 	`^(?P<YEAR>[0-9]{4})(?:\.(?P<MONTH>[0-9]{2}))?(?:\.(?P<DAY>[0-9]{2}))?$`,
 )
 

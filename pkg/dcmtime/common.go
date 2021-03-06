@@ -31,17 +31,18 @@ var zeroTimezone = time.FixedZone("", 0)
 
 // durationInfo holds parsed piece of DA, TM, or DT info.
 type durationInfo struct {
-	// The parsed int value
+	// Value is the parsed int value.
 	Value int
-	// Whether it was present in the string
-	Present bool
-	// Only used when parsing Fractal seconds: the level of precision used.
+	// PresentInSource is whether it was present in the string.
+	PresentInSource bool
+	// FractalPrecision is only used when parsing Fractal seconds: the level of
+	// precision used.
 	FractalPrecision PrecisionLevel
 }
 
 // extractDurationInfo extracts a piece of DA, TM, or DT info from a parsed regex,
 // handling all validation checks, emtpy values, etc.
-func extractDurationInfo(subMatches []string, index int, fractal bool) (durationInfo, error) {
+func extractDurationInfo(subMatches []string, index int, isFractal bool) (durationInfo, error) {
 	info := durationInfo{}
 
 	// If the submatch array does not contain the group index we are looking for, then
@@ -54,15 +55,16 @@ func extractDurationInfo(subMatches []string, index int, fractal bool) (duration
 	valueStr := subMatches[index]
 
 	// If there was no match for the specific subgroup, this value is 0, and we leave
-	// info.Present as false.
+	// info.PresentInSource as false.
 	if valueStr != "" {
-		// Otherwise set the info.Present to true
-		info.Present = true
+		// Otherwise set the info.PresentInSource to true
+		info.PresentInSource = true
 	}
 
-	// If this is a fractal seconds value, we need to pad it out to nanoseconds for go.
-	if fractal {
-		// The fractal value can be any length, with truncation implying a loss of
+	// If this is a isFractal seconds value, we need to pad it out to nanoseconds for
+	// go.
+	if isFractal {
+		// The isFractal value can be any length, with truncation implying a loss of
 		// precision, we need to add trailing zeros to the hundred-millionth place to
 		// get our nano-seconds.
 		missingPlaces := 9 - len(valueStr)
@@ -71,7 +73,7 @@ func extractDurationInfo(subMatches []string, index int, fractal bool) (duration
 	}
 
 	// If our info is present, parse the value into an int.
-	if info.Present {
+	if info.PresentInSource {
 		var err error
 		info.Value, err = strconv.Atoi(valueStr)
 		if err != nil {
@@ -88,14 +90,9 @@ func extractDurationInfo(subMatches []string, index int, fractal bool) (duration
 // levelIsFull should be set to true if the level we are checking is "Full" for the
 // type of value we are parsing. For instance, PrecisionHours would be the full
 // precision of a TM value, and we'll use PrecisionFull instead.
-func updatePrecision(
-	current PrecisionLevel,
-	info durationInfo,
-	infoLevel PrecisionLevel,
-	levelIsFull bool,
-) PrecisionLevel {
+func updatePrecision(info durationInfo, current, infoLevel PrecisionLevel, levelIsFull bool) PrecisionLevel {
 	// If the info was not present, return our current level.
-	if !info.Present {
+	if !info.PresentInSource {
 		return current
 	}
 

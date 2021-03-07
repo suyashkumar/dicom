@@ -63,7 +63,7 @@ func extractDurationInfo(subMatches []string, index int, isFractal bool) (durati
 
 	// If this is a isFractal seconds value, we need to pad it out to nanoseconds for
 	// go.
-	if isFractal {
+	if info.PresentInSource && isFractal {
 		// The isFractal value can be any length, with truncation implying a loss of
 		// precision, we need to add trailing zeros to the hundred-millionth place to
 		// get our nano-seconds.

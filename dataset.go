@@ -114,8 +114,12 @@ func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 	}
 }
 
+// FlatDatasetIterator represents a simple iterator over the elements in a
+// Dataset.
 type FlatDatasetIterator interface {
+	// HasNext indicates if the iterator as another element.
 	HasNext() bool
+	// Next gets and returns the next element in the iterator.
 	Next() *Element
 }
 

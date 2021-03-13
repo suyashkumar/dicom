@@ -131,36 +131,23 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 func ExampleDataset_FlatIterator() {
 	nestedData := [][]*Element{
 		{
-			{
-				Tag:                 tag.PatientName,
-				ValueRepresentation: tag.VRString,
-				Value: &stringsValue{
-					value: []string{"Bob"},
-				},
-			},
+			mustNewElement(tag.PatientName, []string{"Bob"}),
 		},
 	}
 
 	data := Dataset{
 		Elements: []*Element{
-			{
-				Tag:                 tag.Rows,
-				ValueRepresentation: tag.VRInt32List,
-				Value: &intsValue{
-					value: []int{100},
-				},
-			},
-			{
-				Tag:                 tag.Columns,
-				ValueRepresentation: tag.VRInt32List,
-				Value: &intsValue{
-					value: []int{200},
-				},
-			},
+			mustNewElement(tag.Rows, []int{100}),
+			mustNewElement(tag.Columns, []int{100}),
 			makeSequenceElement(tag.AddOtherSequence, nestedData),
 		},
 	}
 
+	// Use this style if you will always exhaust all of the elements in the
+	// channel. Otherwise, you must call ExhaustElementChannel. See the
+	// FlatIteratorWithExhaustAllElements example for that. If you don't need
+	// a channel API (just want to loop over items), use FlatStatefulIterator
+	// instead, which is much simpler.
 	for elem := range data.FlatIterator() {
 		fmt.Println(elem.Tag)
 	}
@@ -172,6 +159,36 @@ func ExampleDataset_FlatIterator() {
 	// (0028,0011)
 	// (0010,0010)
 	// (0046,0102)
+}
+
+func ExampleDataset_FlatIteratorWithExhaustAllElements() {
+	nestedData := [][]*Element{
+		{
+			mustNewElement(tag.PatientName, []string{"Bob"}),
+		},
+	}
+
+	data := Dataset{
+		Elements: []*Element{
+			mustNewElement(tag.Rows, []int{100}),
+			mustNewElement(tag.Columns, []int{100}),
+			makeSequenceElement(tag.AddOtherSequence, nestedData),
+		},
+	}
+
+	// Because we read only one element from the channel, we want to make sure
+	// the channel is exhausted to ensure it is closed properly under the hood.
+	// This is also needed if you have any situation in which you may not
+	// read all the elements in the channel (e.g. if you are looping over it,
+	// but might return early if there's an error).
+	elemChan := data.FlatIterator()
+	defer ExhaustElementChannel(elemChan)
+	fmt.Println((<-elemChan).Tag)
+
+	// Note the output below includes all three leaf elements __as well as__ the sequence element's tag
+
+	// Unordered output:
+	// (0028,0010)
 }
 
 func ExampleDataset_FlatStatefulIterator() {

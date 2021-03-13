@@ -60,8 +60,8 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 	return nil, ErrorElementNotFound
 }
 
-// FlatIterator returns a channel upon which every element in this Dataset will be sent,
-// including elements nested inside sequences.
+// FlatIterator returns a channel upon which every element in this Dataset will
+// be sent, including elements nested inside sequences.
 //
 // NOTE: If you don't need the channel API and don't want to worry about fully
 // exhausting the channel, use Dataset.FlatStatefulIterator instead.

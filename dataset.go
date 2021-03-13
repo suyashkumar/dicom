@@ -62,6 +62,10 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 
 // FlatIterator returns a channel upon which every element in this Dataset will be sent,
 // including elements nested inside sequences.
+//
+// NOTE: If you don't need the channel API and don't want to worry about fully
+// exhausting the channel, use Dataset.FlatStatefulIterator instead.
+//
 // If for some reason your code will not exhaust the iterator (read all
 // elements), be sure to call ExhaustElementChannel to prevent leaving the
 // underlying Goroutine alive (you can safely do this in a defer).
@@ -71,9 +75,6 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 //      // Even if you exit before reading everything in c (e.g. due to an error)
 //      // things will be ok.
 //  }
-//
-// If you don't need the channel API and don't want to worry about fully
-// exhausting the channel, use Dataset.FlatStatefulIterator instead.
 //
 // Note that the sequence element itself is sent on the channel in addition to
 // the child elements in the sequence.

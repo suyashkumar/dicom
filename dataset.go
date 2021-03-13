@@ -62,7 +62,21 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 
 // FlatIterator returns a channel upon which every element in this Dataset will be sent,
 // including elements nested inside sequences.
-// Note that the sequence element itself is sent on the channel in addition to the child elements in the sequence.
+// If for some reason your code will not exhaust the iterator (read all
+// elements), be sure to call ExhaustElementChannel to prevent leaving the
+// underlying Goroutine alive (you can safely do this in a defer).
+//  c := dataset.FlatIterator()
+//  defer ExhaustElementChannel(c)
+//  for elem := range c {
+//      // Even if you exit before reading everything in c (e.g. due to an error)
+//      // things will be ok.
+//  }
+//
+// If you don't need the channel API and don't want to worry about fully
+// exhausting the channel, use Dataset.FlatStatefulIterator instead.
+//
+// Note that the sequence element itself is sent on the channel in addition to
+// the child elements in the sequence.
 // TODO(suyashkumar): decide if the sequence element itself should be sent or not
 func (d *Dataset) FlatIterator() <-chan *Element {
 	elemChan := make(chan *Element)
@@ -71,6 +85,18 @@ func (d *Dataset) FlatIterator() <-chan *Element {
 		close(elemChan)
 	}()
 	return elemChan
+}
+
+// ExhaustElementChannel exhausts the channel iterator returned by
+// Dataset.FlatIterator, ensuring that the underlying Go routine completes.
+// When using Dataset.FlatIterator, if your program will exit for some reason
+// without reading all the elements of the channel, you should be sure to call
+// this function to prevent a phantom Goroutine.
+// Or, if you don't need the channel interface, simply use
+// Dataset.FlatStatefulIterator.
+func ExhaustElementChannel(c <-chan *Element) {
+	for _ = range c {
+	}
 }
 
 func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
@@ -84,6 +110,66 @@ func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 		}
 		elemChan <- elem
 	}
+}
+
+type FlatDatasetIterator interface {
+	HasNext() bool
+	Next() *Element
+}
+
+// FlatStatefulIterator returns a stateful iterator that adheres to
+// FlatDatasetIterator interface. This allows the caller to iterate over every
+// element in the dataset, including elements nested inside sequences.
+//
+// Important note: if the Dataset changes during the iteration (e.g. if elements
+// are added or removed), those elements will not be included until a new
+// iterator is created.
+//
+// If you don't need to receive elements on a/ channel, and don't want to worry
+// about always exhausting this iterator, this is the best and safest way to
+// iterate over a Dataset.
+func (d *Dataset) FlatStatefulIterator() FlatDatasetIterator {
+	flatElems := flatElemsWrapper{}
+	flatSliceBuilder(d.Elements, &flatElems)
+	// fmt.Println("Dataset:", flatElems.flatElems)
+	iter := flatIterator{flattenedDataset: flatElems.flatElems}
+	return &iter
+}
+
+func flatSliceBuilder(datasetElems []*Element, flatElems *flatElemsWrapper) {
+	for _, elem := range datasetElems {
+		if elem.Value.ValueType() == Sequences {
+			flatElems.append(elem)
+			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
+				flatSliceBuilder(seqItem.elements, flatElems)
+			}
+			continue
+		}
+		flatElems.append(elem)
+	}
+}
+
+type flatIterator struct {
+	flattenedDataset []*Element
+	idx              int
+}
+
+type flatElemsWrapper struct {
+	flatElems []*Element
+}
+
+func (f *flatElemsWrapper) append(e *Element) {
+	f.flatElems = append(f.flatElems, e)
+}
+
+func (f *flatIterator) HasNext() bool {
+	return f.idx < len(f.flattenedDataset)
+}
+
+func (f *flatIterator) Next() *Element {
+	elem := f.flattenedDataset[f.idx]
+	f.idx++
+	return elem
 }
 
 // String returns a printable representation of this dataset as a string, including printing out elements nested inside

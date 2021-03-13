@@ -72,7 +72,8 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 //  c := dataset.FlatIterator()
 //  defer ExhaustElementChannel(c)
 //  for elem := range c {
-//      // Even if you exit before reading everything in c (e.g. due to an error)
+//      // Even if you exit before reading everything in c (e.g. due to an
+//      // error)
 //      // things will be ok.
 //  }
 //

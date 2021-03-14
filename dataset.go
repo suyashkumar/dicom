@@ -114,13 +114,30 @@ func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 	}
 }
 
-// FlatDatasetIterator represents a simple iterator over the elements in a
-// Dataset.
-type FlatDatasetIterator interface {
-	// HasNext indicates if the iterator as another element.
-	HasNext() bool
-	// Next gets and returns the next element in the iterator.
-	Next() *Element
+// FlatDatasetIterator is a stateful iterator over a Dataset.
+type FlatDatasetIterator struct {
+	flattenedDataset []*Element
+	idx              int
+}
+
+type flatElemsWrapper struct {
+	flatElems []*Element
+}
+
+func (f *flatElemsWrapper) append(e *Element) {
+	f.flatElems = append(f.flatElems, e)
+}
+
+// HasNext indicates if the iterator as another element.
+func (f *FlatDatasetIterator) HasNext() bool {
+	return f.idx < len(f.flattenedDataset)
+}
+
+// Next gets and returns the next element in the iterator.
+func (f *FlatDatasetIterator) Next() *Element {
+	elem := f.flattenedDataset[f.idx]
+	f.idx++
+	return elem
 }
 
 // FlatStatefulIterator returns a stateful iterator that adheres to
@@ -134,48 +151,23 @@ type FlatDatasetIterator interface {
 // If you don't need to receive elements on a/ channel, and don't want to worry
 // about always exhausting this iterator, this is the best and safest way to
 // iterate over a Dataset.
-func (d *Dataset) FlatStatefulIterator() FlatDatasetIterator {
-	flatElems := flatElemsWrapper{}
-	flatSliceBuilder(d.Elements, &flatElems)
-	// fmt.Println("Dataset:", flatElems.flatElems)
-	iter := flatIterator{flattenedDataset: flatElems.flatElems}
-	return &iter
+func (d *Dataset) FlatStatefulIterator() *FlatDatasetIterator {
+	return &FlatDatasetIterator{flattenedDataset: flatSliceBuilder(d.Elements)}
 }
 
-func flatSliceBuilder(datasetElems []*Element, flatElems *flatElemsWrapper) {
+func flatSliceBuilder(datasetElems []*Element) []*Element {
+	var current []*Element
 	for _, elem := range datasetElems {
 		if elem.Value.ValueType() == Sequences {
-			flatElems.append(elem)
+			current = append(current, elem)
 			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
-				flatSliceBuilder(seqItem.elements, flatElems)
+				current = append(current, flatSliceBuilder(seqItem.elements)...)
 			}
 			continue
 		}
-		flatElems.append(elem)
+		current = append(current, elem)
 	}
-}
-
-type flatIterator struct {
-	flattenedDataset []*Element
-	idx              int
-}
-
-type flatElemsWrapper struct {
-	flatElems []*Element
-}
-
-func (f *flatElemsWrapper) append(e *Element) {
-	f.flatElems = append(f.flatElems, e)
-}
-
-func (f *flatIterator) HasNext() bool {
-	return f.idx < len(f.flattenedDataset)
-}
-
-func (f *flatIterator) Next() *Element {
-	elem := f.flattenedDataset[f.idx]
-	f.idx++
-	return elem
+	return current
 }
 
 // String returns a printable representation of this dataset as a string, including printing out elements nested inside

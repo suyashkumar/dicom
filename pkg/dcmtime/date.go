@@ -163,16 +163,7 @@ func ParseDate(daString string) (Date, error) {
 	}
 
 	// Return a new time.Time with the given values and UTC encoding.
-	parsed := time.Date(
-		year.Value,
-		time.Month(month.Value),
-		day.Value,
-		0,
-		0,
-		0,
-		0,
-		zeroTimezone,
-	)
+	parsed := time.Date(year.Value, time.Month(month.Value), day.Value, 0, 0, 0, 0, zeroTimezone)
 
 	return Date{
 		Time:      parsed,

@@ -131,14 +131,16 @@ func extractTime(
 	nanos, err = extractDurationInfo(matches, groupIndexes.Fractal, true)
 	if err != nil {
 		return hours, minutes, seconds, nanos, precisionOut, err
-	} else if nanos.PresentInSource {
+	}
+
+	if nanos.PresentInSource {
 		precisionOut = nanos.FractalPrecision
 	}
 
 	return hours, minutes, seconds, nanos, precisionOut, err
 }
 
-// ParseTime converts DICOM TM (time) value to time.Time as UTC with PrecisionLevel.
+// ParseTime converts DICOM TM (time) value to dcmtime.Time.
 func ParseTime(tmString string) (Time, error) {
 	matches := tmRegex.FindStringSubmatch(tmString)
 	// If no full match is found, return an error

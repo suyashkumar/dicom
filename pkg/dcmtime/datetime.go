@@ -106,13 +106,10 @@ func ParseDatetime(dtString string) (Datetime, error) {
 		return Datetime{}, ErrParseDT
 	}
 
+	offsetSign := 1
 	// If the zone sign is '-', then we need to multiply the offset by -1
-	var offsetSign int
-	switch matches[dtRegexGroupOffsetSign] {
-	case "-":
+	if matches[dtRegexGroupOffsetSign] == "-" {
 		offsetSign = -1
-	default:
-		offsetSign = 1
 	}
 
 	// Get zone offset in seconds.

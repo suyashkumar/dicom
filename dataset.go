@@ -120,14 +120,6 @@ type FlatDatasetIterator struct {
 	idx              int
 }
 
-type flatElemsWrapper struct {
-	flatElems []*Element
-}
-
-func (f *flatElemsWrapper) append(e *Element) {
-	f.flatElems = append(f.flatElems, e)
-}
-
 // HasNext indicates if the iterator as another element.
 func (f *FlatDatasetIterator) HasNext() bool {
 	return f.idx < len(f.flattenedDataset)

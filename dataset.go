@@ -60,9 +60,27 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 	return nil, ErrorElementNotFound
 }
 
-// FlatIterator returns a channel upon which every element in this Dataset will be sent,
-// including elements nested inside sequences.
-// Note that the sequence element itself is sent on the channel in addition to the child elements in the sequence.
+// FlatIterator will be deprecated soon in favor of
+// Dataset.FlatStatefulIterator. Use FlatStatefulIterator instead of this,
+// unless the channel API really makes your life a lot easier (and let the
+// maintainers know on GitHub).
+//
+// FlatIterator returns a channel upon which every element in this Dataset will
+// be sent, including elements nested inside sequences.
+//
+// If for some reason your code will not exhaust the iterator (read all
+// elements), be sure to call ExhaustElementChannel to prevent leaving the
+// underlying Goroutine alive (you can safely do this in a defer).
+//  c := dataset.FlatIterator()
+//  defer ExhaustElementChannel(c)
+//  for elem := range c {
+//      // Even if you exit before reading everything in c (e.g. due to an
+//      // error)
+//      // things will be ok.
+//  }
+//
+// Note that the sequence element itself is sent on the channel in addition to
+// the child elements in the sequence.
 // TODO(suyashkumar): decide if the sequence element itself should be sent or not
 func (d *Dataset) FlatIterator() <-chan *Element {
 	elemChan := make(chan *Element)
@@ -71,6 +89,18 @@ func (d *Dataset) FlatIterator() <-chan *Element {
 		close(elemChan)
 	}()
 	return elemChan
+}
+
+// ExhaustElementChannel exhausts the channel iterator returned by
+// Dataset.FlatIterator, ensuring that the underlying Go routine completes.
+// When using Dataset.FlatIterator, if your program will exit for some reason
+// without reading all the elements of the channel, you should be sure to call
+// this function to prevent a phantom Goroutine.
+// Or, if you don't need the channel interface, simply use
+// Dataset.FlatStatefulIterator.
+func ExhaustElementChannel(c <-chan *Element) {
+	for _ = range c {
+	}
 }
 
 func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
@@ -84,6 +114,55 @@ func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 		}
 		elemChan <- elem
 	}
+}
+
+// FlatDatasetIterator is a stateful iterator over a Dataset.
+type FlatDatasetIterator struct {
+	flattenedDataset []*Element
+	idx              int
+}
+
+// HasNext indicates if the iterator as another element.
+func (f *FlatDatasetIterator) HasNext() bool {
+	return f.idx < len(f.flattenedDataset)
+}
+
+// Next gets and returns the next element in the iterator.
+func (f *FlatDatasetIterator) Next() *Element {
+	elem := f.flattenedDataset[f.idx]
+	f.idx++
+	return elem
+}
+
+// FlatStatefulIterator returns a stateful iterator that adheres to
+// FlatDatasetIterator interface. This allows the caller to iterate over every
+// element in the dataset, including elements nested inside sequences.
+//
+// Important note: if the Dataset changes during the iteration (e.g. if elements
+// are added or removed), those elements will not be included until a new
+// iterator is created.
+//
+// If you don't need to receive elements on a channel, and don't want to worry
+// about always exhausting this iterator, this is the best and safest way to
+// iterate over a Dataset. Unlike FlatIterator(), no special cleanup or channel
+// exhausting is needed with this iterator.
+func (d *Dataset) FlatStatefulIterator() *FlatDatasetIterator {
+	return &FlatDatasetIterator{flattenedDataset: flatSliceBuilder(d.Elements)}
+}
+
+func flatSliceBuilder(datasetElems []*Element) []*Element {
+	var current []*Element
+	for _, elem := range datasetElems {
+		if elem.Value.ValueType() == Sequences {
+			current = append(current, elem)
+			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
+				current = append(current, flatSliceBuilder(seqItem.elements)...)
+			}
+			continue
+		}
+		current = append(current, elem)
+	}
+	return current
 }
 
 // String returns a printable representation of this dataset as a string, including printing out elements nested inside

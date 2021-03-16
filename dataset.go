@@ -142,9 +142,10 @@ func (f *FlatDatasetIterator) Next() *Element {
 // are added or removed), those elements will not be included until a new
 // iterator is created.
 //
-// If you don't need to receive elements on a/ channel, and don't want to worry
+// If you don't need to receive elements on a channel, and don't want to worry
 // about always exhausting this iterator, this is the best and safest way to
-// iterate over a Dataset.
+// iterate over a Dataset. Unlike FlatIterator(), no special cleanup or channel
+// exhausting is needed with this iterator.
 func (d *Dataset) FlatStatefulIterator() *FlatDatasetIterator {
 	return &FlatDatasetIterator{flattenedDataset: flatSliceBuilder(d.Elements)}
 }

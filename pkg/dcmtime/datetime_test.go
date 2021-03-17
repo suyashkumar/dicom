@@ -10,11 +10,11 @@ import (
 // dtPrecisionOmits describes the precision range not valid for datetime. Since datetime
 // has no omits, the range is outside our enumerated values.
 var dtPrecisionOmits = precisionRange{
-	Min: dcmtime.PrecisionFull + 1,
-	Max: dcmtime.PrecisionFull + 1,
+	Min: dcmtime.PrecisionYear + 1,
+	Max: dcmtime.PrecisionYear + 1,
 }
 
-func TestParseDatetime(t *testing.T) {
+func TestDatetime(t *testing.T) {
 	testCases := []struct {
 		// Name is the name of the sub-test
 		Name string
@@ -1215,5 +1215,19 @@ func TestDatetime_PrecisionTrimming(t *testing.T) {
 				}
 			})
 		})
+	}
+}
+
+// TestDatetime_SaneDefaults tests that instantiating a new Datetime object with just
+// the Time field specified yields a reasonable result.
+func TestDatetime_SaneDefaults(t *testing.T) {
+	newValue := dcmtime.Datetime{
+		Time: time.Date(2021, 03, 16, 13, 45, 32, 123456000, time.FixedZone("", 60)),
+	}
+
+	dcmVal := newValue.DCM()
+	expexted := "20210316134532.123456+0001"
+	if dcmVal != expexted {
+		t.Errorf("DCM(): expected '%v', but got '%v'", expexted, dcmVal)
 	}
 }

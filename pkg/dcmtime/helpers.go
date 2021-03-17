@@ -13,14 +13,35 @@ import (
 // Example: to test whether seconds should be included, you would:
 // hasPrecision(PrecisionSeconds, [caller-passed-limit])
 func hasPrecision(check PrecisionLevel, precision PrecisionLevel) bool {
-	return check <= precision
+	return check >= precision
+}
+
+// hasPrecisionOmits is the underlying call made on [type].HasPrecision() call.
+//
+// check is the value passed in by the caller to check.
+//
+// valuePrecision is the precision of the value we are checking about.
+//
+// omits are a set of Precision levels the value cannot have. For instance. Date can
+// have a precision of PrecisionYear, but not PrecisionSeconds
+func hasPrecisionOmits(check PrecisionLevel, valuePrecision PrecisionLevel, omits precisionRange) bool {
+	if check < valuePrecision {
+		return false
+	}
+
+	// If this value falls within the omit range, it is false.
+	if omits.Contains(check) {
+		return false
+	}
+
+	return true
 }
 
 // truncateMilliseconds truncate nanosecond time.Time value to arbitrary precision.
 func truncateMilliseconds(nanoSeconds int, precision PrecisionLevel) (millis string) {
 	milliseconds := nanoSeconds / 1000
 	millis = fmt.Sprintf("%06d", milliseconds)
-	millis = millis[:6-(PrecisionFull-precision)]
+	millis = millis[:6-(PrecisionFull+precision)]
 
 	return millis
 }
@@ -69,7 +90,7 @@ func extractDurationInfo(subMatches []string, index int, isFractal bool) (durati
 		// get our nano-seconds.
 		missingPlaces := 9 - len(valueStr)
 		valueStr = valueStr + strings.Repeat("0", missingPlaces)
-		info.FractalPrecision = PrecisionFull - PrecisionLevel(missingPlaces-3)
+		info.FractalPrecision = PrecisionFull + PrecisionLevel(missingPlaces-3)
 	}
 
 	// If our info is present, parse the value into an int.
@@ -112,34 +133,13 @@ type precisionRange struct {
 
 // Contains returns true if a value falls within the given range (inclusive).
 func (pRange precisionRange) Contains(val PrecisionLevel) bool {
-	if val < pRange.Min {
+	if val > pRange.Min {
 		return false
 	}
 
-	if val > pRange.Max {
+	if val < pRange.Max {
 		return false
 	}
 	// If this value falls within the omit range, it is false.
-	return true
-}
-
-// hasPrecisionOmits is the underlying call made on [type].HasPrecision() call.
-//
-// check is the value passed in by the caller to check.
-//
-// valuePrecision is the precision of the value we are checking about.
-//
-// omits are a set of Precision levels the value cannot have. For instance. Date can
-// have a precision of PrecisionYear, but not PrecisionSeconds
-func hasPrecisionOmits(check PrecisionLevel, valuePrecision PrecisionLevel, omits precisionRange) bool {
-	if check > valuePrecision {
-		return false
-	}
-
-	// If this value falls within the omit range, it is false.
-	if omits.Contains(check) {
-		return false
-	}
-
 	return true
 }

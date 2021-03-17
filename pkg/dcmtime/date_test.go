@@ -284,3 +284,17 @@ func TestDate_DCMTrimming(t *testing.T) {
 		})
 	}
 }
+
+// TestDate_SaneDefaults tests that instantiating a new Date object with just the Time
+// field specified yields a reasonable result.
+func TestDate_SaneDefaults(t *testing.T) {
+	newValue := dcmtime.Date{
+		Time: time.Date(2021, 03, 16, 0, 0, 0, 0, time.FixedZone("", 0)),
+	}
+
+	dcmVal := newValue.DCM()
+	expexted := "20210316"
+	if dcmVal != expexted {
+		t.Errorf("DCM(): expected '%v', but got '%v'", expexted, dcmVal)
+	}
+}

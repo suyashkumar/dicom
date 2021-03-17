@@ -13,8 +13,15 @@ type precisionRange struct {
 
 // Contains returns true if a value falls within the given range (inclusive).
 func (pRange precisionRange) Contains(val dcmtime.PrecisionLevel) bool {
+	if val > pRange.Min {
+		return false
+	}
+
+	if val < pRange.Max {
+		return false
+	}
 	// If this value falls within the omit range, it is false.
-	return val >= pRange.Min && val <= pRange.Max
+	return true
 }
 
 // precisionChecker defines an interface for types that can check their precision.
@@ -25,7 +32,7 @@ type precisionChecker interface {
 // checkHasPrecision checks that we get the expected results from a type with
 // hasPrecisionOmits
 func checkHasPrecision(t *testing.T, value precisionChecker, expectedRange precisionRange, omits precisionRange) {
-	for p := dcmtime.PrecisionYear; p <= dcmtime.PrecisionFull; p++ {
+	for p := dcmtime.PrecisionFull; p <= dcmtime.PrecisionYear; p++ {
 		expected := expectedRange.Contains(p) && !omits.Contains(p)
 		result := value.HasPrecision(p)
 

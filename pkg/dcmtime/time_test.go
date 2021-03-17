@@ -352,3 +352,157 @@ func TestParseTimeErr(t *testing.T) {
 		})
 	}
 }
+
+func TestTime_PrecisionTrimming(t *testing.T) {
+	testCases := []struct {
+		Name           string
+		Time           time.Time
+		Precision      dcmtime.PrecisionLevel
+		ExpectedDCM    string
+		ExpectedString string
+	}{
+		// PrecisionFull
+		{
+			Name:           "PrecisionFull",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionFull,
+			ExpectedDCM:    "010203.456789",
+			ExpectedString: "01:02:03.456789",
+		},
+
+		// PrecisionFull, leading zeros
+		{
+			Name:           "PrecisionFullMSLeadingZeros",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789, time.UTC),
+			Precision:      dcmtime.PrecisionFull,
+			ExpectedDCM:    "010203.000456",
+			ExpectedString: "01:02:03.000456",
+		},
+
+		// PrecisionFull, tail truncated
+		{
+			Name:           "PrecisionFull",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789999, time.UTC),
+			Precision:      dcmtime.PrecisionFull,
+			ExpectedDCM:    "010203.456789",
+			ExpectedString: "01:02:03.456789",
+		},
+
+		// PrecisionMS5
+		{
+			Name:           "PrecisionMS5",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS5,
+			ExpectedDCM:    "010203.45678",
+			ExpectedString: "01:02:03.45678",
+		},
+
+		// PrecisionMS4
+		{
+			Name:           "PrecisionMS4",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS4,
+			ExpectedDCM:    "010203.4567",
+			ExpectedString: "01:02:03.4567",
+		},
+
+		// PrecisionMS3
+		{
+			Name:           "PrecisionMS3",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS3,
+			ExpectedDCM:    "010203.456",
+			ExpectedString: "01:02:03.456",
+		},
+
+		// PrecisionMS2
+		{
+			Name:           "PrecisionMS2",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS2,
+			ExpectedDCM:    "010203.45",
+			ExpectedString: "01:02:03.45",
+		},
+
+		// PrecisionMS1
+		{
+			Name:           "PrecisionMS1",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMS1,
+			ExpectedDCM:    "010203.4",
+			ExpectedString: "01:02:03.4",
+		},
+
+		// PrecisionSeconds
+		{
+			Name:           "PrecisionSeconds",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionSeconds,
+			ExpectedDCM:    "010203",
+			ExpectedString: "01:02:03",
+		},
+
+		// PrecisionMinutes
+		{
+			Name:           "PrecisionMinutes",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionMinutes,
+			ExpectedDCM:    "0102",
+			ExpectedString: "01:02",
+		},
+
+		// PrecisionHours
+		{
+			Name:           "PrecisionHours",
+			Time:           time.Date(0, 0, 0, 1, 2, 3, 456789000, time.UTC),
+			Precision:      dcmtime.PrecisionHours,
+			ExpectedDCM:    "01",
+			ExpectedString: "01",
+		},
+	}
+
+	for _, tc := range testCases {
+		tm := dcmtime.Time{
+			Time:      tc.Time,
+			Precision: tc.Precision,
+		}
+
+		// Run one test per case with broken out subtests for each method
+		t.Run(tc.Name, func(t *testing.T) {
+
+			t.Run("DCM", func(t *testing.T) {
+				dcmVal := tm.DCM()
+				if dcmVal != tc.ExpectedDCM {
+					t.Errorf(
+						"DCM(): expected '%v', got '%v'", tc.ExpectedDCM, dcmVal,
+					)
+				}
+			})
+
+			t.Run("String", func(t *testing.T) {
+				strVal := tm.String()
+				if strVal != tc.ExpectedString {
+					t.Errorf(
+						"String(): expected '%v', got '%v'",
+						tc.ExpectedString,
+						strVal,
+					)
+				}
+			})
+		})
+	}
+}
+
+// TestTime_SaneDefaults tests that instantiating a new Time object with just the Time
+// field specified yields a reasonable result.
+func TestTime_SaneDefaults(t *testing.T) {
+	newValue := dcmtime.Time{
+		Time: time.Date(1, 1, 1, 12, 7, 56, 123456000, time.FixedZone("", 0)),
+	}
+
+	dcmVal := newValue.DCM()
+	expected := "120756.123456"
+	if dcmVal != expected {
+		t.Errorf("DCM(): expected '%v', but got '%v'", expected, dcmVal)
+	}
+}

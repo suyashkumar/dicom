@@ -15,6 +15,45 @@ type Time struct {
 	Precision PrecisionLevel
 }
 
+// tmPrecisionOmits is the range of precision values not relevant to Time.
+var tmPrecisionOmits = precisionRange{
+	Min: PrecisionYear,
+	Max: PrecisionDay,
+}
+
+// HasPrecision returns whether this da value has a precision of AT LEAST 'check'.
+//
+// Will always Return false for PrecisionYear, PrecisionMonth, and PrecisionDay.
+//
+// Will return true for PrecisionFull if all possible values are present.
+func (tm Time) HasPrecision(check PrecisionLevel) bool {
+	return hasPrecisionOmits(check, tm.Precision, tmPrecisionOmits)
+}
+
+// Hour returns the underlying Time.Hour(). Since a DICOM TM value must contain an hour,
+// presence is not reported.
+func (tm Time) Hour() (hour int) {
+	return tm.Time.Hour()
+}
+
+// Minute returns the underlying Time.Minute(), and a boolean indicating whether the
+// original DICOM value included minutes.
+func (tm Time) Minute() (minute int, ok bool) {
+	return tm.Time.Minute(), hasPrecision(PrecisionMinutes, tm.Precision)
+}
+
+// Second returns the underlying Time.Second(), and a boolean indicating whether the
+// original DICOM value included seconds.
+func (tm Time) Second() (second int, ok bool) {
+	return tm.Time.Second(), hasPrecision(PrecisionSeconds, tm.Precision)
+}
+
+// Nanosecond returns the underlying Time.Nanosecond(), and a boolean indicating whether
+// the original DICOM value included any fractal seconds.
+func (tm Time) Nanosecond() (second int, ok bool) {
+	return tm.Time.Nanosecond(), hasPrecision(PrecisionMS1, tm.Precision)
+}
+
 // DCM converts internal time.Time value to dicom TM string, truncating the output
 // to the DA value's Precision.
 //
@@ -24,17 +63,17 @@ func (tm Time) DCM() string {
 	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
-	if !isIncluded(PrecisionMinutes, tm.Precision) {
+	if !hasPrecision(PrecisionMinutes, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Minute()))
-	if !isIncluded(PrecisionSeconds, tm.Precision) {
+	if !hasPrecision(PrecisionSeconds, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Second()))
-	if !isIncluded(PrecisionMS1, tm.Precision) {
+	if !hasPrecision(PrecisionMS1, tm.Precision) {
 		return builder.String()
 	}
 
@@ -49,17 +88,17 @@ func (tm Time) String() string {
 	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
-	if !isIncluded(PrecisionMinutes, tm.Precision) {
+	if !hasPrecision(PrecisionMinutes, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf(":%02d", tm.Time.Minute()))
-	if !isIncluded(PrecisionSeconds, tm.Precision) {
+	if !hasPrecision(PrecisionSeconds, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf(":%02d", tm.Time.Second()))
-	if !isIncluded(PrecisionMS1, tm.Precision) {
+	if !hasPrecision(PrecisionMS1, tm.Precision) {
 		return builder.String()
 	}
 

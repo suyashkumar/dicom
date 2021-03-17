@@ -17,6 +17,53 @@ type Datetime struct {
 	NoOffset bool
 }
 
+// Year returns the underlying Time.Year(). Since a DICOM DT value must contain a year,
+// presence is not reported.
+func (dt Datetime) Year() int {
+	return dt.Time.Year()
+}
+
+// Month returns the underlying Time.Month(), and a boolean indicating whether the
+// original DICOM value included the month.
+func (dt Datetime) Month() (month time.Month, ok bool) {
+	return dt.Time.Month(), hasPrecision(PrecisionMonth, dt.Precision)
+}
+
+// Day returns the underlying time.Month, and a boolean indicating whether the
+func (dt Datetime) Day() (month int, ok bool) {
+	return dt.Time.Day(), hasPrecision(PrecisionDay, dt.Precision)
+}
+
+// Hour returns the underlying Time.Hour(). Since a DICOM TM value must contain an hour,
+// presence is not reported.
+func (dt Datetime) Hour() (hour int, ok bool) {
+	return dt.Time.Hour(), hasPrecision(PrecisionHours, dt.Precision)
+}
+
+// Minute returns the underlying Time.Minute(), and a boolean indicating whether the
+// original DICOM value included minutes.
+func (dt Datetime) Minute() (minute int, ok bool) {
+	return dt.Time.Minute(), hasPrecision(PrecisionMinutes, dt.Precision)
+}
+
+// Second returns the underlying Time.Second(), and a boolean indicating whether the
+// original DICOM value included seconds.
+func (dt Datetime) Second() (second int, ok bool) {
+	return dt.Time.Second(), hasPrecision(PrecisionSeconds, dt.Precision)
+}
+
+// Nanosecond returns the underlying Time.Nanosecond(), and a boolean indicating whether
+// the original DICOM value included any fractal seconds.
+func (dt Datetime) Nanosecond() (second int, ok bool) {
+	return dt.Time.Nanosecond(), hasPrecision(PrecisionMS1, dt.Precision)
+}
+
+// Location returns the underlying Time.Location(), and a boolean indicating whether
+// the original DICOM value included any timezone offset.
+func (dt Datetime) Location() (location *time.Location, ok bool) {
+	return dt.Time.Location(), !dt.NoOffset
+}
+
 // DCM converts time.Time value to dicom DT string. Values are truncated to the
 // DT.Precision value.
 //
@@ -29,7 +76,7 @@ func (dt Datetime) DCM() string {
 	builder.WriteString(Date{Time: dt.Time, Precision: dt.Precision}.DCM())
 
 	// Check that at lead
-	if isIncluded(PrecisionHours, dt.Precision) {
+	if hasPrecision(PrecisionHours, dt.Precision) {
 		builder.WriteString(Time{Time: dt.Time, Precision: dt.Precision}.DCM())
 	}
 
@@ -53,7 +100,7 @@ func (dt Datetime) String() string {
 	builder.WriteString(Date{Time: dt.Time, Precision: dt.Precision}.String())
 
 	// Check that at lead
-	if isIncluded(PrecisionHours, dt.Precision) {
+	if hasPrecision(PrecisionHours, dt.Precision) {
 		builder.WriteRune(' ')
 		builder.WriteString(Time{Time: dt.Time, Precision: dt.Precision}.String())
 	}

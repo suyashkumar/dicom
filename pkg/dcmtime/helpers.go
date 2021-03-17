@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-// isIncluded returns whether `check` is included in `limit`.
+// hasPrecision returns whether `check` is included in `limit`.
 //
 // Example: to test whether seconds should be included, you would:
-// isIncluded(PrecisionSeconds, [caller-passed-limit])
-func isIncluded(check PrecisionLevel, precision PrecisionLevel) bool {
+// hasPrecision(PrecisionSeconds, [caller-passed-limit])
+func hasPrecision(check PrecisionLevel, precision PrecisionLevel) bool {
 	return check <= precision
 }
 
@@ -100,4 +100,46 @@ func updatePrecision(info durationInfo, current, infoLevel PrecisionLevel, level
 		return PrecisionFull
 	}
 	return infoLevel
+}
+
+// precisionRange defines the (inclusive) minimum and maximum precision for omits.
+type precisionRange struct {
+	// Min is the the minimum precision in this range (inclusive).
+	Min PrecisionLevel
+	// Max is the maximum precision in this range (inclusive).
+	Max PrecisionLevel
+}
+
+// Contains returns true if a value falls within the given range (inclusive).
+func (pRange precisionRange) Contains(val PrecisionLevel) bool {
+	if val < pRange.Min {
+		return false
+	}
+
+	if val > pRange.Max {
+		return false
+	}
+	// If this value falls within the omit range, it is false.
+	return true
+}
+
+// hasPrecisionOmits is the underlying call made on [type].HasPrecision() call.
+//
+// check is the value passed in by the caller to check.
+//
+// valuePrecision is the precision of the value we are checking about.
+//
+// omits are a set of Precision levels the value cannot have. For instance. Date can
+// have a precision of PrecisionYear, but not PrecisionSeconds
+func hasPrecisionOmits(check PrecisionLevel, valuePrecision PrecisionLevel, omits precisionRange) bool {
+	if check > valuePrecision {
+		return false
+	}
+
+	// If this value falls within the omit range, it is false.
+	if omits.Contains(check) {
+		return false
+	}
+
+	return true
 }

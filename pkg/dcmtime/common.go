@@ -13,14 +13,14 @@ import (
 // Example: to test whether seconds should be included, you would:
 // isIncluded(PrecisionSeconds, [caller-passed-limit])
 func isIncluded(check PrecisionLevel, precision PrecisionLevel) bool {
-	return check <= precision
+	return check >= precision
 }
 
 // truncateMilliseconds truncate nanosecond time.Time value to arbitrary precision.
 func truncateMilliseconds(nanoSeconds int, precision PrecisionLevel) (millis string) {
 	milliseconds := nanoSeconds / 1000
 	millis = fmt.Sprintf("%06d", milliseconds)
-	millis = millis[:6-(PrecisionFull-precision)]
+	millis = millis[:6-(PrecisionFull+precision)]
 
 	return millis
 }
@@ -69,7 +69,7 @@ func extractDurationInfo(subMatches []string, index int, isFractal bool) (durati
 		// get our nano-seconds.
 		missingPlaces := 9 - len(valueStr)
 		valueStr = valueStr + strings.Repeat("0", missingPlaces)
-		info.FractalPrecision = PrecisionFull - PrecisionLevel(missingPlaces-3)
+		info.FractalPrecision = PrecisionFull + PrecisionLevel(missingPlaces-3)
 	}
 
 	// If our info is present, parse the value into an int.

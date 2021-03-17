@@ -45,37 +45,37 @@ func (level PrecisionLevel) String() string {
 }
 
 const (
-	// PrecisionYear indicated that a given dcm time value is only precise to the year.
-	PrecisionYear PrecisionLevel = iota
-	// PrecisionMonth indicated that a given dcm time value is only precise to the
-	// month.
-	PrecisionMonth
-	// PrecisionDay indicated that a given dcm time value is only precise to the day.
-	PrecisionDay
-	// PrecisionHours indicated that a given dcm time value is only precise to the hour.
-	PrecisionHours
-	// PrecisionMinutes indicated that a given dcm time value is only precise to the
-	// minute.
-	PrecisionMinutes
-	// PrecisionSeconds indicated that a given dcm time value is only precise to the
-	// second.
-	PrecisionSeconds
-	// PrecisionMS1 indicated that a given dcm time value is only precise to 1
-	// millisecond place (1/10 of a second).
-	PrecisionMS1
-	// PrecisionMS2 indicated that a given dcm time value is only precise to 2
-	// millisecond place (1/100 of a second).
-	PrecisionMS2
-	// PrecisionMS3 indicated that a given dcm time value is only precise to 3
-	// millisecond place (1/1000 of a second).
-	PrecisionMS3
-	// PrecisionMS4 indicated that a given dcm time value is only precise to 4
-	// millisecond place (1/10000 of a second).
-	PrecisionMS4
+	// PrecisionFull indicates that a given dcm time value is precise to the full extent
+	// it is able to be.
+	PrecisionFull PrecisionLevel = iota
 	// PrecisionMS5 indicated that a given dcm time value is only precise to 4
 	// millisecond place (1/100000 of a second).
 	PrecisionMS5
-	// PrecisionFull indicates that a given dcm time value is precise to the full extent
-	// it is able to be.
-	PrecisionFull
+	// PrecisionMS4 indicated that a given dcm time value is only precise to 4
+	// millisecond place (1/10000 of a second).
+	PrecisionMS4
+	// PrecisionMS3 indicated that a given dcm time value is only precise to 3
+	// millisecond place (1/1000 of a second).
+	PrecisionMS3
+	// PrecisionMS2 indicated that a given dcm time value is only precise to 2
+	// millisecond place (1/100 of a second).
+	PrecisionMS2
+	// PrecisionMS1 indicated that a given dcm time value is only precise to 1
+	// millisecond place (1/10 of a second).
+	PrecisionMS1
+	// PrecisionSeconds indicated that a given dcm time value is only precise to the
+	// second.
+	PrecisionSeconds
+	// PrecisionMinutes indicated that a given dcm time value is only precise to the
+	// minute.
+	PrecisionMinutes
+	// PrecisionHours indicated that a given dcm time value is only precise to the hour.
+	PrecisionHours
+	// PrecisionDay indicated that a given dcm time value is only precise to the day.
+	PrecisionDay
+	// PrecisionMonth indicated that a given dcm time value is only precise to the
+	// month.
+	PrecisionMonth
+	// PrecisionYear indicated that a given dcm time value is only precise to the year.
+	PrecisionYear
 )

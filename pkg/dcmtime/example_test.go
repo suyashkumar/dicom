@@ -298,12 +298,12 @@ func ExampleParseDatetime() {
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.NoOffset)
+	fmt.Println("NO OFFSET :", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:30:01.000431 +0100 +0100
 	// PRECISION : FULL
-	// HAS OFFSET: true
+	// NO OFFSET : false
 }
 
 // Parse a datetime string with no timezone.
@@ -319,12 +319,12 @@ func ExampleParseDatetime_noTimezone() {
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.NoOffset)
+	fmt.Println("NO OFFSET :", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:30:01.000431 +0000 +0000
 	// PRECISION : FULL
-	// HAS OFFSET: false
+	// NO OFFSET : true
 }
 
 // Parse a datetime string with no timezone.
@@ -340,12 +340,12 @@ func ExampleParseDatetime_precisionHour() {
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.NoOffset)
+	fmt.Println("NO OFFSET :", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:00:00 +0000 +0000
 	// PRECISION : HOURS
-	// HAS OFFSET: false
+	// NO OFFSET : true
 }
 
 func ExampleDatetime_create() {

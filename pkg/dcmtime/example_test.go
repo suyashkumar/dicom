@@ -174,6 +174,33 @@ func ExampleDate_precisionYear() {
 	// STRING: 2006-01
 }
 
+func ExampleDate_Combine() {
+	daString := "20200316"
+	tmString := "105434.123456"
+
+	daParsed, err := ParseDate(daString)
+	if err != nil {
+		panic(err)
+	}
+
+	tmParsed, err := ParseTime(tmString)
+	if err != nil {
+		panic(err)
+	}
+
+	datetime, err := daParsed.Combine(tmParsed, time.UTC)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("DCM    :", datetime.DCM())
+	fmt.Println("STRING :", datetime.String())
+
+	// Output:
+	// DCM    : 20200316105434.123456+0000
+	// STRING : 2020-03-16 10:54:34.123456 +00:00
+}
+
 func ExampleParseTime() {
 	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
 	tmString := "123001.000431"
@@ -327,13 +354,40 @@ func ExampleTime_precisionMinutes() {
 	// STRING: 15:04
 }
 
+func ExampleTime_Combine() {
+	daString := "20200316"
+	tmString := "105434.123456"
+
+	daParsed, err := ParseDate(daString)
+	if err != nil {
+		panic(err)
+	}
+
+	tmParsed, err := ParseTime(tmString)
+	if err != nil {
+		panic(err)
+	}
+
+	datetime, err := tmParsed.Combine(daParsed, time.UTC)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("DCM    :", datetime.DCM())
+	fmt.Println("STRING :", datetime.String())
+
+	// Output:
+	// DCM    : 20200316105434.123456+0000
+	// STRING : 2020-03-16 10:54:34.123456 +00:00
+}
+
 // Parse a datetime string.
 func ExampleParseDatetime() {
 	// This is a DT value like we would expect
-	daString := "20201210123001.000431+0100"
+	dtString := "20201210123001.000431+0100"
 
 	// We are parsing the date string without allowing nema
-	dt, err := ParseDatetime(daString)
+	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
 	}
@@ -351,10 +405,10 @@ func ExampleParseDatetime() {
 // Parse a datetime string with no timezone.
 func ExampleParseDatetime_noTimezone() {
 	// This is a DT value like we would expect
-	daString := "20201210123001.000431"
+	dtString := "20201210123001.000431"
 
 	// We are parsing the date string without allowing nema
-	dt, err := ParseDatetime(daString)
+	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
 	}
@@ -372,10 +426,10 @@ func ExampleParseDatetime_noTimezone() {
 // Parse a datetime string with no timezone.
 func ExampleParseDatetime_precisionHour() {
 	// This is a DT value like we would expect
-	daString := "2020121012"
+	dtString := "2020121012"
 
 	// We are parsing the date string without allowing nema
-	dt, err := ParseDatetime(daString)
+	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
 	}

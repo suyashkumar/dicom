@@ -442,7 +442,7 @@ func ExampleParseDatetime_precisionHour() {
 		fmt.Println("DAY VALUE   :", day)
 	}
 
-	// Try to get the Minute value. Because minutes are not included. 'ok' will be false
+	// Try to get the Minute value. Because minutes are not included, 'ok' will be false
 	// and this will not print.
 	if minute, ok := dt.Minute(); ok {
 		fmt.Println("MINUTE VALUE :", minute)

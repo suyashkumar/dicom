@@ -50,13 +50,13 @@ func ExampleParseDate_lessPrecision() {
 	// components.
 	//
 	// Try to get the Month value. Our value included a month, so 'ok' will be true.
-	if month, ok := da.Month() ; ok {
+	if month, ok := da.Month(); ok {
 		fmt.Println("MONTH      :", month)
 	}
 
 	// Try to get the Day value. Because minutes are not included, 'ok' will be false
 	// and this will not print.
-	if minute, ok := da.Day() ; ok {
+	if minute, ok := da.Day(); ok {
 		fmt.Println("DAY:", minute)
 	}
 
@@ -225,13 +225,13 @@ func ExampleParseTime_precisionMinute() {
 	// components.
 	//
 	// Try to get the Minute value. Our value included a day, so 'ok' will be true.
-	if day, ok := tm.Minute() ; ok {
+	if day, ok := tm.Minute(); ok {
 		fmt.Println("MINUTE VALUE :", day)
 	}
 
 	// Try to get the Second value. Because minutes are not included, 'ok' will be false
 	// and this will not print.
-	if minute, ok := tm.Second() ; ok {
+	if minute, ok := tm.Second(); ok {
 		fmt.Println("SECOND VALUE :", minute)
 	}
 
@@ -389,13 +389,13 @@ func ExampleParseDatetime_precisionHour() {
 	// components.
 	//
 	// Try to get the Day value. Our value included a day, so 'ok' will be true
-	if day, ok := dt.Day() ; ok {
+	if day, ok := dt.Day(); ok {
 		fmt.Println("DAY VALUE   :", day)
 	}
 
 	// Try to get the Minute value. Because minutes are not included. 'ok' will be false
 	// and this will not print.
-	if minute, ok := dt.Minute() ; ok {
+	if minute, ok := dt.Minute(); ok {
 		fmt.Println("MINUTE VALUE :", minute)
 	}
 

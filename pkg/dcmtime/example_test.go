@@ -10,7 +10,6 @@ func ExampleParseDate() {
 	// This is a DA value like we would expect
 	daString := "20201210"
 
-	// We are parsing the date string without allowing nema
 	da, err := ParseDate(daString)
 	if err != nil {
 		panic(err)
@@ -29,7 +28,6 @@ func ExampleParseDate_lessPrecision() {
 	// This is a DA value like we would expect, but it is missing the day value.
 	daString := "202012"
 
-	// We are parsing the date string without allowing NEMA-300 formatted dates.
 	da, err := ParseDate(daString)
 	if err != nil {
 		panic(err)
@@ -103,7 +101,7 @@ func ExampleDate_create() {
 		panic(err)
 	}
 
-	// Create a nw DA object like so:
+	// Create a nw Date object like so:
 	da := Date{
 		Time:      date,
 		Precision: PrecisionFull,
@@ -131,7 +129,7 @@ func ExampleDate_createNEMA300() {
 		panic(err)
 	}
 
-	// Create a nw DA object like so:
+	// Create a nw Date object like so:
 	da := Date{
 		Time:      date,
 		Precision: PrecisionFull,
@@ -156,7 +154,7 @@ func ExampleDate_precisionYear() {
 		panic(err)
 	}
 
-	// Create a nw DA object that only represent the year like so:
+	// Create a nw Date object that only represent the year and month like so:
 	da := Date{
 		Time:      date,
 		Precision: PrecisionMonth,
@@ -283,7 +281,7 @@ func ExampleTime_create() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Time object like so:
 	tm := Time{
 		Time:      timeVal,
 		Precision: PrecisionFull,
@@ -310,7 +308,7 @@ func ExampleTime_precision3MS() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Time object like so:
 	tm := Time{
 		Time:      timeVal,
 		Precision: PrecisionMS3,
@@ -337,7 +335,7 @@ func ExampleTime_precisionMinutes() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Time object like so:
 	tm := Time{
 		Time:      timeVal,
 		Precision: PrecisionMinutes,
@@ -386,7 +384,6 @@ func ExampleParseDatetime() {
 	// This is a DT value like we would expect
 	dtString := "20201210123001.000431+0100"
 
-	// We are parsing the date string without allowing nema
 	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
@@ -407,7 +404,6 @@ func ExampleParseDatetime_noTimezone() {
 	// This is a DT value like we would expect
 	dtString := "20201210123001.000431"
 
-	// We are parsing the date string without allowing nema
 	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
@@ -428,7 +424,6 @@ func ExampleParseDatetime_precisionHour() {
 	// This is a DT value like we would expect
 	dtString := "2020121012"
 
-	// We are parsing the date string without allowing nema
 	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
@@ -475,7 +470,7 @@ func ExampleDatetime_create() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionFull,
@@ -503,7 +498,7 @@ func ExampleDatetime_createNoOffset() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionFull,
@@ -527,7 +522,7 @@ func ExampleDatetime_precisionMinute() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionMinutes,
@@ -551,7 +546,7 @@ func ExampleDatetime_precisionMinuteWithOffset() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionMinutes,

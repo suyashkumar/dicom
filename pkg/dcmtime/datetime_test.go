@@ -715,3 +715,17 @@ func TestDatetime_Methods(t *testing.T) {
 		})
 	}
 }
+
+// TestDatetime_SaneDefaults tests that instantiating a new Datetime object with just
+// the Time field specified yields a reasonable result.
+func TestDatetime_SaneDefaults(t *testing.T) {
+	newValue := dcmtime.Datetime{
+		Time: time.Date(2021, 03, 16, 13, 45, 32, 123456000, time.FixedZone("", 60)),
+	}
+
+	dcmVal := newValue.DCM()
+	expexted := "20210316134532.123456+0001"
+	if dcmVal != expexted {
+		t.Errorf("DCM(): expected '%v', but got '%v'", expexted, dcmVal)
+	}
+}

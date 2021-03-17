@@ -54,6 +54,16 @@ func (tm Time) Nanosecond() (second int, ok bool) {
 	return tm.Time.Nanosecond(), hasPrecision(PrecisionMS1, tm.Precision)
 }
 
+// Combine combines the Time with a Date value into a single Datetime value.
+//
+// The Date value must have a PrecisionLevel of PrecisionFull or the method will fail.
+//
+// If no location is given, time.FixedZone("", 0) will be used and NoOffset will be
+// set to 'true'.
+func (tm Time) Combine(da Date, location *time.Location) (Datetime, error) {
+	return combineDateAndTime(da, tm, location)
+}
+
 // DCM converts internal time.Time value to dicom TM string, truncating the output
 // to the DA value's Precision.
 //

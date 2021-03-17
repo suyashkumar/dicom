@@ -52,6 +52,16 @@ func (da Date) Day() (month int, ok bool) {
 	return da.Time.Day(), hasPrecision(PrecisionDay, da.Precision)
 }
 
+// Combine combines the Date with a Time value into a single Datetime value.
+//
+// The Date value must have a PrecisionLevel of PrecisionFull or the method will fail.
+//
+// If no location is given, time.FixedZone("", 0) will be used and NoOffset will be
+// set to 'true'.
+func (da Date) Combine(tm Time, location *time.Location) (Datetime, error) {
+	return combineDateAndTime(da, tm, location)
+}
+
 // DCM converts time.Time value to dicom DA string. Values are truncated to the
 // Date.Precision value.
 //

@@ -133,6 +133,8 @@ type precisionRange struct {
 
 // Contains returns true if a value falls within the given range (inclusive).
 func (pRange precisionRange) Contains(val PrecisionLevel) bool {
+	// Because the precision iota is reversed to make PrecisionFull the default, we
+	// need to invert the normal range logic here.
 	if val > pRange.Min {
 		return false
 	}
@@ -140,6 +142,49 @@ func (pRange precisionRange) Contains(val PrecisionLevel) bool {
 	if val < pRange.Max {
 		return false
 	}
+
 	// If this value falls within the omit range, it is false.
 	return true
+}
+
+// combineDAAndTM is the backing function for both DA.Combine and TM.Combine
+//
+// If no location is given time.FixedZone("", 0) will be used, and NoOffset will be
+// set to 'true'.
+func combineDateAndTime(da Date, tm Time, location *time.Location) (Datetime, error) {
+	// User-created values might use PrecisionDay in place of PrecisionFull for
+	// full-precision dates.
+	//
+	// We need a full precision date, because Datetime values can only elide fom the
+	// end. Since combining a Date and Time value implies the Time has at least an
+	// Hour value, no Date values can be missing.
+	if !da.HasPrecision(PrecisionFull) && !da.HasPrecision(PrecisionDay) {
+		return Datetime{}, fmt.Errorf(
+			"DA value must have full precision, got '%v'", da.Precision,
+		)
+	}
+
+	noOffset := false
+	if location == nil {
+		location = time.FixedZone("", 0)
+		noOffset = true
+	}
+
+	return Datetime{
+		Time: time.Date(
+			// Date values.
+			da.Time.Year(),
+			da.Time.Month(),
+			da.Time.Day(),
+			// Time values.
+			tm.Time.Hour(),
+			tm.Time.Minute(),
+			tm.Time.Second(),
+			tm.Time.Nanosecond(),
+			location,
+		),
+		// We'll inherit our Precision from the Time value.
+		Precision: tm.Precision,
+		NoOffset:  noOffset,
+	}, nil
 }

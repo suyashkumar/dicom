@@ -1231,3 +1231,141 @@ func TestDatetime_SaneDefaults(t *testing.T) {
 		t.Errorf("DCM(): expected '%v', but got '%v'", expexted, dcmVal)
 	}
 }
+
+func TestCombineDateAndTime(t *testing.T) {
+	testCases := []struct {
+		Name                string
+		DCMDate             string
+		DCMTime             string
+		Location            *time.Location
+		ExpectedDCMDatetime string
+		ExpectedPrecision   dcmtime.PrecisionLevel
+	}{
+		{
+			Name:                "PrecisionFull_WithOffset",
+			DCMDate:             "20210317",
+			DCMTime:             "102345.123456",
+			Location:            time.FixedZone("", 120),
+			ExpectedDCMDatetime: "20210317102345.123456+0002",
+			ExpectedPrecision:   dcmtime.PrecisionFull,
+		},
+		{
+			Name:                "PrecisionHours_WithOffset",
+			DCMDate:             "20210317",
+			DCMTime:             "10",
+			Location:            time.FixedZone("", 120),
+			ExpectedDCMDatetime: "2021031710+0002",
+			ExpectedPrecision:   dcmtime.PrecisionHours,
+		},
+		{
+			Name:                "PrecisionFull_NoOffset",
+			DCMDate:             "20210317",
+			DCMTime:             "102345.123456",
+			Location:            nil,
+			ExpectedDCMDatetime: "20210317102345.123456",
+			ExpectedPrecision:   dcmtime.PrecisionFull,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			dateValue, err := dcmtime.ParseDate(tc.DCMDate)
+			if err != nil {
+				t.Fatalf("error parrsing date value '%v': %v", tc.DCMDate, err)
+			}
+
+			timeValue, err := dcmtime.ParseTime(tc.DCMTime)
+			if err != nil {
+				t.Fatalf("error parrsing time value '%v': %v", tc.DCMTime, err)
+			}
+
+			t.Run("Date.Combine()", func(t *testing.T) {
+				datetime, err := dateValue.Combine(timeValue, tc.Location)
+				if err != nil {
+					t.Fatalf("Date.Combine(%v, %v) error: %v", timeValue, tc.Location, err)
+				}
+
+				dcmValue := datetime.DCM()
+				if dcmValue != tc.ExpectedDCMDatetime {
+					t.Errorf("expected combined datetime of '%v', got '%v'", tc.ExpectedDCMDatetime, dcmValue)
+				}
+
+				if datetime.Precision != tc.ExpectedPrecision {
+					t.Errorf("expected combined precision of '%v', got '%v'", tc.ExpectedPrecision, datetime.Precision)
+				}
+			})
+
+			t.Run("Time.Combine()", func(t *testing.T) {
+				datetime, err := timeValue.Combine(dateValue, tc.Location)
+				if err != nil {
+					t.Fatalf("Date.Combine(%v, %v) error: %v", timeValue, tc.Location, err)
+				}
+
+				dcmValue := datetime.DCM()
+				if dcmValue != tc.ExpectedDCMDatetime {
+					t.Errorf("expected combined datetime of '%v', got '%v'", tc.ExpectedDCMDatetime, dcmValue)
+				}
+
+				if datetime.Precision != tc.ExpectedPrecision {
+					t.Errorf("expected combined precision of '%v', got '%v'", tc.ExpectedPrecision, datetime.Precision)
+				}
+			})
+		})
+	}
+}
+
+func TestErrCombineDateAndTime_DateLimitedPrecision(t *testing.T) {
+	testCases := []struct {
+		Name        string
+		DCMDate     string
+		DCMTime     string
+		ExpectedErr string
+	}{
+		{
+			Name:        "PrecisionMonth",
+			DCMDate:     "202103",
+			DCMTime:     "120000",
+			ExpectedErr: "DA value must have full precision, got 'MONTH'",
+		},
+		{
+			Name:        "PrecisionYear",
+			DCMDate:     "2021",
+			DCMTime:     "120000",
+			ExpectedErr: "DA value must have full precision, got 'YEAR'",
+		},
+	}
+
+	for _, tc := range testCases {
+		dateValue, err := dcmtime.ParseDate(tc.DCMDate)
+		if err != nil {
+			t.Fatalf("error parrsing date value '%v': %v", tc.DCMDate, err)
+		}
+
+		timeValue, err := dcmtime.ParseTime(tc.DCMTime)
+		if err != nil {
+			t.Fatalf("error parrsing time value '%v': %v", tc.DCMTime, err)
+		}
+
+		t.Run("Date.Combine()", func(t *testing.T) {
+			_, err = dateValue.Combine(timeValue, nil)
+			if err == nil {
+				t.Fatalf("Date.Combine(): expected error, got nil")
+			}
+
+			if err.Error() != tc.ExpectedErr {
+				t.Errorf("unexpected error text: %v", err)
+			}
+		})
+
+		t.Run("Time.Combine()", func(t *testing.T) {
+			_, err = timeValue.Combine(dateValue, nil)
+			if err == nil {
+				t.Fatalf("Date.Combine(): expected error, got nil")
+			}
+
+			if err.Error() != tc.ExpectedErr {
+				t.Errorf("unexpected error text: %v", err)
+			}
+		})
+	}
+}

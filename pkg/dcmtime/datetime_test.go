@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+// dtPrecisionOmits describes the precision range not valid for datetime. Since datetime
+// has no omits, the range is outside our enumerated values.
+var dtPrecisionOmits = precisionRange{
+	Min: dcmtime.PrecisionFull + 1,
+	Max: dcmtime.PrecisionFull + 1,
+}
+
 func TestParseDatetime(t *testing.T) {
 	testCases := []struct {
 		// Name is the name of the sub-test
@@ -26,8 +33,8 @@ func TestParseDatetime(t *testing.T) {
 		HasMonth bool
 		// HasDay is whether the parsed value's Day() method should return ok=true
 		HasDay bool
-		// HasHours is whether the parsed value's Hour() method should return ok=true.
-		HasHours bool
+		// HasHour is whether the parsed value's Hour() method should return ok=true.
+		HasHour bool
 		// HasMinute is whether the parsed value's Minute() method should return ok=true.
 		HasMinute bool
 		// HasSecond is whether the parsed value's Second() method should return ok=true.
@@ -48,7 +55,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -66,7 +73,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -84,7 +91,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -102,7 +109,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -120,7 +127,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -138,7 +145,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -156,7 +163,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     false,
@@ -174,7 +181,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -192,7 +199,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -210,7 +217,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -228,7 +235,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            false,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -246,7 +253,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          false,
 			HasDay:            false,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -264,7 +271,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -282,7 +289,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -300,7 +307,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -318,7 +325,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -336,7 +343,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -354,7 +361,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -372,7 +379,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     false,
@@ -390,7 +397,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -408,7 +415,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -426,7 +433,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -444,7 +451,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          true,
 			HasDay:            false,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -462,7 +469,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  false,
 			HasMonth:          false,
 			HasDay:            false,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -480,7 +487,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -498,7 +505,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -516,7 +523,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -534,7 +541,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -552,7 +559,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -570,7 +577,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     true,
@@ -588,7 +595,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         true,
 			HasNanosecond:     false,
@@ -606,7 +613,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         true,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -624,7 +631,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          true,
+			HasHour:           true,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -644,7 +651,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            true,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -664,7 +671,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          true,
 			HasDay:            false,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -684,7 +691,7 @@ func TestParseDatetime(t *testing.T) {
 			ExpectedNoOffset:  true,
 			HasMonth:          false,
 			HasDay:            false,
-			HasHours:          false,
+			HasHour:           false,
 			HasMinute:         false,
 			HasSecond:         false,
 			HasNanosecond:     false,
@@ -734,21 +741,65 @@ func TestParseDatetime(t *testing.T) {
 				}
 			})
 
-			if parsed.Precision != tc.ExpectedPrecision {
-				t.Errorf(
-					"precision: expected %v, got %v",
-					tc.ExpectedPrecision.String(),
-					parsed.Precision.String(),
-				)
-			}
+			t.Run("String()", func(t *testing.T) {
+				stringVal := parsed.String()
+				if stringVal != tc.ExpectedString {
+					t.Fatalf(
+						"got String() value '%v', expected '%v'",
+						stringVal,
+						tc.ExpectedString,
+					)
+				}
+			})
 
-			if parsed.NoOffset != tc.ExpectedNoOffset {
-				t.Errorf(
-					"NoOffset: expected %v, got %v",
-					tc.ExpectedNoOffset,
-					parsed.NoOffset,
-				)
-			}
+			t.Run("DCM()", func(t *testing.T) {
+				dcmVal := parsed.DCM()
+				if dcmVal != tc.DTValue {
+					t.Fatalf(
+						"got DCM() value '%v', expected '%v'", dcmVal, tc.DTValue,
+					)
+				}
+			})
+
+			t.Run("Year()", func(t *testing.T) {
+				year := parsed.Year()
+				checkDateHelperOutput(t, "Year()", parsed.Time.Year(), year, true, true)
+			})
+
+			t.Run("Month()", func(t *testing.T) {
+				month, ok := parsed.Month()
+				checkDateHelperOutput(t, "Month()", int(parsed.Time.Month()), int(month), tc.HasMonth, ok)
+			})
+
+			t.Run("Day()", func(t *testing.T) {
+				day, ok := parsed.Day()
+				checkDateHelperOutput(t, "Day()", parsed.Time.Day(), day, tc.HasDay, ok)
+			})
+
+			t.Run("Hour()", func(t *testing.T) {
+				hour, ok := parsed.Hour()
+				checkDateHelperOutput(t, "Hour()", parsed.Time.Hour(), hour, tc.HasHour, ok)
+			})
+
+			t.Run("Minute()", func(t *testing.T) {
+				minute, ok := parsed.Minute()
+				checkDateHelperOutput(t, "Minute()", parsed.Time.Minute(), minute, tc.HasMinute, ok)
+			})
+
+			t.Run("Second()", func(t *testing.T) {
+				minute, ok := parsed.Second()
+				checkDateHelperOutput(t, "Second()", parsed.Time.Second(), minute, tc.HasSecond, ok)
+			})
+
+			t.Run("Nanosecond()", func(t *testing.T) {
+				nanos, ok := parsed.Nanosecond()
+				checkDateHelperOutput(t, "Nanosecond()", parsed.Time.Nanosecond(), nanos, tc.HasNanosecond, ok)
+			})
+
+			t.Run("HasPrecision()", func(t *testing.T) {
+				checkHasPrecision(t, parsed, tc.HasPrecisionRange, dtPrecisionOmits)
+			})
+
 		})
 	}
 }

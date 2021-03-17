@@ -20,6 +20,11 @@ type Datetime struct {
 	NoOffset bool
 }
 
+// HasPrecision returns whether this da value has a precision of AT LEAST 'check'.
+func (dt Datetime) HasPrecision(check PrecisionLevel) bool {
+	return hasPrecision(check, dt.Precision)
+}
+
 // Year returns the underlying Time.Year(). Since a DICOM DT value must contain a year,
 // presence is not reported.
 func (dt Datetime) Year() int {

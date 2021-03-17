@@ -734,6 +734,21 @@ func TestParseDatetime(t *testing.T) {
 				}
 			})
 
+			if parsed.Precision != tc.ExpectedPrecision {
+				t.Errorf(
+					"precision: expected %v, got %v",
+					tc.ExpectedPrecision.String(),
+					parsed.Precision.String(),
+				)
+			}
+
+			if parsed.NoOffset != tc.ExpectedNoOffset {
+				t.Errorf(
+					"NoOffset: expected %v, got %v",
+					tc.ExpectedNoOffset,
+					parsed.NoOffset,
+				)
+			}
 		})
 	}
 }

@@ -266,9 +266,8 @@ func verifyVROrDefault(t tag.Tag, vr string, opts writeOptSet) (string, error) {
 		return tagInfo.VR, nil
 	}
 
-	// If we've made it this far it's because the caller want's VR verification and
-	// passed a non-blank VR, so we should verify it.
-	if tagInfo.VR != vr {
+	// Verify the VR on the way out if the caller wants it.
+	if !opts.skipVRVerification && tagInfo.VR != vr {
 		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
 			tag.DebugString(t), vr, tagInfo.VR)
 	}

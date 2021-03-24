@@ -98,6 +98,57 @@ func TestWrite(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "sequence (2 Items with 2 values each) - skip vr verification",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+					// Item 1.
+					{
+						{
+							Tag:                    tag.PatientName,
+							ValueRepresentation:    tag.VRStringList,
+							RawValueRepresentation: "PN",
+							Value: &stringsValue{
+								value: []string{"Bob", "Jones"},
+							},
+						},
+						{
+							Tag:                    tag.Rows,
+							ValueRepresentation:    tag.VRUInt16List,
+							RawValueRepresentation: "US",
+							Value: &intsValue{
+								value: []int{100},
+							},
+						},
+					},
+					// Item 2.
+					{
+						{
+							Tag:                    tag.PatientName,
+							ValueRepresentation:    tag.VRStringList,
+							RawValueRepresentation: "PN",
+							Value: &stringsValue{
+								value: []string{"Bob", "Jones"},
+							},
+						},
+						{
+							Tag:                    tag.Rows,
+							ValueRepresentation:    tag.VRUInt16List,
+							RawValueRepresentation: "US",
+							Value: &intsValue{
+								value: []int{100},
+							},
+						},
+					},
+				}),
+			}},
+			expectedError: nil,
+			opts:          []WriteOption{SkipVRVerification()},
+		},
+		{
 			name: "nested sequences",
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
@@ -132,6 +183,43 @@ func TestWrite(t *testing.T) {
 				}),
 			}},
 			expectedError: nil,
+		},
+		{
+			name: "nested sequences - without VR verification",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+					// Item 1.
+					{
+						{
+							Tag:                    tag.PatientName,
+							ValueRepresentation:    tag.VRStringList,
+							RawValueRepresentation: "PN",
+							Value: &stringsValue{
+								value: []string{"Bob", "Jones"},
+							},
+						},
+						// Nested Sequence.
+						makeSequenceElement(tag.AnatomicRegionSequence, [][]*Element{
+							{
+								{
+									Tag:                    tag.PatientName,
+									ValueRepresentation:    tag.VRStringList,
+									RawValueRepresentation: "PN",
+									Value: &stringsValue{
+										value: []string{"Bob", "Jones"},
+									},
+								},
+							},
+						}),
+					},
+				}),
+			}},
+			expectedError: nil,
+			opts:          []WriteOption{SkipVRVerification()},
 		},
 		{
 			name: "without transfer syntax",
@@ -412,7 +500,7 @@ func TestVerifyVR(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			vr, err := verifyVROrDefault(tc.tg, tc.inVR)
+			vr, err := verifyVROrDefault(tc.tg, tc.inVR, writeOptSet{})
 			if (err != nil && !tc.wantErr) || (err == nil && tc.wantErr) {
 				t.Errorf("verifyVROrDefault(%v, %v), got err: %v but want err: %v", tc.tg, tc.inVR, err, tc.wantErr)
 			}

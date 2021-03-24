@@ -250,10 +250,10 @@ func verifyVROrDefault(t tag.Tag, vr string, opts writeOptSet) (string, error) {
 	// Otherwise, get our tag info.
 	tagInfo, err := tag.Find(t)
 	if err != nil {
-		// If we cannot find it and our VR is blank, we will use "UNKNOWN" Otherwise we
-		// will fallback to the caller's VR and trust that they know more
-		// about this tag than we do. This could be a private tag, or a tag from a newer
-		// version of the DICOM spec.
+		// If we cannot find information about the tag and our VR is blank, we will use
+		// "UN" (Unknown). Otherwise we will fallback to the caller's VR and trust that
+		// they know more about this tag than we do. This could be a private tag, or a
+		// tag from a newer version of the DICOM spec.
 		if vr == "" {
 			vr = vrraw.Unknown
 		}

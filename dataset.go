@@ -99,7 +99,7 @@ func (d *Dataset) FlatIterator() <-chan *Element {
 // Or, if you don't need the channel interface, simply use
 // Dataset.FlatStatefulIterator.
 func ExhaustElementChannel(c <-chan *Element) {
-	for _ = range c {
+	for range c {
 	}
 }
 

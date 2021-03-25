@@ -70,10 +70,19 @@ type Value interface {
 	// ValueType returns the underlying ValueType of this Value. This can be used to unpack the underlying data in this
 	// Value.
 	ValueType() ValueType
+	// ValueCount returns the number of inner values that GetValue() will return.
+	//
+	// For instance: a Value that contains []int{1, 2} would return a ValueCount() of 2.
+	//
+	// []byte values will always return 1 and PixelData values will return the number of
+	// frames they contain.
+	ValueCount() int
 	// GetValue returns the underlying value that this Value holds. What type is returned here can be determined exactly
 	// from the ValueType() of this Value (see the ValueType godoc).
 	GetValue() interface{} // TODO: rename to Get to read cleaner
+	// String implements fmt.Stringer
 	String() string
+	// MarshalJSON implements json.Marshaler
 	MarshalJSON() ([]byte, error)
 }
 
@@ -181,6 +190,7 @@ type bytesValue struct {
 
 func (b *bytesValue) isElementValue()       {}
 func (b *bytesValue) ValueType() ValueType  { return Bytes }
+func (b *bytesValue) ValueCount() int       { return 1 }
 func (b *bytesValue) GetValue() interface{} { return b.value }
 func (b *bytesValue) String() string {
 	return fmt.Sprintf("%v", b.value)
@@ -196,6 +206,7 @@ type stringsValue struct {
 
 func (s *stringsValue) isElementValue()       {}
 func (s *stringsValue) ValueType() ValueType  { return Strings }
+func (s *stringsValue) ValueCount() int       { return len(s.value) }
 func (s *stringsValue) GetValue() interface{} { return s.value }
 func (s *stringsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
@@ -211,6 +222,7 @@ type intsValue struct {
 
 func (s *intsValue) isElementValue()       {}
 func (s *intsValue) ValueType() ValueType  { return Ints }
+func (s *intsValue) ValueCount() int       { return len(s.value) }
 func (s *intsValue) GetValue() interface{} { return s.value }
 func (s *intsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
@@ -226,6 +238,7 @@ type floatsValue struct {
 
 func (s *floatsValue) isElementValue()       {}
 func (s *floatsValue) ValueType() ValueType  { return Floats }
+func (s *floatsValue) ValueCount() int       { return len(s.value) }
 func (s *floatsValue) GetValue() interface{} { return s.value }
 func (s *floatsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
@@ -246,6 +259,8 @@ func (s *SequenceItemValue) isElementValue() {}
 // ValueType returns the underlying ValueType of this Value. This can be used
 // to unpack the underlying data in this Value.
 func (s *SequenceItemValue) ValueType() ValueType { return SequenceItem }
+
+func (s *SequenceItemValue) ValueCount() int { return len(s.elements) }
 
 // GetValue returns the underlying value that this Value holds. What type is
 // returned here can be determined exactly from the ValueType() of this Value
@@ -270,6 +285,7 @@ type sequencesValue struct {
 
 func (s *sequencesValue) isElementValue()       {}
 func (s *sequencesValue) ValueType() ValueType  { return Sequences }
+func (s *sequencesValue) ValueCount() int       { return len(s.value) }
 func (s *sequencesValue) GetValue() interface{} { return s.value }
 func (s *sequencesValue) String() string {
 	// TODO: consider adding more sophisticated formatting
@@ -293,6 +309,7 @@ type pixelDataValue struct {
 
 func (e *pixelDataValue) isElementValue()       {}
 func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
+func (e *pixelDataValue) ValueCount() int       { return len(e.PixelDataInfo.Frames) }
 func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
 func (e *pixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting

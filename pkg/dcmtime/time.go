@@ -15,6 +15,18 @@ type Time struct {
 	Precision PrecisionLevel
 }
 
+// GetTime returns the Time field value for the Time. Included to support common
+// interfaces with other dcmtime types.
+func (tm Time) GetTime() time.Time {
+	return tm.Time
+}
+
+// GetPrecision returns the Precision field value for the Time. Included to support
+// common  interfaces with other dcmtime types.
+func (tm Time) GetPrecision() PrecisionLevel {
+	return tm.Precision
+}
+
 // tmPrecisionOmits is the range of precision values not relevant to Time.
 var tmPrecisionOmits = precisionRange{
 	Min: PrecisionYear,
@@ -31,9 +43,9 @@ func (tm Time) HasPrecision(check PrecisionLevel) bool {
 }
 
 // Hour returns the underlying Time.Hour(). Since a DICOM TM value must contain an hour,
-// presence is not reported.
-func (tm Time) Hour() (hour int) {
-	return tm.Time.Hour()
+// 'ok' will always be true. 'ok' is included to form a common interface with Datetime.
+func (tm Time) Hour() (hour int, ok bool) {
+	return tm.Time.Hour(), true
 }
 
 // Minute returns the underlying Time.Minute(), and a boolean indicating whether the

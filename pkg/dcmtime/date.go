@@ -19,6 +19,18 @@ type Date struct {
 	IsNEMA bool
 }
 
+// GetTime returns the Time field value for the Date. Included to support common
+// interfaces with other dcmtime types.
+func (da Date) GetTime() time.Time {
+	return da.Time
+}
+
+// GetPrecision returns the Precision field value for the Date. Included to support
+// common  interfaces with other dcmtime types.
+func (da Date) GetPrecision() PrecisionLevel {
+	return da.Precision
+}
+
 // daPrecisionOmits is the range of precision values not relevant to Date.
 var daPrecisionOmits = precisionRange{
 	Min: PrecisionHours,

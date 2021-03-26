@@ -225,6 +225,26 @@ func TestTime(t *testing.T) {
 				}
 			})
 
+			t.Run("GetTime()", func(t *testing.T) {
+				if !tc.ExpectedTime.Equal(parsed.GetTime()) {
+					t.Errorf(
+						"Datetime.GetTime(): expected %v, got %v",
+						tc.ExpectedTime,
+						parsed.Time,
+					)
+				}
+			})
+
+			t.Run("GetPrecision()", func(t *testing.T) {
+				if parsed.GetPrecision() != tc.ExpectedPrecision {
+					t.Errorf(
+						"Datetime.GetPrecision(): expected %v, got %v",
+						tc.ExpectedPrecision.String(),
+						parsed.Precision.String(),
+					)
+				}
+			})
+
 			t.Run("DCM()", func(t *testing.T) {
 				dcmVal := parsed.DCM()
 				if dcmVal != tc.TMValue {
@@ -246,8 +266,8 @@ func TestTime(t *testing.T) {
 			})
 
 			t.Run("Hour()", func(t *testing.T) {
-				hour := parsed.Hour()
-				checkDateHelperOutput(t, "Hour()", parsed.Time.Hour(), hour, true, true)
+				hour, ok := parsed.Hour()
+				checkDateHelperOutput(t, "Hour()", parsed.Time.Hour(), hour, true, ok)
 			})
 
 			t.Run("Minute()", func(t *testing.T) {

@@ -741,6 +741,26 @@ func TestDatetime(t *testing.T) {
 				}
 			})
 
+			t.Run("GetTime()", func(t *testing.T) {
+				if !tc.ExpectedTime.Equal(parsed.GetTime()) {
+					t.Errorf(
+						"Datetime.GetTime(): expected %v, got %v",
+						tc.ExpectedTime,
+						parsed.Time,
+					)
+				}
+			})
+
+			t.Run("GetPrecision()", func(t *testing.T) {
+				if parsed.GetPrecision() != tc.ExpectedPrecision {
+					t.Errorf(
+						"Datetime.GetPrecision(): expected %v, got %v",
+						tc.ExpectedPrecision.String(),
+						parsed.Precision.String(),
+					)
+				}
+			})
+
 			t.Run("String()", func(t *testing.T) {
 				stringVal := parsed.String()
 				if stringVal != tc.ExpectedString {

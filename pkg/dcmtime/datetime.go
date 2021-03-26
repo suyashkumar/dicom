@@ -20,6 +20,18 @@ type Datetime struct {
 	NoOffset bool
 }
 
+// GetTime returns the Time field value for the Datetime. Included to support common
+// interfaces with other dcmtime types.
+func (dt Datetime) GetTime() time.Time {
+	return dt.Time
+}
+
+// GetPrecision returns the Precision field value for the Datetime. Included to support
+// common  interfaces with other dcmtime types.
+func (dt Datetime) GetPrecision() PrecisionLevel {
+	return dt.Precision
+}
+
 // HasPrecision returns whether this da value has a precision of AT LEAST 'check'.
 func (dt Datetime) HasPrecision(check PrecisionLevel) bool {
 	return hasPrecision(check, dt.Precision)

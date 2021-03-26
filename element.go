@@ -203,7 +203,7 @@ func (b *bytesValue) ValueCount() int       { return 1 }
 func (b *bytesValue) GetValue() interface{} { return b.value }
 func (b *bytesValue) GetValueIndex(i int) interface{} {
 	if i != 0 {
-		panic("bytesValue cannot have index greater than 0")
+		panic("bytes value cannot have index greater than 0")
 	}
 	return b.value
 }
@@ -327,11 +327,16 @@ type pixelDataValue struct {
 	PixelDataInfo
 }
 
-func (e *pixelDataValue) isElementValue()                 {}
-func (e *pixelDataValue) ValueType() ValueType            { return PixelData }
-func (e *pixelDataValue) ValueCount() int                 { return len(e.PixelDataInfo.Frames) }
-func (e *pixelDataValue) GetValue() interface{}           { return e.PixelDataInfo }
-func (e *pixelDataValue) GetValueIndex(i int) interface{} { return e.PixelDataInfo.Frames[i] }
+func (e *pixelDataValue) isElementValue()       {}
+func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
+func (e *pixelDataValue) ValueCount() int       { return 1 }
+func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
+func (e *pixelDataValue) GetValueIndex(i int) interface{} {
+	if i != 0 {
+		panic("PixelData value cannot have index greater than 0")
+	}
+	return e.PixelDataInfo
+}
 func (e *pixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return ""

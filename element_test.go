@@ -100,7 +100,7 @@ func TestNewValue(t *testing.T) {
 			name:      "PixelDataInfo",
 			data:      PixelDataInfo{IsEncapsulated: true},
 			wantValue: &pixelDataValue{PixelDataInfo{IsEncapsulated: true}},
-			wantCount: 0,
+			wantCount: 1,
 			wantError: nil,
 		},
 		{
@@ -138,31 +138,41 @@ func TestNewValue(t *testing.T) {
 			if err != tc.wantError {
 				t.Fatalf("NewValue(%v) returned unexpected error: %v", tc.data, err)
 			}
-			if diff := cmp.Diff(v, tc.wantValue, cmp.AllowUnexported(allValues...)); diff != "" {
-				t.Errorf("NewValue(%v) unexpected value. diff: %v", tc.data, diff)
-			}
-			if v.ValueCount() != tc.wantCount {
-				t.Fatalf("Value.ValueCount() expected count %v, got %v", tc.wantCount, v.ValueCount())
-			}
 
-			for i := 0; i < v.ValueCount(); i++ {
-				innerValue := v.GetValueIndex(i)
-				var expected interface{}
-				switch tc.wantValue.ValueType() {
-				case Sequences:
-					sq := tc.wantValue.(*sequencesValue)
-					expected = sq.value[i]
-				case Bytes:
-					expected = tc.data
-				case PixelData:
-					expected = tc.wantValue.(*pixelDataValue).Frames[i]
-				default:
-					expected = reflect.ValueOf(tc.data).Index(i).Interface()
+			t.Run("Value", func(t *testing.T) {
+				if diff := cmp.Diff(v, tc.wantValue, cmp.AllowUnexported(allValues...)); diff != "" {
+					t.Errorf("NewValue(%v) unexpected value. diff: %v", tc.data, diff)
 				}
-				if diff := cmp.Diff(expected, innerValue, cmp.AllowUnexported(allValues...)); diff != "" {
-					t.Fatalf("Value.GetValueIndex(%v) unexpected value. diff: %v", i, diff)
+			})
+
+			t.Run("ValueCount()", func(t *testing.T) {
+				if v.ValueCount() != tc.wantCount {
+					t.Fatalf("Value.ValueCount() expected count %v, got %v", tc.wantCount, v.ValueCount())
 				}
-			}
+			})
+
+			t.Run("GetValueIndex()", func(t *testing.T) {
+				if v.ValueCount() != tc.wantCount {
+					t.Fatalf("cannot evaluate GetValueIndex() without expected value count")
+				}
+
+				for i := 0; i < v.ValueCount(); i++ {
+					innerValue := v.GetValueIndex(i)
+					var expected interface{}
+					switch tc.wantValue.ValueType() {
+					case Sequences:
+						sq := tc.wantValue.(*sequencesValue)
+						expected = sq.value[i]
+					case Bytes, PixelData:
+						expected = tc.data
+					default:
+						expected = reflect.ValueOf(tc.data).Index(i).Interface()
+					}
+					if diff := cmp.Diff(expected, innerValue, cmp.AllowUnexported(allValues...)); diff != "" {
+						t.Fatalf("Value.GetValueIndex(%v) unexpected value. diff: %v", i, diff)
+					}
+				}
+			})
 		})
 	}
 }

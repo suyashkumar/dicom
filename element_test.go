@@ -2,6 +2,7 @@ package dicom
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -141,7 +142,26 @@ func TestNewValue(t *testing.T) {
 				t.Errorf("NewValue(%v) unexpected value. diff: %v", tc.data, diff)
 			}
 			if v.ValueCount() != tc.wantCount {
-				t.Errorf("Value.ValueCount() expected count %v, got %v", tc.wantCount, v.ValueCount())
+				t.Fatalf("Value.ValueCount() expected count %v, got %v", tc.wantCount, v.ValueCount())
+			}
+
+			for i := 0; i < v.ValueCount(); i++ {
+				innerValue := v.GetValueIndex(i)
+				var expected interface{}
+				switch tc.wantValue.ValueType() {
+				case Sequences:
+					sq := tc.wantValue.(*sequencesValue)
+					expected = sq.value[i]
+				case Bytes:
+					expected = tc.data
+				case PixelData:
+					expected = tc.wantValue.(*pixelDataValue).Frames[i]
+				default:
+					expected = reflect.ValueOf(tc.data).Index(i).Interface()
+				}
+				if diff := cmp.Diff(expected, innerValue, cmp.AllowUnexported(allValues...)); diff != "" {
+					t.Fatalf("Value.GetValueIndex(%v) unexpected value. diff: %v", i, diff)
+				}
 			}
 		})
 	}

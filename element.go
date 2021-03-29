@@ -70,6 +70,21 @@ type Value interface {
 	// ValueType returns the underlying ValueType of this Value. This can be used to unpack the underlying data in this
 	// Value.
 	ValueType() ValueType
+	// Is Empty returns true if the value is an 'empty' value. The following values are
+	// considered 'empty':
+	//
+	// A "" string value.
+	//
+	// A []byte value of 0 length
+	//
+	// A SequenceItemValue with no elements, or where all sub-elements are empty.
+	//
+	// A []SequenceItemValue with no items or where all items are empty.
+	//
+	// A PixelDataInfo value with 0 frames.
+	//
+	// All other values, including numeric 0 values, are considered 'non-empty'
+	IsEmpty() bool
 	// GetValue returns the underlying value that this Value holds. What type is returned here can be determined exactly
 	// from the ValueType() of this Value (see the ValueType godoc).
 	GetValue() interface{} // TODO: rename to Get to read cleaner
@@ -181,6 +196,7 @@ type bytesValue struct {
 
 func (b *bytesValue) isElementValue()       {}
 func (b *bytesValue) ValueType() ValueType  { return Bytes }
+func (b *bytesValue) IsEmpty() bool         { return len(b.value) == 0 }
 func (b *bytesValue) GetValue() interface{} { return b.value }
 func (b *bytesValue) String() string {
 	return fmt.Sprintf("%v", b.value)
@@ -194,8 +210,19 @@ type stringsValue struct {
 	value []string
 }
 
-func (s *stringsValue) isElementValue()       {}
-func (s *stringsValue) ValueType() ValueType  { return Strings }
+func (s *stringsValue) isElementValue()      {}
+func (s *stringsValue) ValueType() ValueType { return Strings }
+func (s *stringsValue) IsEmpty() bool {
+	// If any of our string values are not an empty string, this value is not an
+	// empty value.
+	for _, value := range s.value {
+		if value != "" {
+			return false
+		}
+	}
+
+	return true
+}
 func (s *stringsValue) GetValue() interface{} { return s.value }
 func (s *stringsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
@@ -211,6 +238,7 @@ type intsValue struct {
 
 func (s *intsValue) isElementValue()       {}
 func (s *intsValue) ValueType() ValueType  { return Ints }
+func (s *intsValue) IsEmpty() bool         { return false }
 func (s *intsValue) GetValue() interface{} { return s.value }
 func (s *intsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
@@ -226,6 +254,7 @@ type floatsValue struct {
 
 func (s *floatsValue) isElementValue()       {}
 func (s *floatsValue) ValueType() ValueType  { return Floats }
+func (s *floatsValue) IsEmpty() bool         { return false }
 func (s *floatsValue) GetValue() interface{} { return s.value }
 func (s *floatsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
@@ -246,6 +275,21 @@ func (s *SequenceItemValue) isElementValue() {}
 // ValueType returns the underlying ValueType of this Value. This can be used
 // to unpack the underlying data in this Value.
 func (s *SequenceItemValue) ValueType() ValueType { return SequenceItem }
+
+func (s *SequenceItemValue) IsEmpty() bool {
+	if s.elements == nil || len(s.elements) == 0 {
+		return true
+	}
+
+	// If any of our sub-elements are not empty, this SequenceItemValue is not empty.
+	for _, element := range s.elements {
+		if !element.Value.IsEmpty() {
+			return false
+		}
+	}
+
+	return true
+}
 
 // GetValue returns the underlying value that this Value holds. What type is
 // returned here can be determined exactly from the ValueType() of this Value
@@ -268,8 +312,22 @@ type sequencesValue struct {
 	value []*SequenceItemValue
 }
 
-func (s *sequencesValue) isElementValue()       {}
-func (s *sequencesValue) ValueType() ValueType  { return Sequences }
+func (s *sequencesValue) isElementValue()      {}
+func (s *sequencesValue) ValueType() ValueType { return Sequences }
+func (s *sequencesValue) IsEmpty() bool {
+	if s.value == nil || len(s.value) == 0 {
+		return true
+	}
+
+	// If any of our sequence items are not empty, this SequenceItemValue is not empty.
+	for _, thisItem := range s.value {
+		if !thisItem.IsEmpty() {
+			return false
+		}
+	}
+
+	return true
+}
 func (s *sequencesValue) GetValue() interface{} { return s.value }
 func (s *sequencesValue) String() string {
 	// TODO: consider adding more sophisticated formatting
@@ -293,6 +351,7 @@ type pixelDataValue struct {
 
 func (e *pixelDataValue) isElementValue()       {}
 func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
+func (e *pixelDataValue) IsEmpty() bool         { return len(e.PixelDataInfo.Frames) == 0 }
 func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
 func (e *pixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting

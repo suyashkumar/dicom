@@ -89,7 +89,7 @@ type Value interface {
 	//
 	// Make special note of the []int and []float behavior, as for some tags, 0 is a
 	// meaningful value.
-	IsEmpty() bool
+	IsZero() bool
 	// GetValue returns the underlying value that this Value holds. What type is returned here can be determined exactly
 	// from the ValueType() of this Value (see the ValueType godoc).
 	GetValue() interface{} // TODO: rename to Get to read cleaner
@@ -201,7 +201,7 @@ type bytesValue struct {
 
 func (b *bytesValue) isElementValue()       {}
 func (b *bytesValue) ValueType() ValueType  { return Bytes }
-func (b *bytesValue) IsEmpty() bool         { return b.value == nil || len(b.value) == 0 }
+func (b *bytesValue) IsZero() bool          { return b.value == nil || len(b.value) == 0 }
 func (b *bytesValue) GetValue() interface{} { return b.value }
 func (b *bytesValue) String() string {
 	return fmt.Sprintf("%v", b.value)
@@ -217,7 +217,7 @@ type stringsValue struct {
 
 func (s *stringsValue) isElementValue()      {}
 func (s *stringsValue) ValueType() ValueType { return Strings }
-func (s *stringsValue) IsEmpty() bool {
+func (s *stringsValue) IsZero() bool {
 	// If any of our string values are not an empty string, this value is not an
 	// empty value.
 	for _, value := range s.value {
@@ -243,7 +243,7 @@ type intsValue struct {
 
 func (s *intsValue) isElementValue()      {}
 func (s *intsValue) ValueType() ValueType { return Ints }
-func (s *intsValue) IsEmpty() bool {
+func (s *intsValue) IsZero() bool {
 	// If any of our string values are not 0, this value is not an empty value.
 	for _, value := range s.value {
 		if value != 0 {
@@ -268,7 +268,7 @@ type floatsValue struct {
 
 func (s *floatsValue) isElementValue()      {}
 func (s *floatsValue) ValueType() ValueType { return Floats }
-func (s *floatsValue) IsEmpty() bool {
+func (s *floatsValue) IsZero() bool {
 	// If any of our string values are not 0, this value is not an empty value.
 	for _, value := range s.value {
 		if value != 0 {
@@ -299,14 +299,14 @@ func (s *SequenceItemValue) isElementValue() {}
 // to unpack the underlying data in this Value.
 func (s *SequenceItemValue) ValueType() ValueType { return SequenceItem }
 
-func (s *SequenceItemValue) IsEmpty() bool {
+func (s *SequenceItemValue) IsZero() bool {
 	if s.elements == nil || len(s.elements) == 0 {
 		return true
 	}
 
 	// If any of our sub-elements are not empty, this SequenceItemValue is not empty.
 	for _, element := range s.elements {
-		if !element.Value.IsEmpty() {
+		if !element.Value.IsZero() {
 			return false
 		}
 	}
@@ -337,14 +337,14 @@ type sequencesValue struct {
 
 func (s *sequencesValue) isElementValue()      {}
 func (s *sequencesValue) ValueType() ValueType { return Sequences }
-func (s *sequencesValue) IsEmpty() bool {
+func (s *sequencesValue) IsZero() bool {
 	if s.value == nil || len(s.value) == 0 {
 		return true
 	}
 
 	// If any of our sequence items are not empty, this SequenceItemValue is not empty.
 	for _, thisItem := range s.value {
-		if !thisItem.IsEmpty() {
+		if !thisItem.IsZero() {
 			return false
 		}
 	}
@@ -374,7 +374,7 @@ type pixelDataValue struct {
 
 func (e *pixelDataValue) isElementValue()       {}
 func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
-func (e *pixelDataValue) IsEmpty() bool         { return len(e.PixelDataInfo.Frames) == 0 }
+func (e *pixelDataValue) IsZero() bool          { return len(e.PixelDataInfo.Frames) == 0 }
 func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
 func (e *pixelDataValue) String() string {
 	// TODO: consider adding more sophisticated formatting

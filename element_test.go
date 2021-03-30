@@ -333,10 +333,10 @@ func TestValue_IsEmpty(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			isEmpty := tc.value.IsEmpty()
+			isEmpty := tc.value.IsZero()
 			if isEmpty != tc.expectedIsEmpty {
 				t.Errorf(
-					"Value.IsEmpty() returned %v, expected %v",
+					"Value.IsZero() returned %v, expected %v",
 					isEmpty,
 					tc.expectedIsEmpty,
 				)

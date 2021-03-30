@@ -70,12 +70,16 @@ type Value interface {
 	// ValueType returns the underlying ValueType of this Value. This can be used to unpack the underlying data in this
 	// Value.
 	ValueType() ValueType
-	// Is Empty returns true if the value is an 'empty' value. The following values are
+	// IsEmpty returns true if the value is an 'empty' value. The following values are
 	// considered 'empty':
 	//
-	// A "" string value.
+	// A []string value where all sub-values are "".
 	//
-	// A []byte value of 0 length
+	// A []int value where all sub-values are 0.
+	//
+	// A []float64 value  where all sub-values are 0.0.
+	//
+	// A []byte value of 0 length.
 	//
 	// A SequenceItemValue with no elements, or where all sub-elements are empty.
 	//
@@ -83,7 +87,8 @@ type Value interface {
 	//
 	// A PixelDataInfo value with 0 frames.
 	//
-	// All other values, including numeric 0 values, are considered 'non-empty'
+	// Make special note of the []int and []float behavior, as for some tags, 0 is a
+	// meaningful value.
 	IsEmpty() bool
 	// GetValue returns the underlying value that this Value holds. What type is returned here can be determined exactly
 	// from the ValueType() of this Value (see the ValueType godoc).
@@ -196,7 +201,7 @@ type bytesValue struct {
 
 func (b *bytesValue) isElementValue()       {}
 func (b *bytesValue) ValueType() ValueType  { return Bytes }
-func (b *bytesValue) IsEmpty() bool         { return len(b.value) == 0 }
+func (b *bytesValue) IsEmpty() bool         { return b.value == nil || len(b.value) == 0 }
 func (b *bytesValue) GetValue() interface{} { return b.value }
 func (b *bytesValue) String() string {
 	return fmt.Sprintf("%v", b.value)
@@ -236,9 +241,18 @@ type intsValue struct {
 	value []int
 }
 
-func (s *intsValue) isElementValue()       {}
-func (s *intsValue) ValueType() ValueType  { return Ints }
-func (s *intsValue) IsEmpty() bool         { return false }
+func (s *intsValue) isElementValue()      {}
+func (s *intsValue) ValueType() ValueType { return Ints }
+func (s *intsValue) IsEmpty() bool {
+	// If any of our string values are not 0, this value is not an empty value.
+	for _, value := range s.value {
+		if value != 0 {
+			return false
+		}
+	}
+
+	return true
+}
 func (s *intsValue) GetValue() interface{} { return s.value }
 func (s *intsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
@@ -252,9 +266,18 @@ type floatsValue struct {
 	value []float64
 }
 
-func (s *floatsValue) isElementValue()       {}
-func (s *floatsValue) ValueType() ValueType  { return Floats }
-func (s *floatsValue) IsEmpty() bool         { return false }
+func (s *floatsValue) isElementValue()      {}
+func (s *floatsValue) ValueType() ValueType { return Floats }
+func (s *floatsValue) IsEmpty() bool {
+	// If any of our string values are not 0, this value is not an empty value.
+	for _, value := range s.value {
+		if value != 0 {
+			return false
+		}
+	}
+
+	return true
+}
 func (s *floatsValue) GetValue() interface{} { return s.value }
 func (s *floatsValue) String() string {
 	return fmt.Sprintf("%v", s.value)

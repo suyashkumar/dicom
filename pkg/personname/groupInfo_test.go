@@ -83,7 +83,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected GroupInfo
-		// Whether IsZero should return true after parsing Raw.
+		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
 	}{
 		// Full Name
@@ -351,7 +351,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 			}
 		})
 
-		// Test .IsZero() method.
+		// Test .IsEmpty() method.
 		t.Run(tc.Raw+"_IsEmpty", func(t *testing.T) {
 			parsed, err := groupFromValueString(tc.Raw, pnGroupAlphabetic)
 			if err != nil {
@@ -360,7 +360,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 
 			if tc.IsEmpty != parsed.IsEmpty() {
 				t.Errorf(
-					".IsZero() returned %v, extected %v",
+					".IsEmpty() returned %v, extected %v",
 					parsed.IsEmpty(),
 					tc.IsEmpty,
 				)

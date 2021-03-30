@@ -11,7 +11,7 @@ func TestInfo(t *testing.T) {
 		Raw string
 		// The parsed information we expect.
 		Expected Info
-		// Whether IsZero should return true after parsing Raw.
+		// Whether IsEmpty should return true after parsing Raw.
 		IsEmpty bool
 	}{
 		// All groups
@@ -371,7 +371,7 @@ func TestInfo(t *testing.T) {
 			)
 		})
 
-		// Test the .IsZero() method.
+		// Test the .IsEmpty() method.
 		t.Run(tc.Raw+"_isEmpty", func(t *testing.T) {
 			newInfo, err := Parse(tc.Raw)
 			if err != nil {
@@ -381,7 +381,7 @@ func TestInfo(t *testing.T) {
 
 			if tc.IsEmpty != newInfo.IsEmpty() {
 				t.Errorf(
-					".IsZero(): got '%v', expected '%v'",
+					".IsEmpty(): got '%v', expected '%v'",
 					tc.IsEmpty,
 					newInfo.IsEmpty(),
 				)

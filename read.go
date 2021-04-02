@@ -368,8 +368,10 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 		if vl%2 != 0 {
 			return nil, ErrorOWRequiresEvenVL
 		}
-		data := make([]byte, vl)
-		buf := bytes.NewBuffer(data)
+
+		// Buffers append to the end of their internal slice, so make sure our starting
+		// buffer has a length of 0 and a *capacity* of the value length.
+		buf := bytes.NewBuffer(make([]byte, 0, vl))
 		numWords := int(vl / 2)
 		for i := 0; i < numWords; i++ {
 			word, err := r.ReadUInt16()

@@ -601,7 +601,6 @@ func TestWriteOtherWord(t *testing.T) {
 			name:  "OtherWord",
 			value: []byte{0x1, 0x2, 0x3, 0x4},
 			vr:    "OW",
-			// TODO: improve test expectation
 			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
 			expectedErr:  nil,
 		},
@@ -609,7 +608,6 @@ func TestWriteOtherWord(t *testing.T) {
 			name:  "OtherBytes",
 			value: []byte{0x1, 0x2, 0x3, 0x4},
 			vr:    "OB",
-			// TODO: improve test expectation
 			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
 			expectedErr:  nil,
 		},

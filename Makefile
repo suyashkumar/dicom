@@ -15,6 +15,10 @@ build-fast:
 test:
 	go test ./... -v
 
+.PHONY: test-full
+full:
+	go test ./... -v tags=integration
+
 .PHONY: run
 run:
 	make build

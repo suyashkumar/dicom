@@ -27,6 +27,6 @@ jobs:
    
     - name: Test
       run: |
-            make test
+            make test-full
        
 

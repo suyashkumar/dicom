@@ -17,12 +17,11 @@ func ExampleWalkIncludedFS() {
 
 	// Each file in dcmtest.IncludedFS will be run in it's own subtest automatically.
 	dcmtest.WalkIncludedFS(t, func(t *testing.T, tc dcmtest.FSTestCase, setupErr error) {
-		// On a setup error, we want to report it.
+		// On a setup error, we want to report it. setupErr is not reported to t
+		// automatically, and is left to the caller to handle.
 		if setupErr != nil {
 			t.Fatal("setup error:", setupErr)
 		}
-
-		t.Log("TESTING:", tc.DCMPath)
 
 		// Pass the pared dataset to the function we actually want to test
 		err := MyDatasetFunc(tc.Dataset)

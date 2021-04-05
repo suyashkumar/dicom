@@ -1,4 +1,0 @@
-// +build integration
-
-package dicom
-

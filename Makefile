@@ -13,11 +13,11 @@ build-fast:
 
 .PHONY: test
 test:
-	go test ./... -v
+	go test ./... -v -tags dicom_test_data
 
 .PHONY: test-full
-full:
-	go test ./... -v tags=integration
+test-full:
+	go test ./... -v -tags=dicom_test_data
 
 .PHONY: run
 run:

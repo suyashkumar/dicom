@@ -13,8 +13,8 @@ import (
 	"github.com/suyashkumar/dicom/pkg/dcmtest"
 )
 
-// TestParse is an end-to-end sanity check over DICOMs in testdata/. Currently it only checks that no error is returned
-// when parsing the files.
+// TestParse is an end-to-end sanity check over DICOMs in /pkg/dcmtest/data/. Currently
+// it only checks that no error is returned when parsing the files.
 func TestParse(t *testing.T) {
 	// This will walk all of our test data and try parsing the Dataset, so we can simply
 	// report if we get passed an error.
@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 	})
 }
 
-// BenchmarkParse runs sanity benchmarks over the sample files in testdata.
+// BenchmarkParse runs sanity benchmarks over the sample files in /pkg/dcmtest/data/.
 func BenchmarkParse(b *testing.B) {
 	// This will walk all of our test data and run a sub-test for each one.
 	dcmtest.BenchIncludedFS(b, func(b *testing.B, tc dcmtest.FSTestCase, setupErr error) {

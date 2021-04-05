@@ -25,11 +25,11 @@ jobs:
        go get golang.org/x/perf/cmd/benchstat
        echo "New Commit:"
        git log -1 --format="%H"
-       go test -tags=dicom_test_data -bench=. -benchtime=.75s -count=8 > $HOME/new.txt
+       go test -bench=. -benchtime=.75s -count=8 > $HOME/new.txt
        git reset --hard HEAD
        git checkout $GITHUB_BASE_REF
        echo "Base Commit:"
        git log -1 --format="%H"
-       go test -tags=dicom_test_data -bench=. -benchtime=.75s -count=8 > $HOME/old.txt
+       go test -bench=. -benchtime=.75s -count=8 > $HOME/old.txt
        benchstat $HOME/old.txt $HOME/new.txt
        

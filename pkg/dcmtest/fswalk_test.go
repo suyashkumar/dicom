@@ -1,5 +1,3 @@
-// +build dicom_test_data
-
 package dcmtest_test
 
 import (

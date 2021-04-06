@@ -21,7 +21,7 @@ jobs:
     - name: Install python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r validate_pydicom_requirements.txt
+        pip install -r ./validate_pydicom_requirements.txt
 
     - name: Check out code 
       uses: actions/checkout@v1

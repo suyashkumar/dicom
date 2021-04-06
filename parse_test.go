@@ -1,11 +1,13 @@
 package dicom_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 	"image/jpeg"
+	"io"
 	"os"
 	"testing"
 
@@ -35,9 +37,42 @@ func BenchmarkParse(b *testing.B) {
 			b.Fatalf("setup error: %v", setupErr)
 		}
 
+		dcmFile, err := tc.OpenDCMFile()
+		if err != nil {
+			b.Fatalf("error opening dcm file: %v", err)
+		}
+		defer dcmFile.Close()
+
+		// Extract the binary data.
+		binData, err := io.ReadAll(dcmFile)
+		if err != nil {
+			b.Fatalf("error reading dcm file: %v", err)
+		}
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, _ = dicom.Parse(tc.DCMFile, tc.DCMStat.Size(), nil)
+			// Read from a fresh buffer each iteration.
+			buffer := bytes.NewBuffer(binData)
+
+			// Parse the dataset.
+			dataset, err := dicom.Parse(buffer, tc.DCMStat.Size(), nil)
+			if err != nil {
+				b.Fatalf("error parsing dataset on repetition %v: %v", i, err)
+			}
+
+			// Make sure we got sane results.
+			if len(dataset.Elements) == 0 {
+				b.Fatalf("no elements were parsed on repetition %v", i)
+			}
+
+			if len(dataset.Elements) != len(tc.Dataset.Elements) {
+				b.Fatalf(
+					"element count mismatch: expected %v, got %v on repetition %v",
+					len(tc.Dataset.Elements),
+					len(dataset.Elements),
+					i,
+				)
+			}
 		}
 	})
 }

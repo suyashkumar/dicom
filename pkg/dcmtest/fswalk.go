@@ -82,47 +82,47 @@ func BenchFS(
 
 // FSTestCase is a testcase for a single dicom file.
 type FSTestCase struct {
+	// dcmFs holds our test filesystem.
+	dcmFs fs.FS
+
 	// DCMPath is the full source file path of DCMFile. This value will always be
 	// populated, even if testFunc is passed a non-nil setupErr.
 	DCMPath string
 
-	// DCMFile is the Dicom file for testing. This file will be automatically closed on
-	// test cleanup.
-	DCMFile fs.File
-
-	// DCMStat is the result of calling DCMFile.Info()
+	// DCMStat is the result of calling fs.File.Info() on the DCMPath.
 	DCMStat fs.FileInfo
 
-	// Dataset is the DICOM dataset parsed from DCMFile.
+	// Dataset is the DICOM dataset parsed from the fs.File at DCMPath.
 	Dataset dicom.Dataset
+}
+
+// OpenDCMFile opens a new fs.File handler using DCMPath and the test fs.FS.
+func (fsCase FSTestCase) OpenDCMFile() (fs.File, error) {
+	return fsCase.dcmFs.Open(fsCase.DCMPath)
 }
 
 // newWalkTestCase sets up a new test case by parsing the source file, then re-writing
 // and re-parsing the dataset.
 func newWalkTestCase(tb testing.TB, dcmFS fs.FS, sourcePath string) (FSTestCase, error) {
-	tc := FSTestCase{DCMPath: sourcePath}
+	tc := FSTestCase{
+		dcmFs: dcmFS,
+		DCMPath: sourcePath,
+	}
 
 	// Load the source file into the test case.
-	file, err := dcmFS.Open(sourcePath)
+	file, err := tc.OpenDCMFile()
 	if err != nil {
 		return tc, fmt.Errorf("error opening file '%v': %w", sourcePath, err)
 	}
 
-	// Register the file to be closed on test completion.
-	tb.Cleanup(func() {
-		closeErr := tc.DCMFile.Close()
-		if closeErr != nil {
-			tb.Errorf("error closing file '%v': %v", sourcePath, closeErr)
-		}
-	})
-	tc.DCMFile = file
+	defer file.Close()
 
-	tc.DCMStat, err = tc.DCMFile.Stat()
+	tc.DCMStat, err = file.Stat()
 	if err != nil {
 		return tc, fmt.Errorf("error getting file stat for '%v': %w", sourcePath, err)
 	}
 
-	tc.Dataset, err = dicom.Parse(tc.DCMFile, tc.DCMStat.Size(), nil)
+	tc.Dataset, err = dicom.Parse(file, tc.DCMStat.Size(), nil)
 	if err != nil {
 		return tc, fmt.Errorf("error parsing dataset for '%v': %w", sourcePath, err)
 	}

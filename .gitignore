@@ -1,4 +1,6 @@
 .DS_Store
 /build/
 .idea/
-/venv
+.pytest_cache
+__pycache__
+venv

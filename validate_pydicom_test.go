@@ -25,7 +25,7 @@ const pydicomValidationScript = "./validate_pydicom.py"
 
 // PythonInterpreter is the python interpreter command we are going to use. This
 // allows devs to configure a virtual environment if they so choose.
-var PythonInterpreter = os.Getenv("PYTHON_INTERPRETER")
+var PythonInterpreter = os.Getenv("PYDICOM_TEST_INTERPRETER")
 
 func init() {
 	if PythonInterpreter == "" {

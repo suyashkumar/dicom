@@ -5,7 +5,7 @@ includes tests that call third-party tools to validate DICOM files it
 produces
 
 These tests are not enabled by default when running `make test` or 
-`go test ./...`, they must be enabled by certain build tags.
+`go test ./...`, they must be enabled through build tags.
 
 Each section below details the installation requirements and build tags for
 each type of validation testing.

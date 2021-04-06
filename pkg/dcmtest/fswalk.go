@@ -105,7 +105,7 @@ func (fsCase FSTestCase) OpenDCMFile() (fs.File, error) {
 // and re-parsing the dataset.
 func newWalkTestCase(tb testing.TB, dcmFS fs.FS, sourcePath string) (FSTestCase, error) {
 	tc := FSTestCase{
-		dcmFs: dcmFS,
+		dcmFs:   dcmFS,
 		DCMPath: sourcePath,
 	}
 

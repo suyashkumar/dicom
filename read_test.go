@@ -159,6 +159,53 @@ func TestReadFloat_float32(t *testing.T) {
 	}
 }
 
+func TestReadOWBytes(t *testing.T) {
+	cases := []struct {
+		name        string
+		bytes       []byte
+		VR          string
+		want        Value
+		expectedErr error
+	}{
+		{
+			name:        "even-number bytes",
+			bytes:       []byte{0x1, 0x2, 0x3, 0x4},
+			VR:          vrraw.OtherWord,
+			want:        &bytesValue{value: []byte{0x1, 0x2, 0x3, 0x4}},
+			expectedErr: nil,
+		},
+		{
+			name:        "error on odd-number bytes",
+			bytes:       []byte{0x1, 0x2, 0x3},
+			VR:          vrraw.OtherWord,
+			want:        nil,
+			expectedErr: ErrorOWRequiresEvenVL,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := bytes.Buffer{}
+			if err := binary.Write(&data, binary.LittleEndian, tc.bytes); err != nil {
+				t.Errorf("TestReadOWBytes: Unable to setup test buffer")
+			}
+
+			r, err := dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))
+			if err != nil {
+				t.Errorf("TestReadOWBytes: unable to create new dicomio.Reader")
+			}
+
+			got, err := readBytes(r, tag.Tag{}, tc.VR, uint32(data.Len()))
+			if err != tc.expectedErr {
+				t.Fatalf("readBytes(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
+			}
+			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(bytesValue{})); diff != "" {
+				t.Errorf("readBytes(r, tg, %s, %d) unexpected diff: %s", tc.VR, data.Len(), diff)
+			}
+		})
+	}
+}
+
 func TestReadNativeFrames(t *testing.T) {
 	cases := []struct {
 		Name              string

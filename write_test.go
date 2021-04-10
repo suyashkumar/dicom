@@ -44,6 +44,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+				mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
 			}},
 			expectedError: nil,
 		},
@@ -580,6 +581,47 @@ func TestWriteFloats(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.expectedData, buf.Bytes()); diff != "" {
 				t.Errorf("writeFloats(%v, %s) wrote unexpected data. diff: %s", tc.value, tc.vr, diff)
+				t.Errorf("% x", buf.Bytes())
+			}
+		})
+	}
+
+}
+
+func TestWriteOtherWord(t *testing.T) {
+	// TODO: add additional cases
+	cases := []struct {
+		name         string
+		value        []byte
+		vr           string
+		expectedData []byte
+		expectedErr  error
+	}{
+		{
+			name:  "OtherWord",
+			value: []byte{0x1, 0x2, 0x3, 0x4},
+			vr:    "OW",
+			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
+			expectedErr:  nil,
+		},
+		{
+			name:  "OtherBytes",
+			value: []byte{0x1, 0x2, 0x3, 0x4},
+			vr:    "OB",
+			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
+			expectedErr:  nil,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := bytes.Buffer{}
+			w := dicomio.NewWriter(&buf, binary.LittleEndian, false)
+			err := writeBytes(w, tc.value, tc.vr)
+			if err != tc.expectedErr {
+				t.Errorf("writeBytes(%v, %s) returned unexpected err. got: %v, want: %v", tc.value, tc.vr, err, tc.expectedErr)
+			}
+			if diff := cmp.Diff(tc.expectedData, buf.Bytes()); diff != "" {
+				t.Errorf("writeBytes(%v, %s) wrote unexpected data. diff: %s", tc.value, tc.vr, diff)
 				t.Errorf("% x", buf.Bytes())
 			}
 		})

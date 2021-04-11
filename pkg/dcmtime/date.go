@@ -19,6 +19,61 @@ type Date struct {
 	IsNEMA bool
 }
 
+// GetTime returns the Time field value for the Date. Included to support common
+// interfaces with other dcmtime types.
+func (da Date) GetTime() time.Time {
+	return da.Time
+}
+
+// GetPrecision returns the Precision field value for the Date. Included to support
+// common  interfaces with other dcmtime types.
+func (da Date) GetPrecision() PrecisionLevel {
+	return da.Precision
+}
+
+// daPrecisionOmits is the range of precision values not relevant to Date.
+var daPrecisionOmits = precisionRange{
+	Min: PrecisionHours,
+	Max: PrecisionMS5,
+}
+
+// HasPrecision returns whether this da value has a precision of AT LEAST 'check'.
+//
+// Will always Return false for PrecisionHours, PrecisionMinutes PrecisionSeconds, and
+// PrecisionMS*.
+//
+// Will return true for PrecisionFull if all possible values are present.
+func (da Date) HasPrecision(check PrecisionLevel) bool {
+	return hasPrecisionOmits(check, da.Precision, daPrecisionOmits)
+}
+
+// Year returns the underlying Time.Year(). Since a DICOM DA value must contain a year,
+// presence is not reported.
+func (da Date) Year() int {
+	return da.Time.Year()
+}
+
+// Month returns the underlying Time.Month(), and a boolean indicating whether the
+// original DICOM value included the month.
+func (da Date) Month() (month time.Month, ok bool) {
+	return da.Time.Month(), hasPrecision(PrecisionMonth, da.Precision)
+}
+
+// Day returns the underlying time.Month, and a boolean indicating whether the
+func (da Date) Day() (month int, ok bool) {
+	return da.Time.Day(), hasPrecision(PrecisionDay, da.Precision)
+}
+
+// Combine combines the Date with a Time value into a single Datetime value.
+//
+// The Date value must have a PrecisionLevel of PrecisionFull or the method will fail.
+//
+// If no location is given, time.FixedZone("", 0) will be used and NoOffset will be
+// set to 'true'.
+func (da Date) Combine(tm Time, location *time.Location) (Datetime, error) {
+	return combineDateAndTime(da, tm, location)
+}
+
 // DCM converts time.Time value to dicom DA string. Values are truncated to the
 // Date.Precision value.
 //
@@ -29,7 +84,7 @@ func (da Date) DCM() string {
 	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%04d", year))
-	if !isIncluded(PrecisionMonth, da.Precision) {
+	if !hasPrecision(PrecisionMonth, da.Precision) {
 		return builder.String()
 	}
 
@@ -39,7 +94,7 @@ func (da Date) DCM() string {
 	}
 
 	builder.WriteString(fmt.Sprintf("%02d", month))
-	if !isIncluded(PrecisionDay, da.Precision) {
+	if !hasPrecision(PrecisionDay, da.Precision) {
 		return builder.String()
 	}
 
@@ -55,12 +110,12 @@ func (da Date) DCM() string {
 func (da Date) String() string {
 	builder := strings.Builder{}
 	_, _ = builder.WriteString(fmt.Sprintf("%04d", da.Time.Year()))
-	if !isIncluded(PrecisionMonth, da.Precision) {
+	if !hasPrecision(PrecisionMonth, da.Precision) {
 		return builder.String()
 	}
 
 	_, _ = builder.WriteString(fmt.Sprintf("-%02d", da.Time.Month()))
-	if !isIncluded(PrecisionDay, da.Precision) {
+	if !hasPrecision(PrecisionDay, da.Precision) {
 		return builder.String()
 	}
 

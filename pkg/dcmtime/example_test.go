@@ -10,7 +10,6 @@ func ExampleParseDate() {
 	// This is a DA value like we would expect
 	daString := "20201210"
 
-	// We are parsing the date string without allowing nema
 	da, err := ParseDate(daString)
 	if err != nil {
 		panic(err)
@@ -29,26 +28,46 @@ func ExampleParseDate_lessPrecision() {
 	// This is a DA value like we would expect, but it is missing the day value.
 	daString := "202012"
 
-	// We are parsing the date string without allowing NEMA-300 formatted dates.
 	da, err := ParseDate(daString)
 	if err != nil {
 		panic(err)
 	}
 
 	// The resulting da value contains a native time.Time value.
-	fmt.Println("TIME MONTH:", da.Time.Month())
+	fmt.Println("TIME MONTH :", da.Time.Month())
 	// It also reports the precision, of the value. This value is Precision.Month,
 	// so we know that even though da.Time.Day() will equal 1, we should disregard it.
 
-	fmt.Println("PRECISION :", da.Precision)
+	fmt.Println("PRECISION  :", da.Precision)
 
 	// This date is not a NEMA-300 date.
-	fmt.Println("IS NEMA   :", da.IsNEMA)
+	fmt.Println("IS NEMA    :", da.IsNEMA)
+
+	// Our Date value has some methods similar to time.Time's methods, but also
+	// returns presence information since not all DICOM dates contain all date
+	// components.
+	//
+	// Try to get the Month value. Our value included a month, so 'ok' will be true.
+	if month, ok := da.Month(); ok {
+		fmt.Println("MONTH      :", month)
+	}
+
+	// Try to get the Day value. Because minutes are not included, 'ok' will be false
+	// and this will not print.
+	if minute, ok := da.Day(); ok {
+		fmt.Println("DAY:", minute)
+	}
+
+	// We can also easily check if the value contains a certain precision:
+	hasMonth := da.HasPrecision(PrecisionMonth)
+	fmt.Println("HAS MONTH  :", hasMonth)
 
 	// Output:
-	// TIME MONTH: December
-	// PRECISION : MONTH
-	// IS NEMA   : false
+	// TIME MONTH : December
+	// PRECISION  : MONTH
+	// IS NEMA    : false
+	// MONTH      : December
+	// HAS MONTH  : true
 }
 
 // Parse a NEMA date string.
@@ -82,7 +101,7 @@ func ExampleDate_create() {
 		panic(err)
 	}
 
-	// Create a nw DA object like so:
+	// Create a nw Date object like so:
 	da := Date{
 		Time:      date,
 		Precision: PrecisionFull,
@@ -110,7 +129,7 @@ func ExampleDate_createNEMA300() {
 		panic(err)
 	}
 
-	// Create a nw DA object like so:
+	// Create a nw Date object like so:
 	da := Date{
 		Time:      date,
 		Precision: PrecisionFull,
@@ -135,7 +154,7 @@ func ExampleDate_precisionYear() {
 		panic(err)
 	}
 
-	// Create a nw DA object that only represent the year like so:
+	// Create a nw Date object that only represent the year and month like so:
 	da := Date{
 		Time:      date,
 		Precision: PrecisionMonth,
@@ -151,6 +170,33 @@ func ExampleDate_precisionYear() {
 	// Output:
 	// DCM   : 200601
 	// STRING: 2006-01
+}
+
+func ExampleDate_Combine() {
+	daString := "20200316"
+	tmString := "105434.123456"
+
+	daParsed, err := ParseDate(daString)
+	if err != nil {
+		panic(err)
+	}
+
+	tmParsed, err := ParseTime(tmString)
+	if err != nil {
+		panic(err)
+	}
+
+	datetime, err := daParsed.Combine(tmParsed, time.UTC)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("DCM    :", datetime.DCM())
+	fmt.Println("STRING :", datetime.String())
+
+	// Output:
+	// DCM    : 20200316105434.123456+0000
+	// STRING : 2020-03-16 10:54:34.123456 +00:00
 }
 
 func ExampleParseTime() {
@@ -187,21 +233,42 @@ func ExampleParseTime_precisionMS() {
 	// PRECISION : MS3
 }
 
-func ExampleParseTime_precisionHour() {
-	// This is a TM value like we would expect for 12:30:01 and 400 microseconds
-	tmString := "12"
+func ExampleParseTime_precisionMinute() {
+	// This is a TM value like we would expect for 12:35
+	tmString := "1235"
 
 	tm, err := ParseTime(tmString)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("TIME VALUE:", tm.Time)
-	fmt.Println("PRECISION :", tm.Precision)
+	fmt.Println("TIME VALUE   :", tm.Time)
+	fmt.Println("PRECISION    :", tm.Precision)
+
+	// Our Time value has some methods similar to time.Time's methods, but also
+	// returns presence information since not all DICOM times contain all time
+	// components.
+	//
+	// Try to get the Minute value. Our value included a day, so 'ok' will be true.
+	if day, ok := tm.Minute(); ok {
+		fmt.Println("MINUTE VALUE :", day)
+	}
+
+	// Try to get the Second value. Because minutes are not included, 'ok' will be false
+	// and this will not print.
+	if minute, ok := tm.Second(); ok {
+		fmt.Println("SECOND VALUE :", minute)
+	}
+
+	// We can also easily check if the value contains a certain precision:
+	hasSeconds := tm.HasPrecision(PrecisionSeconds)
+	fmt.Println("HAS SECONDS  :", hasSeconds)
 
 	// Output:
-	// TIME VALUE: 0001-01-01 12:00:00 +0000 +0000
-	// PRECISION : HOURS
+	// TIME VALUE   : 0001-01-01 12:35:00 +0000 +0000
+	// PRECISION    : MINUTES
+	// MINUTE VALUE : 35
+	// HAS SECONDS  : false
 }
 
 func ExampleTime_create() {
@@ -214,7 +281,7 @@ func ExampleTime_create() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Time object like so:
 	tm := Time{
 		Time:      timeVal,
 		Precision: PrecisionFull,
@@ -241,7 +308,7 @@ func ExampleTime_precision3MS() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Time object like so:
 	tm := Time{
 		Time:      timeVal,
 		Precision: PrecisionMS3,
@@ -268,7 +335,7 @@ func ExampleTime_precisionMinutes() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Time object like so:
 	tm := Time{
 		Time:      timeVal,
 		Precision: PrecisionMinutes,
@@ -285,67 +352,112 @@ func ExampleTime_precisionMinutes() {
 	// STRING: 15:04
 }
 
+func ExampleTime_Combine() {
+	daString := "20200316"
+	tmString := "105434.123456"
+
+	daParsed, err := ParseDate(daString)
+	if err != nil {
+		panic(err)
+	}
+
+	tmParsed, err := ParseTime(tmString)
+	if err != nil {
+		panic(err)
+	}
+
+	datetime, err := tmParsed.Combine(daParsed, time.UTC)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("DCM    :", datetime.DCM())
+	fmt.Println("STRING :", datetime.String())
+
+	// Output:
+	// DCM    : 20200316105434.123456+0000
+	// STRING : 2020-03-16 10:54:34.123456 +00:00
+}
+
 // Parse a datetime string.
 func ExampleParseDatetime() {
 	// This is a DT value like we would expect
-	daString := "20201210123001.000431+0100"
+	dtString := "20201210123001.000431+0100"
 
-	// We are parsing the date string without allowing nema
-	dt, err := ParseDatetime(daString)
+	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.NoOffset)
+	fmt.Println("NO OFFSET :", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:30:01.000431 +0100 +0100
 	// PRECISION : FULL
-	// HAS OFFSET: true
+	// NO OFFSET : false
 }
 
 // Parse a datetime string with no timezone.
 func ExampleParseDatetime_noTimezone() {
 	// This is a DT value like we would expect
-	daString := "20201210123001.000431"
+	dtString := "20201210123001.000431"
 
-	// We are parsing the date string without allowing nema
-	dt, err := ParseDatetime(daString)
+	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("TIME VALUE:", dt.Time)
 	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.NoOffset)
+	fmt.Println("NO OFFSET :", dt.NoOffset)
 
 	// Output:
 	// TIME VALUE: 2020-12-10 12:30:01.000431 +0000 +0000
 	// PRECISION : FULL
-	// HAS OFFSET: false
+	// NO OFFSET : true
 }
 
 // Parse a datetime string with no timezone.
 func ExampleParseDatetime_precisionHour() {
 	// This is a DT value like we would expect
-	daString := "2020121012"
+	dtString := "2020121012"
 
-	// We are parsing the date string without allowing nema
-	dt, err := ParseDatetime(daString)
+	dt, err := ParseDatetime(dtString)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("TIME VALUE:", dt.Time)
-	fmt.Println("PRECISION :", dt.Precision)
-	fmt.Println("HAS OFFSET:", dt.NoOffset)
+	fmt.Println("TIME VALUE  :", dt.Time)
+	fmt.Println("PRECISION   :", dt.Precision)
+	fmt.Println("NO OFFSET   :", dt.NoOffset)
+
+	// Our Datetime value has some methods similar to time.Time's methods, but also
+	// returns presence information since not all DICOM datetimes contain all datetime
+	// components.
+	//
+	// Try to get the Day value. Our value included a day, so 'ok' will be true
+	if day, ok := dt.Day(); ok {
+		fmt.Println("DAY VALUE   :", day)
+	}
+
+	// Try to get the Minute value. Because minutes are not included, 'ok' will be false
+	// and this will not print.
+	if minute, ok := dt.Minute(); ok {
+		fmt.Println("MINUTE VALUE :", minute)
+	}
+
+	// We can also easily check if the value contains a certain precision:
+	hasMinutes := dt.HasPrecision(PrecisionMinutes)
+	fmt.Println("HAS MINUTES :", hasMinutes)
 
 	// Output:
-	// TIME VALUE: 2020-12-10 12:00:00 +0000 +0000
-	// PRECISION : HOURS
-	// HAS OFFSET: false
+	// TIME VALUE  : 2020-12-10 12:00:00 +0000 +0000
+	// PRECISION   : HOURS
+	// NO OFFSET   : true
+	// DAY VALUE   : 10
+	// HAS MINUTES : false
 }
 
 func ExampleDatetime_create() {
@@ -358,7 +470,7 @@ func ExampleDatetime_create() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionFull,
@@ -386,7 +498,7 @@ func ExampleDatetime_createNoOffset() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionFull,
@@ -410,7 +522,7 @@ func ExampleDatetime_precisionMinute() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionMinutes,
@@ -434,7 +546,7 @@ func ExampleDatetime_precisionMinuteWithOffset() {
 		panic(err)
 	}
 
-	// Create a nw TM object like so:
+	// Create a nw Datetime object like so:
 	dt := Datetime{
 		Time:      timeVal,
 		Precision: PrecisionMinutes,

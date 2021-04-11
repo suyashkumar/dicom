@@ -15,6 +15,67 @@ type Time struct {
 	Precision PrecisionLevel
 }
 
+// GetTime returns the Time field value for the Time. Included to support common
+// interfaces with other dcmtime types.
+func (tm Time) GetTime() time.Time {
+	return tm.Time
+}
+
+// GetPrecision returns the Precision field value for the Time. Included to support
+// common  interfaces with other dcmtime types.
+func (tm Time) GetPrecision() PrecisionLevel {
+	return tm.Precision
+}
+
+// tmPrecisionOmits is the range of precision values not relevant to Time.
+var tmPrecisionOmits = precisionRange{
+	Min: PrecisionYear,
+	Max: PrecisionDay,
+}
+
+// HasPrecision returns whether this da value has a precision of AT LEAST 'check'.
+//
+// Will always Return false for PrecisionYear, PrecisionMonth, and PrecisionDay.
+//
+// Will return true for PrecisionFull if all possible values are present.
+func (tm Time) HasPrecision(check PrecisionLevel) bool {
+	return hasPrecisionOmits(check, tm.Precision, tmPrecisionOmits)
+}
+
+// Hour returns the underlying Time.Hour(). Since a DICOM TM value must contain an hour,
+// 'ok' will always be true. 'ok' is included to form a common interface with Datetime.
+func (tm Time) Hour() (hour int, ok bool) {
+	return tm.Time.Hour(), true
+}
+
+// Minute returns the underlying Time.Minute(), and a boolean indicating whether the
+// original DICOM value included minutes.
+func (tm Time) Minute() (minute int, ok bool) {
+	return tm.Time.Minute(), hasPrecision(PrecisionMinutes, tm.Precision)
+}
+
+// Second returns the underlying Time.Second(), and a boolean indicating whether the
+// original DICOM value included seconds.
+func (tm Time) Second() (second int, ok bool) {
+	return tm.Time.Second(), hasPrecision(PrecisionSeconds, tm.Precision)
+}
+
+// Nanosecond returns the underlying Time.Nanosecond(), and a boolean indicating whether
+// the original DICOM value included any fractal seconds.
+func (tm Time) Nanosecond() (second int, ok bool) {
+	return tm.Time.Nanosecond(), hasPrecision(PrecisionMS1, tm.Precision)
+}
+
+// Combine combines the Time with a Date value into a single Datetime value.
+//
+// The Date value must have a PrecisionLevel of PrecisionFull or the method will fail.
+//
+// If no location is given, time.FixedZone("", 0) will be used and NoOffset will be
+// set to 'true'.
+func (tm Time) Combine(da Date, location *time.Location) (Datetime, error) {
+	return combineDateAndTime(da, tm, location)
+}
+
 // DCM converts internal time.Time value to dicom TM string, truncating the output
 // to the DA value's Precision.
 //
@@ -24,17 +85,17 @@ func (tm Time) DCM() string {
 	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
-	if !isIncluded(PrecisionMinutes, tm.Precision) {
+	if !hasPrecision(PrecisionMinutes, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Minute()))
-	if !isIncluded(PrecisionSeconds, tm.Precision) {
+	if !hasPrecision(PrecisionSeconds, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Second()))
-	if !isIncluded(PrecisionMS1, tm.Precision) {
+	if !hasPrecision(PrecisionMS1, tm.Precision) {
 		return builder.String()
 	}
 
@@ -49,17 +110,17 @@ func (tm Time) String() string {
 	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%02d", tm.Time.Hour()))
-	if !isIncluded(PrecisionMinutes, tm.Precision) {
+	if !hasPrecision(PrecisionMinutes, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf(":%02d", tm.Time.Minute()))
-	if !isIncluded(PrecisionSeconds, tm.Precision) {
+	if !hasPrecision(PrecisionSeconds, tm.Precision) {
 		return builder.String()
 	}
 
 	builder.WriteString(fmt.Sprintf(":%02d", tm.Time.Second()))
-	if !isIncluded(PrecisionMS1, tm.Precision) {
+	if !hasPrecision(PrecisionMS1, tm.Precision) {
 		return builder.String()
 	}
 

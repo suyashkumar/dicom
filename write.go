@@ -28,8 +28,6 @@ var (
 	ErrorUnsupportedBitsPerSample = errors.New("unsupported BitsPerSample value")
 )
 
-// TODO(suyashkumar): consider adding an element-by-element write API.
-
 // Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
 // information if available).
 func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
@@ -60,7 +58,7 @@ func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
 
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group != tag.MetadataGroup {
-			err = writeElement(w, elem, *optSet)
+			err = WriteElement(w, elem, *optSet)
 			if err != nil {
 				return err
 			}
@@ -141,7 +139,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	}
 	if err == ErrorElementNotFound && opts.defaultMissingTransferSyntax {
 		// Write the default transfer syntax
-		if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
+		if err = WriteElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
 			return err
 		}
 	}
@@ -149,7 +147,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	for _, elem := range metaElems {
 		if elem.Tag.Group == tag.MetadataGroup {
 			if _, ok := tagsUsed[elem.Tag]; !ok {
-				err = writeElement(subWriter, elem, opts)
+				err = WriteElement(subWriter, elem, opts)
 				if err != nil {
 					return err
 				}
@@ -168,7 +166,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 		return err
 	}
 
-	err = writeElement(w, lengthElem, opts)
+	err = WriteElement(w, lengthElem, opts)
 	if err != nil {
 		return err
 	}
@@ -180,7 +178,8 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	return nil
 }
 
-func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
+// WriteElement writes a single element to a writer.
+func WriteElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	vr := elem.RawValueRepresentation
 	var err error
 	vr, err = verifyVROrDefault(elem.Tag, elem.RawValueRepresentation, opts)
@@ -231,7 +230,7 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 	if err != nil {
 		return err
 	}
-	err = writeElement(w, elem, optSet)
+	err = WriteElement(w, elem, optSet)
 	if err != nil {
 		return err
 	}
@@ -576,7 +575,7 @@ func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr 
 	// Write Sequence Delimitation Item as implicit VR
 	oldBO, oldImplicit := w.GetTransferSyntax()
 	w.SetTransferSyntax(oldBO, true)
-	if err := writeElement(w, sequenceDelimitationItem, opts); err != nil {
+	if err := WriteElement(w, sequenceDelimitationItem, opts); err != nil {
 		return err
 	}
 	w.SetTransferSyntax(oldBO, oldImplicit) // Return TS to what it was before.
@@ -596,19 +595,19 @@ var item = &Element{
 
 func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts writeOptSet) error {
 	// Write out item header.
-	if err := writeElement(w, item, opts); err != nil {
+	if err := WriteElement(w, item, opts); err != nil {
 		return err
 	}
 
 	// Write out nested Dataset elements.
 	for _, elem := range values {
-		if err := writeElement(w, elem, opts); err != nil {
+		if err := WriteElement(w, elem, opts); err != nil {
 			return err
 		}
 	}
 
 	// Write ItemDelimitationItem.
-	return writeElement(w, sequenceItemDelimitationItem, opts)
+	return WriteElement(w, sequenceItemDelimitationItem, opts)
 }
 
 func writeOtherWordString(w dicomio.Writer, data []byte) error {

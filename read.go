@@ -272,7 +272,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElement, err := readElement(r, nil, nil)
+			subElement, err := ReadElement(r, nil, nil)
 			if err != nil {
 				// Stop reading due to error
 				log.Println("error reading subitem, ", err)
@@ -299,7 +299,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 			return nil, err
 		}
 		for !r.IsLimitExhausted() {
-			subElement, err := readElement(r, nil, nil)
+			subElement, err := ReadElement(r, nil, nil)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, err
@@ -325,7 +325,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElem, err := readElement(r, &seqElements, nil)
+			subElem, err := ReadElement(r, &seqElements, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -343,7 +343,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 		}
 
 		for !r.IsLimitExhausted() {
-			subElem, err := readElement(r, &seqElements, nil)
+			subElem, err := ReadElement(r, &seqElements, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -368,7 +368,7 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 		if vl%2 != 0 {
 			return nil, ErrorOWRequiresEvenVL
 		}
-		
+
 		buf := bytes.NewBuffer(make([]byte, 0, vl))
 		numWords := int(vl / 2)
 		for i := 0; i < numWords; i++ {
@@ -500,12 +500,12 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	return retVal, err
 }
 
-// readElement reads the next element. If the next element is a sequence element,
+// ReadElement reads the next element. If the next element is a sequence element,
 // it may result in a collection of Elements. It takes a pointer to the Dataset of
 // elements read so far, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.
-func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
+func ReadElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
 	t, err := readTag(r)
 	if err != nil {
 		return nil, err
@@ -527,7 +527,7 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 		return nil, err
 	}
 
-	// log.Println("readElement: vr, vl", vr, vl)
+	// log.Println("ReadElement: vr, vl", vr, vl)
 
 	val, err := readValue(r, *t, vr, vl, readImplicit, d, fc)
 	if err != nil {

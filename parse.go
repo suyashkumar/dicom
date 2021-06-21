@@ -158,7 +158,7 @@ func (p *Parser) Next() (*Element, error) {
 		}
 		return nil, ErrorEndOfDICOM
 	}
-	elem, err := readElement(p.reader, &p.dataset, p.frameChannel)
+	elem, err := ReadElement(p.reader, &p.dataset, p.frameChannel)
 	if err != nil {
 		// TODO: tolerate some kinds of errors and continue parsing
 		return nil, err
@@ -209,7 +209,7 @@ func (p *Parser) readHeader() ([]*Element, error) {
 
 	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := readElement(p.reader, nil, nil)
+	maybeMetaLen, err := ReadElement(p.reader, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (p *Parser) readHeader() ([]*Element, error) {
 	}
 	defer p.reader.PopLimit()
 	for !p.reader.IsLimitExhausted() {
-		elem, err := readElement(p.reader, nil, nil)
+		elem, err := ReadElement(p.reader, nil, nil)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
 			return nil, err

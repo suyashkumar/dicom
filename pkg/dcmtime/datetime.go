@@ -12,8 +12,11 @@ type Datetime struct {
 	// Precision with which this value was stored. For instance, a DT value with a
 	// precision of PrecisionYear ONLY stored the year.
 	Precision PrecisionLevel
-	// NoOffset: if true, offset information was not specifically included in the
+	// NoOffset: if false, offset information was not specifically included in the
 	// original DT string, and will not be rendered with DCM()
+	//
+	// We use the negated version here for safer defaults - by default, without setting
+	// this field explicitly, the timezone will be included.
 	NoOffset bool
 }
 
@@ -130,6 +133,6 @@ func ParseDatetime(dtString string) (Datetime, error) {
 	return Datetime{
 		Time:      parsed,
 		Precision: precision,
-		NoOffset:  hasOffset,
+		NoOffset:  !hasOffset,
 	}, nil
 }

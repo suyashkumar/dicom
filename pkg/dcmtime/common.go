@@ -12,9 +12,9 @@ import (
 // value must be of equal or lesser precision.
 //
 // For instance, if `check` is PrecisionSeconds, then minutes, hours, days, months and
-// years would return true, but nanos would return false, since when printing a DT
-// value with a seconds precision, all of said values would be included in the rendered
-// DT value: '20210723121456' (YYYYMMDDHHMMSS).
+// years would return true, but milliseconds would return false, since when printing a
+// DT value with a seconds precision, all of said values would be included in the
+// rendered DT value: '20210723121456' (YYYYMMDDHHMMSS).
 //
 // Example: to test whether seconds should be included, you would:
 // isIncluded(PrecisionSeconds, [caller-passed-limit])

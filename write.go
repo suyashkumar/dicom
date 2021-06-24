@@ -187,8 +187,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	if err != nil {
 		return err
 	}
-
-	w.GetTransferSyntax()
+	
 	if !opts.skipValueTypeVerification && elem.Value != nil {
 		err := verifyValueType(elem.Tag, elem.Value, vr)
 		if err != nil {

@@ -8,12 +8,18 @@ import (
 	"time"
 )
 
-// isIncluded returns whether `check` is included in `limit`.
+// isIncluded returns whether `check` is included in `limit`. To be "included", the
+// value must be of equal or lesser precision.
+//
+// For instance, if `check` is PrecisionSeconds, then minutes, hours, days, months and
+// years would return true, but nanos would return false, since when printing a DT
+// value with a seconds precision, all of said values would be included in the rendered
+// DT value: '20210723121456' (YYYYMMDDHHMMSS).
 //
 // Example: to test whether seconds should be included, you would:
 // isIncluded(PrecisionSeconds, [caller-passed-limit])
-func isIncluded(check PrecisionLevel, precision PrecisionLevel) bool {
-	return check >= precision
+func isIncluded(check PrecisionLevel, limit PrecisionLevel) bool {
+	return check >= limit
 }
 
 // truncateMilliseconds truncate nanosecond time.Time value to arbitrary precision.

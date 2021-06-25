@@ -187,7 +187,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	if err != nil {
 		return err
 	}
-
+	
 	if !opts.skipValueTypeVerification && elem.Value != nil {
 		err := verifyValueType(elem.Tag, elem.Value, vr)
 		if err != nil {
@@ -240,15 +240,32 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 }
 
 func verifyVROrDefault(t tag.Tag, vr string, opts writeOptSet) (string, error) {
+	// If our VR is not blank and we are skipping VF verification, nothing needs to be
+	// done, so we can immediately return.
+	if vr != "" && opts.skipVRVerification {
+		return vr, nil
+	}
+
+	// Otherwise, get our tag info.
 	tagInfo, err := tag.Find(t)
 	if err != nil {
-		return vrraw.Unknown, nil
+		// If we cannot find information about the tag and our VR is blank, we will use
+		// "UN" (Unknown). Otherwise we will fallback to the caller's VR and trust that
+		// they know more about this tag than we do. This could be a private tag, or a
+		// tag from a newer version of the DICOM spec.
+		if vr == "" {
+			vr = vrraw.Unknown
+		}
+		return vr, nil
 	}
+
 	if vr == "" {
+		// Otherwise if we did find it, and our VR is blank, we'll return the known vr
+		// we just pulled.
 		return tagInfo.VR, nil
 	}
 
-	// Only verify if the caller has not elected to skip it.
+	// Verify the VR on the way out if the caller wants it.
 	if !opts.skipVRVerification && tagInfo.VR != vr {
 		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
 			tag.DebugString(t), vr, tagInfo.VR)

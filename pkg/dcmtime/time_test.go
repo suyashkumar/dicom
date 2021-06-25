@@ -340,3 +340,17 @@ func TestTime_Methods(t *testing.T) {
 		})
 	}
 }
+
+// TestTime_SaneDefaults tests that instantiating a new Time object with just the Time
+// field specified yields a reasonable result.
+func TestTime_SaneDefaults(t *testing.T) {
+	newValue := dcmtime.Time{
+		Time: time.Date(1, 1, 1, 12, 7, 56, 123456000, time.FixedZone("", 0)),
+	}
+
+	dcmVal := newValue.DCM()
+	expected := "120756.123456"
+	if dcmVal != expected {
+		t.Errorf("DCM(): expected '%v', but got '%v'", expected, dcmVal)
+	}
+}

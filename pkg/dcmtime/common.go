@@ -8,19 +8,25 @@ import (
 	"time"
 )
 
-// isIncluded returns whether `check` is included in `limit`.
+// isIncluded returns whether `check` is included in `limit`. To be "included", the
+// value must be of equal or lesser precision.
+//
+// For instance, if `check` is PrecisionSeconds, then minutes, hours, days, months and
+// years would return true, but milliseconds would return false, since when printing a
+// DT value with a seconds precision, all of said values would be included in the
+// rendered DT value: '20210723121456' (YYYYMMDDHHMMSS).
 //
 // Example: to test whether seconds should be included, you would:
 // isIncluded(PrecisionSeconds, [caller-passed-limit])
-func isIncluded(check PrecisionLevel, precision PrecisionLevel) bool {
-	return check <= precision
+func isIncluded(check PrecisionLevel, limit PrecisionLevel) bool {
+	return check >= limit
 }
 
 // truncateMilliseconds truncate nanosecond time.Time value to arbitrary precision.
 func truncateMilliseconds(nanoSeconds int, precision PrecisionLevel) (millis string) {
 	milliseconds := nanoSeconds / 1000
 	millis = fmt.Sprintf("%06d", milliseconds)
-	millis = millis[:6-(PrecisionFull-precision)]
+	millis = millis[:6-(PrecisionFull+precision)]
 
 	return millis
 }
@@ -69,7 +75,7 @@ func extractDurationInfo(subMatches []string, index int, isFractal bool) (durati
 		// get our nano-seconds.
 		missingPlaces := 9 - len(valueStr)
 		valueStr = valueStr + strings.Repeat("0", missingPlaces)
-		info.FractalPrecision = PrecisionFull - PrecisionLevel(missingPlaces-3)
+		info.FractalPrecision = PrecisionFull + PrecisionLevel(missingPlaces-3)
 	}
 
 	// If our info is present, parse the value into an int.

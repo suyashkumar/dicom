@@ -149,6 +149,21 @@ func mustNewElement(t tag.Tag, data interface{}) *Element {
 	return elem
 }
 
+func mustNewPrivateElement(t tag.Tag, rawVR string, data interface{}) *Element {
+	value, err := NewValue(data)
+	if err != nil {
+		log.Panic(fmt.Errorf("error creating value: %w", err))
+	}
+
+	return &Element{
+		Tag:                    t,
+		ValueRepresentation:    tag.GetVRKind(t, rawVR),
+		RawValueRepresentation: rawVR,
+		ValueLength:            0,
+		Value:                  value,
+	}
+}
+
 // ValueType is a type that represents the type of a Value. It is an enumerated
 // set, and the set of values can be found below.
 type ValueType int

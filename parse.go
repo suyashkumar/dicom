@@ -108,7 +108,8 @@ type Parser struct {
 //
 // frameChannel is an optional channel (can be nil) upon which DICOM image frames will be sent as they are parsed (if
 // provided).
-func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) (*Parser, error) {
+func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, opts ...ParseOption) (*Parser, error) {
+	optSet := toParseOptSet(opts...)
 	reader, err := dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead)
 	if err != nil {
 		return nil, err
@@ -119,9 +120,13 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame) 
 		frameChannel: frameChannel,
 	}
 
-	elems, err := p.readHeader()
-	if err != nil {
-		return nil, err
+	elems := []*Element{}
+
+	if !optSet.skipHeaderRead {
+		elems, err = p.readHeader()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	p.dataset = Dataset{Elements: elems}
@@ -238,4 +243,27 @@ func (p *Parser) readHeader() ([]*Element, error) {
 		metaElems = append(metaElems, elem)
 	}
 	return metaElems, nil
+}
+
+// ParseOption represents an option that can be passed to NewParser
+type ParseOption func(*parseOptSet)
+
+// parseOptSet represents the flattened option set after all ParseOptions have been applied.
+type parseOptSet struct {
+	skipHeaderRead bool
+}
+
+func toParseOptSet(opts ...ParseOption) *parseOptSet {
+	optSet := &parseOptSet{}
+	for _, opt := range opts {
+		opt(optSet)
+	}
+	return optSet
+}
+
+// SkipHeaderRead makes NewParser skip reading the headers
+func SkipHeaderRead() ParseOption {
+	return func(set *parseOptSet) {
+		set.skipHeaderRead = true
+	}
 }

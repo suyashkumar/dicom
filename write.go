@@ -36,13 +36,18 @@ type Writer struct {
 
 // NewWriter returns a new Writer, that points to the provided io.Writer
 func NewWriter(out io.Writer, opts ...WriteOption) *Writer {
-	optSet := toOptSet(opts...)
+	optSet := toWriteOptSet(opts...)
 	w := dicomio.NewWriter(out, nil, false)
 
 	return &Writer{
 		writer: w,
 		optSet: optSet,
 	}
+}
+
+// SetTransferSyntax sets the Transfer Syntax for the underlying dicomio.Writer
+func (w *Writer) SetTransferSyntax(bo binary.ByteOrder, transferSyntax bool) {
+	w.writer.SetTransferSyntax(bo, transferSyntax)
 }
 
 // WriteDataset writes the provided DICOM dataset to the Writer, including headers if available.
@@ -131,7 +136,7 @@ type writeOptSet struct {
 	defaultMissingTransferSyntax bool
 }
 
-func toOptSet(opts ...WriteOption) *writeOptSet {
+func toWriteOptSet(opts ...WriteOption) *writeOptSet {
 	optSet := &writeOptSet{}
 	for _, opt := range opts {
 		opt(optSet)

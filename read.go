@@ -24,12 +24,8 @@ var (
 	// value length which is not allowed.
 	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
 	// ErrorUnsupportedVR indicates that this VR is not supported.
-	ErrorUnsupportedVR = errors.New("unsupported VR")
-	// ErrorUnsupportedBitsAllocated indicates that the BitsAllocated in the
-	// NativeFrame PixelData is unsupported. In this situation, the rest of the
-	// dataset returned is still valid.
-	ErrorUnsupportedBitsAllocated = errors.New("unsupported BitsAllocated")
-	errorUnableToParseFloat       = errors.New("unable to parse float type")
+	ErrorUnsupportedVR      = errors.New("unsupported VR")
+	errorUnableToParseFloat = errors.New("unable to parse float type")
 )
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {

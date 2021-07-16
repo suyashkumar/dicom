@@ -24,8 +24,12 @@ var (
 	// value length which is not allowed.
 	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
 	// ErrorUnsupportedVR indicates that this VR is not supported.
-	ErrorUnsupportedVR      = errors.New("unsupported VR")
-	errorUnableToParseFloat = errors.New("unable to parse float type")
+	ErrorUnsupportedVR = errors.New("unsupported VR")
+	// ErrorUnsupportedBitsAllocated indicates that the BitsAllocated in the
+	// NativeFrame PixelData is unsupported. In this situation, the rest of the
+	// dataset returned is still valid.
+	ErrorUnsupportedBitsAllocated = errors.New("unsupported BitsAllocated")
+	errorUnableToParseFloat       = errors.New("unable to parse float type")
 )
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {
@@ -252,6 +256,8 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 					buf[(pixel*samplesPerPixel)+value] = int(bo.Uint16(pixelBuf))
 				} else if bitsAllocated == 32 {
 					buf[(pixel*samplesPerPixel)+value] = int(bo.Uint32(pixelBuf))
+				} else {
+					return nil, bytesRead, fmt.Errorf("unsupported BitsAllocated value of: %d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 				}
 			}
 			currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]

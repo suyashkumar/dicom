@@ -11,6 +11,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/suyashkumar/dicom/pkg/debug"
 	"github.com/suyashkumar/dicom/pkg/vrraw"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -218,6 +219,8 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 
 	pixelsPerFrame := MustGetInts(rows.Value)[0] * MustGetInts(cols.Value)[0]
 
+	debug.Logf("readNativeFrames:\nRows: %d\nCols:%d\nFrames::%d\nBitsAlloc:%d\nSamplesPerPixel:%d", rows, cols, nFrames, bitsAllocated, samplesPerPixel)
+
 	// Parse the pixels:
 	image.Frames = make([]frame.Frame, nFrames)
 	bo := d.ByteOrder()
@@ -368,7 +371,7 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 		if vl%2 != 0 {
 			return nil, ErrorOWRequiresEvenVL
 		}
-		
+
 		buf := bytes.NewBuffer(make([]byte, 0, vl))
 		numWords := int(vl / 2)
 		for i := 0; i < numWords; i++ {
@@ -510,6 +513,7 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 	if err != nil {
 		return nil, err
 	}
+	debug.Logf("readElement: tag: %s", t.String())
 
 	readImplicit := r.IsImplicit()
 	if *t == tag.Item {
@@ -521,13 +525,13 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 	if err != nil {
 		return nil, err
 	}
+	debug.Logf("readElement: vr: %s", vr)
 
 	vl, err := readVL(r, readImplicit, *t, vr)
 	if err != nil {
 		return nil, err
 	}
-
-	// log.Println("readElement: vr, vl", vr, vl)
+	debug.Logf("readElement: vl: %d", vl)
 
 	val, err := readValue(r, *t, vr, vl, readImplicit, d, fc)
 	if err != nil {

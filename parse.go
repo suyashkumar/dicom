@@ -131,6 +131,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 		}
 		debug.Log("NewParser: readHeader complete")
 	}
+	debug.Log("NewParser: readHeader complete")
 
 	p.dataset = Dataset{Elements: elems}
 	// TODO(suyashkumar): avoid storing the metadata pointers twice (though not that expensive)

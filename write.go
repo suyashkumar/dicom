@@ -28,13 +28,13 @@ var (
 	ErrorUnsupportedBitsPerSample = errors.New("unsupported BitsPerSample value")
 )
 
-// Writer is a struct that allows element-by element writing to a DICOM writer
+// Writer is a struct that allows element-by element writing to a DICOM writer.
 type Writer struct {
 	writer dicomio.Writer
 	optSet *writeOptSet
 }
 
-// NewWriter returns a new Writer, that points to the provided io.Writer
+// NewWriter returns a new Writer, that points to the provided io.Writer.
 func NewWriter(out io.Writer, opts ...WriteOption) *Writer {
 	optSet := toWriteOptSet(opts...)
 	w := dicomio.NewWriter(out, nil, false)
@@ -45,13 +45,13 @@ func NewWriter(out io.Writer, opts ...WriteOption) *Writer {
 	}
 }
 
-// SetTransferSyntax sets the Transfer Syntax for the underlying dicomio.Writer
+// SetTransferSyntax sets the Transfer Syntax for the underlying dicomio.Writer.
 func (w *Writer) SetTransferSyntax(bo binary.ByteOrder, transferSyntax bool) {
 	w.writer.SetTransferSyntax(bo, transferSyntax)
 }
 
-// WriteDataset writes the provided DICOM dataset to the Writer, including headers if available.
-func (w *Writer) WriteDataset(ds Dataset) error {
+// writeDataset writes the provided DICOM dataset to the Writer, including headers if available.
+func (w *Writer) writeDataset(ds Dataset) error {
 	var metaElems []*Element
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group == tag.MetadataGroup {
@@ -87,7 +87,7 @@ func (w *Writer) WriteDataset(ds Dataset) error {
 	return nil
 }
 
-// WriteElement writes a single DICOM element to a Writer
+// WriteElement writes a single DICOM element to a Writer.
 func (w *Writer) WriteElement(e *Element) error {
 	return writeElement(w.writer, e, *w.optSet)
 }
@@ -96,8 +96,7 @@ func (w *Writer) WriteElement(e *Element) error {
 // information if available).
 func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
 	w := NewWriter(out, opts...)
-
-	return w.WriteDataset(ds)
+	return w.writeDataset(ds)
 }
 
 // WriteOption represents an option that can be passed to WriteDataset. Later options will override previous options if

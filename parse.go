@@ -245,7 +245,7 @@ func (p *Parser) readHeader() ([]*Element, error) {
 	return metaElems, nil
 }
 
-// ParseOption represents an option that can be passed to NewParser
+// ParseOption represents an option that can be passed to NewParser.
 type ParseOption func(*parseOptSet)
 
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
@@ -261,7 +261,7 @@ func toParseOptSet(opts ...ParseOption) *parseOptSet {
 	return optSet
 }
 
-// SkipHeaderRead makes NewParser skip reading the headers
+// SkipHeaderRead makes NewParser skip reading the headers. This will make the Parser default to implicit little endian byte order.
 func SkipHeaderRead() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipHeaderRead = true

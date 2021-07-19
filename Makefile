@@ -11,6 +11,10 @@ build:
 build-fast:
 	go build -o build/${BINARY} ./cmd/dicomutil
 
+.PHONY: build-debug
+build-debug:
+	go build -tags debug -o build/${BINARY} ./cmd/dicomutil
+
 .PHONY: test
 test:
 	go test ./... -v

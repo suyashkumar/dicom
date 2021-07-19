@@ -29,6 +29,7 @@ import (
 	"os"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
+	"github.com/suyashkumar/dicom/pkg/debug"
 	"github.com/suyashkumar/dicom/pkg/dicomio"
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
@@ -123,10 +124,12 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	elems := []*Element{}
 
 	if !optSet.skipHeaderRead {
+		debug.Log("NewParser: readHeader")
 		elems, err = p.readHeader()
 		if err != nil {
 			return nil, err
 		}
+		debug.Log("NewParser: readHeader complete")
 	}
 
 	p.dataset = Dataset{Elements: elems}

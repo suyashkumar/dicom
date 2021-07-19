@@ -344,6 +344,19 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedPixelData: nil,
 			expectedError:     ErrorElementNotFound,
 		},
+		{
+			Name: "unsupported BitsAllocated",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{5}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{1}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			expectedPixelData: nil,
+			expectedError:     ErrorUnsupportedBitsAllocated,
+		},
 	}
 
 	for _, tc := range cases {

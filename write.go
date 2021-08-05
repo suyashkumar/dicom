@@ -45,9 +45,9 @@ func NewWriter(out io.Writer, opts ...WriteOption) *Writer {
 	}
 }
 
-// SetTransferSyntax sets the Transfer Syntax for the underlying dicomio.Writer.
-func (w *Writer) SetTransferSyntax(bo binary.ByteOrder, transferSyntax bool) {
-	w.writer.SetTransferSyntax(bo, transferSyntax)
+// SetTransferSyntax sets the transfer syntax for the underlying dicomio.Writer.
+func (w *Writer) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
+	w.writer.SetTransferSyntax(bo, implicit)
 }
 
 // writeDataset writes the provided DICOM dataset to the Writer, including headers if available.

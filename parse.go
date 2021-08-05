@@ -197,6 +197,11 @@ func (p *Parser) GetMetadata() Dataset {
 	return p.metadata
 }
 
+// SetTransferSyntax sets the transfer syntax for the underlying dicomio.Reader.
+func (p *Parser) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
+	p.reader.SetTransferSyntax(bo, implicit)
+}
+
 // readHeader reads the DICOM magic header and group two metadata elements.
 func (p *Parser) readHeader() ([]*Element, error) {
 	// Check to see if magic word is at byte offset 128. If not, this is a

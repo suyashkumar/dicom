@@ -350,7 +350,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.Rows, []int{5}),
 				mustNewElement(tag.Columns, []int{2}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{1}),
+				mustNewElement(tag.BitsAllocated, []int{2}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -380,6 +380,101 @@ func TestReadNativeFrames(t *testing.T) {
 
 			if diff := cmp.Diff(tc.expectedPixelData, pixelData); diff != "" {
 				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.data, diff)
+			}
+		})
+	}
+}
+
+func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
+	cases := []struct {
+		Name              string
+		existingData      Dataset
+		data              []byte
+		expectedPixelData *PixelDataInfo
+		expectedError     error
+		byteOrder         binary.ByteOrder
+	}{
+		{
+			Name: "LittleEndian, 4x4, 1 frames, 1 samples/pixel",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{4}),
+				mustNewElement(tag.Columns, []int{4}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{1}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			data: []byte{0b00010111, 0b10010111},
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 1,
+							Rows:          4,
+							Cols:          4,
+							Data:          [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
+						},
+					},
+				},
+			},
+			expectedError: nil,
+			byteOrder:     binary.LittleEndian,
+		},
+		{
+			Name: "\"BigEndian\" (maybe), 4x4, 1 frames, 1 samples/pixel",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{4}),
+				mustNewElement(tag.Columns, []int{4}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{1}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			data: []byte{0b00010111, 0b10010111},
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 1,
+							Rows:          4,
+							Cols:          4,
+							Data:          [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
+						},
+					},
+				},
+			},
+			expectedError: nil,
+			// For some reason, this doesn't make a difference, even though we
+			// don't change the order in which we read the bits in the
+			// implementation. For some reason, binary.Write isn't changing the
+			// order of the bits (or it is, and we somehow always read it back
+			// in the correct order).
+			byteOrder: binary.BigEndian,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			dcmdata := bytes.Buffer{}
+			for _, item := range tc.data {
+				if err := binary.Write(&dcmdata, tc.byteOrder, item); err != nil {
+					t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
+				}
+			}
+
+			r, err := dicomio.NewReader(bufio.NewReader(&dcmdata), tc.byteOrder, int64(dcmdata.Len()))
+			if err != nil {
+				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
+			}
+
+			pixelData, _, err := readNativeFrames(r, &tc.existingData, nil)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
+			}
+
+			if diff := cmp.Diff(tc.expectedPixelData, pixelData); diff != "" {
+				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v\ndata:%v", tc.data, diff, pixelData)
 			}
 		})
 	}

@@ -344,19 +344,19 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedPixelData: nil,
 			expectedError:     ErrorElementNotFound,
 		},
-		/*{
+		{
 			Name: "unsupported BitsAllocated",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{5}),
 				mustNewElement(tag.Columns, []int{2}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{1}),
+				mustNewElement(tag.BitsAllocated, []int{2}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
 			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorUnsupportedBitsAllocated,
-		},*/
+		},
 	}
 
 	for _, tc := range cases {
@@ -447,7 +447,7 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 			},
 			expectedError: nil,
 			// For some reason, this doesn't make a difference, even though we
-			// don't change the order in which we read the bytes in the
+			// don't change the order in which we read the bits in the
 			// implementation. For some reason, binary.Write isn't changing the
 			// order of the bits (or it is, and we somehow always read it back
 			// in the correct order).

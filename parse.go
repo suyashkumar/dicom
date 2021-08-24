@@ -141,6 +141,13 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	var bo binary.ByteOrder = binary.LittleEndian
 	implicit := true
 
+	// Skip trying to find and parse transfer syntax based on metadata if we have skipped reading a header
+	if optSet.skipHeaderRead {
+		p.reader.SetTransferSyntax(bo, implicit)
+
+		return &p, nil
+	}
+
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
 	if err != nil {
 		log.Println("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")

@@ -19,6 +19,10 @@ build-debug:
 test:
 	go test ./... -v
 
+.PHONY: test-full
+test-full:
+	go test ./... -v -tags=pydicom
+
 .PHONY: run
 run:
 	make build

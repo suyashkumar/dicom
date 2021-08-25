@@ -4,79 +4,82 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/suyashkumar/dicom/pkg/frame"
+	"github.com/suyashkumar/dicom/pkg/tag"
 	"image/jpeg"
-	"io/ioutil"
+	"io"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/suyashkumar/dicom/pkg/tag"
-
-	"github.com/suyashkumar/dicom/pkg/frame"
-
 	"github.com/suyashkumar/dicom"
+	"github.com/suyashkumar/dicom/pkg/dcmtest"
 )
 
-// TestParse is an end-to-end sanity check over DICOMs in testdata/. Currently it only checks that no error is returned
-// when parsing the files.
+// TestParse is an end-to-end sanity check over DICOMs in /pkg/dcmtest/data/. Currently
+// it only checks that no error is returned when parsing the files.
 func TestParse(t *testing.T) {
-	files, err := ioutil.ReadDir("./testdata")
-	if err != nil {
-		t.Fatalf("unable to read testdata/: %v", err)
-	}
-	for _, f := range files {
-		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
-			t.Run(f.Name(), func(t *testing.T) {
-				dcm, err := os.Open("./testdata/" + f.Name())
-				if err != nil {
-					t.Errorf("Unable to open %s. Error: %v", f.Name(), err)
-				}
-				defer dcm.Close()
-				info, err := dcm.Stat()
-				if err != nil {
-					t.Errorf("Unable to stat %s. Error: %v", f.Name(), err)
-				}
-				_, err = dicom.Parse(dcm, info.Size(), nil)
-				if err != nil {
-					t.Errorf("dicom.Parse(%s) unexpected error: %v", f.Name(), err)
-				}
-			})
+	// This will walk all of our test data and try parsing the Dataset, so we can simply
+	// report if we get passed an error.
+	dcmtest.WalkIncludedFS(t, func(t *testing.T, tc dcmtest.FSTestCase, setupErr error) {
+		if setupErr != nil {
+			t.Fatalf("setup error: %v", setupErr)
 		}
-	}
+	})
 }
 
-// BenchmarkParse runs sanity benchmarks over the sample files in testdata.
+// BenchmarkParse runs sanity benchmarks over the sample files in /pkg/dcmtest/data/.
 func BenchmarkParse(b *testing.B) {
-	files, err := ioutil.ReadDir("./testdata")
-	if err != nil {
-		b.Fatalf("unable to read testdata/: %v", err)
-	}
-	for _, f := range files {
-		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
-			b.Run(f.Name(), func(b *testing.B) {
-				dcm, err := os.Open("./testdata/" + f.Name())
-				if err != nil {
-					b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
-				}
-				defer dcm.Close()
-
-				data, err := ioutil.ReadAll(dcm)
-				if err != nil {
-					b.Errorf("Unable to read file into memory for benchmark: %v", err)
-				}
-
-				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
-					_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil)
-				}
-			})
+	// This will walk all of our test data and run a sub-test for each one.
+	dcmtest.BenchIncludedFS(b, func(b *testing.B, tc dcmtest.FSTestCase, setupErr error) {
+		// The test helper will have already parsed the file once, so we will use that
+		// as validation that the dataset is good.
+		if setupErr != nil {
+			b.Fatalf("setup error: %v", setupErr)
 		}
-	}
+
+		dcmFile, err := tc.OpenDCMFile()
+		if err != nil {
+			b.Fatalf("error opening dcm file: %v", err)
+		}
+		defer dcmFile.Close()
+
+		// Extract the binary data.
+		binData, err := io.ReadAll(dcmFile)
+		if err != nil {
+			b.Fatalf("error reading dcm file: %v", err)
+		}
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			// Read from a fresh buffer each iteration.
+			buffer := bytes.NewBuffer(binData)
+
+			// Parse the dataset.
+			dataset, err := dicom.Parse(buffer, tc.DCMStat.Size(), nil)
+			if err != nil {
+				b.Fatalf("error parsing dataset on repetition %v: %v", i, err)
+			}
+
+			// Make sure we got sane results.
+			if len(dataset.Elements) == 0 {
+				b.Fatalf("no elements were parsed on repetition %v", i)
+			}
+
+			if len(dataset.Elements) != len(tc.Dataset.Elements) {
+				b.Fatalf(
+					"element count mismatch: expected %v, got %v on repetition %v",
+					len(tc.Dataset.Elements),
+					len(dataset.Elements),
+					i,
+				)
+			}
+		}
+	})
 }
 
 func Example_readFile() {
 	// See also: dicom.Parse, which uses a more generic io.Reader API.
-	dataset, _ := dicom.ParseFile("testdata/1.dcm", nil)
+	dataset, _ := dicom.ParseFile("./pkg/dcmtest/data/1.dcm", nil)
 
 	// Dataset will nicely print the DICOM dataset data out of the box.
 	fmt.Println(dataset)
@@ -99,12 +102,12 @@ func Example_streamingFrames() {
 		}
 	}()
 
-	dataset, _ := dicom.ParseFile("testdata/1.dcm", frameChan)
+	dataset, _ := dicom.ParseFile("./pkg/dcmtest/data/1.dcm", frameChan)
 	fmt.Println(dataset) // The full dataset
 }
 
 func Example_getImageFrames() {
-	dataset, _ := dicom.ParseFile("testdata/1.dcm", nil)
+	dataset, _ := dicom.ParseFile("./pkg/dcmtest/data/1.dcm", nil)
 	pixelDataElement, _ := dataset.FindElementByTag(tag.PixelData)
 	pixelDataInfo := dicom.MustGetPixelDataInfo(pixelDataElement.Value)
 	for i, fr := range pixelDataInfo.Frames {

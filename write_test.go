@@ -3,10 +3,11 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/suyashkumar/dicom/pkg/vrraw"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/suyashkumar/dicom/pkg/vrraw"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 
@@ -632,16 +633,16 @@ func TestWriteOtherWord(t *testing.T) {
 		expectedErr  error
 	}{
 		{
-			name:  "OtherWord",
-			value: []byte{0x1, 0x2, 0x3, 0x4},
-			vr:    "OW",
+			name:         "OtherWord",
+			value:        []byte{0x1, 0x2, 0x3, 0x4},
+			vr:           "OW",
 			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
 			expectedErr:  nil,
 		},
 		{
-			name:  "OtherBytes",
-			value: []byte{0x1, 0x2, 0x3, 0x4},
-			vr:    "OB",
+			name:         "OtherBytes",
+			value:        []byte{0x1, 0x2, 0x3, 0x4},
+			vr:           "OB",
 			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
 			expectedErr:  nil,
 		},
@@ -666,4 +667,50 @@ func TestWriteOtherWord(t *testing.T) {
 func setUndefinedLength(e *Element) *Element {
 	e.ValueLength = tag.VLUndefinedLength
 	return e
+}
+
+// TestWriteElement tests that Write and Writer.WriteElement produces identical results.
+func TestWriteElement(t *testing.T) {
+
+	ds := Dataset{Elements: []*Element{
+		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+		mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+		mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+		mustNewElement(tag.Rows, []int{128}),
+		mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+		mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+		mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+	}}
+
+	// Writer and WriteElement
+	buf1 := bytes.Buffer{}
+	w := NewWriter(&buf1)
+	w.SetTransferSyntax(binary.LittleEndian, true)
+	var metaElems []*Element
+	for _, elem := range ds.Elements {
+		if elem.Tag.Group == tag.MetadataGroup {
+			metaElems = append(metaElems, elem)
+		}
+	}
+	err := writeFileHeader(w.writer, &ds, metaElems, *w.optSet)
+	if err != nil {
+		t.Errorf("error in writing file header: %s", err.Error())
+	}
+	for _, e := range ds.Elements {
+		if e.Tag.Group != tag.MetadataGroup {
+			err := w.WriteElement(e)
+			if err != nil {
+				t.Errorf("error in writing element %s: %s", e.String(), err.Error())
+			}
+		}
+	}
+
+	// Write
+	buf2 := bytes.Buffer{}
+	Write(&buf2, ds)
+
+	if !bytes.Equal(buf1.Bytes(), buf2.Bytes()) {
+		t.Errorf("byte buffers were not identical")
+	}
 }

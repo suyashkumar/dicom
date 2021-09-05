@@ -669,10 +669,9 @@ func setUndefinedLength(e *Element) *Element {
 	return e
 }
 
-// TestWriteElement tests that Write and Writer.WriteElement produces identical results.
+// TestWriteElement tests a dataset written using writer.WriteElement can be parsed into an identical dataset using NewParser.
 func TestWriteElement(t *testing.T) {
-
-	ds := Dataset{Elements: []*Element{
+	writeDS := Dataset{Elements: []*Element{
 		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 		mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
@@ -683,34 +682,33 @@ func TestWriteElement(t *testing.T) {
 		mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
 	}}
 
-	// Writer and WriteElement
-	buf1 := bytes.Buffer{}
-	w := NewWriter(&buf1)
+	buf := bytes.Buffer{}
+	w := NewWriter(&buf)
 	w.SetTransferSyntax(binary.LittleEndian, true)
-	var metaElems []*Element
-	for _, elem := range ds.Elements {
-		if elem.Tag.Group == tag.MetadataGroup {
-			metaElems = append(metaElems, elem)
+
+	for _, e := range writeDS.Elements {
+		err := w.WriteElement(e)
+		if err != nil {
+			t.Errorf("error in writing element %s: %s", e.String(), err.Error())
 		}
 	}
-	err := writeFileHeader(w.writer, &ds, metaElems, *w.optSet)
+
+	p, err := NewParser(&buf, int64(buf.Len()), nil, SkipMetadataReadOnNewParserInit())
 	if err != nil {
-		t.Errorf("error in writing file header: %s", err.Error())
+		t.Fatalf("failed to create parser: %v", err)
 	}
-	for _, e := range ds.Elements {
-		if e.Tag.Group != tag.MetadataGroup {
-			err := w.WriteElement(e)
-			if err != nil {
-				t.Errorf("error in writing element %s: %s", e.String(), err.Error())
-			}
+
+	for _, writtenElem := range writeDS.Elements {
+		readElem, err := p.Next()
+		if err != nil {
+			t.Errorf("error in reading element %s: %s", readElem.String(), err.Error())
 		}
-	}
 
-	// Write
-	buf2 := bytes.Buffer{}
-	Write(&buf2, ds)
-
-	if !bytes.Equal(buf1.Bytes(), buf2.Bytes()) {
-		t.Errorf("byte buffers were not identical")
+		if readElem.Tag != writtenElem.Tag {
+			t.Errorf("read element tag %s is not equal to written element tag %s", readElem.Tag, writtenElem.Tag)
+		}
+		if readElem.Value.String() != writtenElem.Value.String() {
+			t.Errorf("read element value %s is not equal to written element value %s", readElem.String(), writtenElem.String())
+		}
 	}
 }

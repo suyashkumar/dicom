@@ -123,7 +123,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 
 	elems := []*Element{}
 
-	if !optSet.skipHeaderRead {
+	if !optSet.skipMetadataReadOnNewParserInit {
 		debug.Log("NewParser: readHeader")
 		elems, err = p.readHeader()
 		if err != nil {
@@ -142,7 +142,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	implicit := true
 
 	// Skip trying to find and parse transfer syntax based on metadata if we have skipped reading a header
-	if optSet.skipHeaderRead {
+	if optSet.skipMetadataReadOnNewParserInit {
 		p.reader.SetTransferSyntax(bo, implicit)
 
 		return &p, nil
@@ -265,7 +265,7 @@ type ParseOption func(*parseOptSet)
 
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
-	skipHeaderRead bool
+	skipMetadataReadOnNewParserInit bool
 }
 
 func toParseOptSet(opts ...ParseOption) *parseOptSet {
@@ -276,9 +276,10 @@ func toParseOptSet(opts ...ParseOption) *parseOptSet {
 	return optSet
 }
 
-// SkipHeaderRead makes NewParser skip reading the headers. This will make the Parser default to implicit little endian byte order.
-func SkipHeaderRead() ParseOption {
+// SkipMetadataReadOnNewParserInit makes NewParser skip trying to parse metadata. This will make the Parser default to implicit little endian byte order.
+// Any metatata tags found in the dataset will still be available when parsing.
+func SkipMetadataReadOnNewParserInit() ParseOption {
 	return func(set *parseOptSet) {
-		set.skipHeaderRead = true
+		set.skipMetadataReadOnNewParserInit = true
 	}
 }

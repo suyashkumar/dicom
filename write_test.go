@@ -704,11 +704,8 @@ func TestWriteElement(t *testing.T) {
 			t.Errorf("error in reading element %s: %s", readElem.String(), err.Error())
 		}
 
-		if readElem.Tag != writtenElem.Tag {
-			t.Errorf("read element tag %s is not equal to written element tag %s", readElem.Tag, writtenElem.Tag)
-		}
-		if readElem.Value.String() != writtenElem.Value.String() {
-			t.Errorf("read element value %s is not equal to written element value %s", readElem.String(), writtenElem.String())
+		if diff := cmp.Diff(writtenElem, readElem, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
+			t.Errorf("unexpected diff in element....")
 		}
 	}
 }

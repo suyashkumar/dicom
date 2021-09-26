@@ -45,6 +45,30 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// TestNewParserSkipMetadataReadOnNewParserInit tests that NewParser with the SkipMetadataReadOnNewParserInit option
+// parses the specified dataset but not its header metadata.
+func TestNewParserSkipMetadataReadOnNewParserInit(t *testing.T) {
+	fStat, err := os.Stat("./testdata/1.dcm")
+	if err != nil {
+		t.Fatalf("Unable to stat %s. Error: %v", fStat.Name(), err)
+	}
+
+	f, err := os.Open("./testdata/1.dcm")
+	if err != nil {
+		t.Fatalf("Unable to open %s. Error: %v", f.Name(), err)
+	}
+
+	p, err := dicom.NewParser(f, fStat.Size(), nil, dicom.SkipMetadataReadOnNewParserInit())
+	if err != nil {
+		t.Fatalf("dicom.Parse(%s) unexpected error: %v", f.Name(), err)
+	}
+
+	metadata := p.GetMetadata()
+	if len(metadata.Elements) > 0 {
+		t.Fatalf("Found %d metadata elements despite SkipMetadataReadOnNewParserInit()", len(metadata.Elements))
+	}
+}
+
 // BenchmarkParse runs sanity benchmarks over the sample files in testdata.
 func BenchmarkParse(b *testing.B) {
 	files, err := ioutil.ReadDir("./testdata")

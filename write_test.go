@@ -3,10 +3,11 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/suyashkumar/dicom/pkg/vrraw"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/suyashkumar/dicom/pkg/vrraw"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 
@@ -632,16 +633,16 @@ func TestWriteOtherWord(t *testing.T) {
 		expectedErr  error
 	}{
 		{
-			name:  "OtherWord",
-			value: []byte{0x1, 0x2, 0x3, 0x4},
-			vr:    "OW",
+			name:         "OtherWord",
+			value:        []byte{0x1, 0x2, 0x3, 0x4},
+			vr:           "OW",
 			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
 			expectedErr:  nil,
 		},
 		{
-			name:  "OtherBytes",
-			value: []byte{0x1, 0x2, 0x3, 0x4},
-			vr:    "OB",
+			name:         "OtherBytes",
+			value:        []byte{0x1, 0x2, 0x3, 0x4},
+			vr:           "OB",
 			expectedData: []byte{0x1, 0x2, 0x3, 0x4},
 			expectedErr:  nil,
 		},
@@ -666,4 +667,45 @@ func TestWriteOtherWord(t *testing.T) {
 func setUndefinedLength(e *Element) *Element {
 	e.ValueLength = tag.VLUndefinedLength
 	return e
+}
+
+// TestWriteElement tests a dataset written using writer.WriteElement can be parsed into an identical dataset using NewParser.
+func TestWriteElement(t *testing.T) {
+	writeDS := Dataset{Elements: []*Element{
+		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+		mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+		mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+		mustNewElement(tag.Rows, []int{128}),
+		mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+		mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+		mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+	}}
+
+	buf := bytes.Buffer{}
+	w := NewWriter(&buf)
+	w.SetTransferSyntax(binary.LittleEndian, true)
+
+	for _, e := range writeDS.Elements {
+		err := w.WriteElement(e)
+		if err != nil {
+			t.Errorf("error in writing element %s: %s", e.String(), err.Error())
+		}
+	}
+
+	p, err := NewParser(&buf, int64(buf.Len()), nil, SkipMetadataReadOnNewParserInit())
+	if err != nil {
+		t.Fatalf("failed to create parser: %v", err)
+	}
+
+	for _, writtenElem := range writeDS.Elements {
+		readElem, err := p.Next()
+		if err != nil {
+			t.Errorf("error in reading element %s: %s", readElem.String(), err.Error())
+		}
+
+		if diff := cmp.Diff(writtenElem, readElem, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
+			t.Errorf("unexpected diff in element: %s", diff)
+		}
+	}
 }

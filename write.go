@@ -28,13 +28,30 @@ var (
 	ErrorUnsupportedBitsPerSample = errors.New("unsupported BitsPerSample value")
 )
 
-// TODO(suyashkumar): consider adding an element-by-element write API.
+// Writer is a struct that allows element-by element writing to a DICOM writer.
+type Writer struct {
+	writer dicomio.Writer
+	optSet *writeOptSet
+}
 
-// Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
-// information if available).
-func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
-	optSet := toOptSet(opts...)
+// NewWriter returns a new Writer, that points to the provided io.Writer.
+func NewWriter(out io.Writer, opts ...WriteOption) *Writer {
+	optSet := toWriteOptSet(opts...)
 	w := dicomio.NewWriter(out, nil, false)
+
+	return &Writer{
+		writer: w,
+		optSet: optSet,
+	}
+}
+
+// SetTransferSyntax sets the transfer syntax for the underlying dicomio.Writer.
+func (w *Writer) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
+	w.writer.SetTransferSyntax(bo, implicit)
+}
+
+// writeDataset writes the provided DICOM dataset to the Writer, including headers if available.
+func (w *Writer) writeDataset(ds Dataset) error {
 	var metaElems []*Element
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group == tag.MetadataGroup {
@@ -42,25 +59,25 @@ func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
 		}
 	}
 
-	err := writeFileHeader(w, &ds, metaElems, *optSet)
+	err := writeFileHeader(w.writer, &ds, metaElems, *w.optSet)
 	if err != nil {
 		return err
 	}
 
 	endian, implicit, err := ds.transferSyntax()
-	if (err != nil && err != ErrorElementNotFound) || (err == ErrorElementNotFound && !optSet.defaultMissingTransferSyntax) {
+	if (err != nil && err != ErrorElementNotFound) || (err == ErrorElementNotFound && !w.optSet.defaultMissingTransferSyntax) {
 		return err
 	}
 
-	if err == ErrorElementNotFound && optSet.defaultMissingTransferSyntax {
-		w.SetTransferSyntax(binary.LittleEndian, true)
+	if err == ErrorElementNotFound && w.optSet.defaultMissingTransferSyntax {
+		w.writer.SetTransferSyntax(binary.LittleEndian, true)
 	} else {
-		w.SetTransferSyntax(endian, implicit)
+		w.writer.SetTransferSyntax(endian, implicit)
 	}
 
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group != tag.MetadataGroup {
-			err = writeElement(w, elem, *optSet)
+			err = writeElement(w.writer, elem, *w.optSet)
 			if err != nil {
 				return err
 			}
@@ -68,6 +85,18 @@ func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
 	}
 
 	return nil
+}
+
+// WriteElement writes a single DICOM element to a Writer.
+func (w *Writer) WriteElement(e *Element) error {
+	return writeElement(w.writer, e, *w.optSet)
+}
+
+// Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
+// information if available).
+func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
+	w := NewWriter(out, opts...)
+	return w.writeDataset(ds)
 }
 
 // WriteOption represents an option that can be passed to WriteDataset. Later options will override previous options if
@@ -106,7 +135,7 @@ type writeOptSet struct {
 	defaultMissingTransferSyntax bool
 }
 
-func toOptSet(opts ...WriteOption) *writeOptSet {
+func toWriteOptSet(opts ...WriteOption) *writeOptSet {
 	optSet := &writeOptSet{}
 	for _, opt := range opts {
 		opt(optSet)
@@ -187,7 +216,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if !opts.skipValueTypeVerification && elem.Value != nil {
 		err := verifyValueType(elem.Tag, elem.Value, vr)
 		if err != nil {

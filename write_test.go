@@ -705,7 +705,7 @@ func TestWriteElement(t *testing.T) {
 		}
 
 		if diff := cmp.Diff(writtenElem, readElem, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
-			t.Errorf("unexpected diff in element....")
+			t.Errorf("unexpected diff in element: %s", diff)
 		}
 	}
 }

@@ -25,7 +25,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 	"os"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
@@ -141,22 +140,15 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	var bo binary.ByteOrder = binary.LittleEndian
 	implicit := true
 
-	// Skip trying to find and parse transfer syntax based on metadata if we have skipped reading a header
-	if optSet.skipMetadataReadOnNewParserInit {
-		p.reader.SetTransferSyntax(bo, implicit)
-
-		return &p, nil
-	}
-
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
 	if err != nil {
-		log.Println("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
+		debug.Log("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
 	} else {
 		bo, implicit, err = uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
 		if err != nil {
 			// TODO(suyashkumar): should we attempt to parse with LittleEndian
 			// Implicit here?
-			log.Println("WARN: could not parse transfer syntax uid in metadata")
+			debug.Log("WARN: could not parse transfer syntax uid in metadata")
 		}
 	}
 	p.reader.SetTransferSyntax(bo, implicit)

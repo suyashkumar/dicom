@@ -272,7 +272,6 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	image.Frames = make([]frame.Frame, nFrames)
 	//bo := d.ByteOrder()
 	bytesAllocated := bitsAllocated / 8
-	pixelBuf := make([]byte, bytesAllocated)
 
 	frameSize := bytesAllocated * samplesPerPixel * pixelsPerFrame
 
@@ -290,7 +289,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 
 
 		buf := make([]byte, frameSize)
-		_, err := io.ReadFull(d, pixelBuf)
+		_, err := io.ReadFull(d, buf)
 		if err != nil {
 			return nil, bytesRead,
 				fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)

@@ -9,6 +9,7 @@ import (
 type NativeFrame struct {
 	// Data is a slice of pixels, where each pixel can have multiple values
 	Data          [][]int
+	ByteData	  []byte
 	Rows          int
 	Cols          int
 	BitsPerSample int

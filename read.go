@@ -270,9 +270,12 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 
 	// Parse the pixels:
 	image.Frames = make([]frame.Frame, nFrames)
-	bo := d.ByteOrder()
+	//bo := d.ByteOrder()
 	bytesAllocated := bitsAllocated / 8
 	pixelBuf := make([]byte, bytesAllocated)
+
+	frameSize := bytesAllocated * samplesPerPixel * pixelsPerFrame
+
 	for frameIdx := 0; frameIdx < nFrames; frameIdx++ {
 		// Init current frame
 		currentFrame := frame.Frame{
@@ -284,38 +287,16 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 				Data:          make([][]int, int(pixelsPerFrame)),
 			},
 		}
-		buf := make([]int, int(pixelsPerFrame)*samplesPerPixel)
-		if bitsAllocated == 1 {
-			if err := fillBufferSingleBitAllocated(buf, d, bo); err != nil {
-				return nil, bytesRead, err
-			}
-			for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
-				for value := 0; value < samplesPerPixel; value++ {
-					currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
-				}
-			}
-		} else {
-			for pixel := 0; pixel < int(pixelsPerFrame); pixel++ {
-				for value := 0; value < samplesPerPixel; value++ {
-					_, err := io.ReadFull(d, pixelBuf)
-					if err != nil {
-						return nil, bytesRead,
-							fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
-					}
 
-					if bitsAllocated == 8 {
-						buf[(pixel*samplesPerPixel)+value] = int(pixelBuf[0])
-					} else if bitsAllocated == 16 {
-						buf[(pixel*samplesPerPixel)+value] = int(bo.Uint16(pixelBuf))
-					} else if bitsAllocated == 32 {
-						buf[(pixel*samplesPerPixel)+value] = int(bo.Uint32(pixelBuf))
-					} else {
-						return nil, bytesRead, fmt.Errorf("unsupported BitsAllocated value of: %d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
-					}
-				}
-				currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
-			}
+
+		buf := make([]byte, frameSize)
+		_, err := io.ReadFull(d, pixelBuf)
+		if err != nil {
+			return nil, bytesRead,
+				fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
 		}
+		currentFrame.NativeData.ByteData = buf
+
 		image.Frames[frameIdx] = currentFrame
 		if fc != nil {
 			fc <- &currentFrame // write the current frame to the frame channel

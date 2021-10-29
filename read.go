@@ -108,6 +108,14 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readDate(r, t, vr, vl)
 	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List, tag.VRTagList:
 		return readInt(r, t, vr, vl)
+	// We read Unknown VRs as SQ VRs by default. More details on why can be
+	// found at https://github.com/suyashkumar/dicom/issues/220. It remains
+	// to be seen if this fits most DICOMs we see in the wild.
+	case tag.VRUnknown:
+		if isImplicit && vl == tag.VLUndefinedLength {
+			return readSequence(r, t, vr, vl)
+		}
+		return readString(r, t, vr, vl)
 	case tag.VRSequence:
 		return readSequence(r, t, vr, vl)
 	case tag.VRItem:

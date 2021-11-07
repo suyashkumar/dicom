@@ -315,7 +315,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElement, err := readElement(r, nil, nil)
+			subElement, err := readElement(r, nil, nil, false)
 			if err != nil {
 				// Stop reading due to error
 				log.Println("error reading subitem, ", err)
@@ -342,7 +342,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, err
 			return nil, err
 		}
 		for !r.IsLimitExhausted() {
-			subElement, err := readElement(r, nil, nil)
+			subElement, err := readElement(r, nil, nil, false)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, err
@@ -368,7 +368,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElem, err := readElement(r, &seqElements, nil)
+			subElem, err := readElement(r, &seqElements, nil, false)
 			if err != nil {
 				return nil, err
 			}
@@ -386,7 +386,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 		}
 
 		for !r.IsLimitExhausted() {
-			subElem, err := readElement(r, &seqElements, nil)
+			subElem, err := readElement(r, &seqElements, nil, false)
 			if err != nil {
 				return nil, err
 			}
@@ -548,7 +548,7 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 // elements read so far, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.
-func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
+func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame, stopAtPixelDataValue bool) (*Element, error) {
 	t, err := readTag(r)
 	if err != nil {
 		return nil, err
@@ -573,6 +573,10 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 	}
 	debug.Logf("readElement: vl: %d", vl)
 
+	if stopAtPixelDataValue && *t == tag.PixelData {
+		return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: nil}, nil
+	}
+
 	val, err := readValue(r, *t, vr, vl, readImplicit, d, fc)
 	if err != nil {
 		log.Println("error reading value ", err)
@@ -580,7 +584,6 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 	}
 
 	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
-
 }
 
 // Read an Item object as raw bytes, useful when parsing encapsulated PixelData.

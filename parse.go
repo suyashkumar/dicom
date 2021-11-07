@@ -26,6 +26,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
 	"github.com/suyashkumar/dicom/pkg/debug"
@@ -95,12 +96,13 @@ func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
 // useful for some streaming processing applications. If you instead just want to parse the whole input DICOM at once,
 // just use the dicom.Parse(...) method.
 type Parser struct {
-	reader   dicomio.Reader
-	dataset  Dataset
-	metadata Dataset
+	reader          dicomio.Reader
+	dataset         Dataset
+	metadata        Dataset
 	// file is optional, might be populated if reading from an underlying file
 	file         *os.File
 	frameChannel chan *frame.Frame
+	stopAtPixelData bool
 }
 
 // NewParser returns a new Parser that points to the provided io.Reader, with bytesToRead bytes left to read. NewParser
@@ -118,6 +120,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	p := Parser{
 		reader:       reader,
 		frameChannel: frameChannel,
+		stopAtPixelData: optSet.stopAtPixelDataStart,
 	}
 
 	elems := []*Element{}
@@ -165,7 +168,7 @@ func (p *Parser) Next() (*Element, error) {
 		}
 		return nil, ErrorEndOfDICOM
 	}
-	elem, err := readElement(p.reader, &p.dataset, p.frameChannel)
+	elem, err := readElement(p.reader, &p.dataset, p.frameChannel, p.stopAtPixelData)
 	if err != nil {
 		// TODO: tolerate some kinds of errors and continue parsing
 		return nil, err
@@ -187,6 +190,64 @@ func (p *Parser) Next() (*Element, error) {
 	p.dataset.Elements = append(p.dataset.Elements, elem)
 	return elem, nil
 
+}
+
+// GetDataset returns just the set of metadata elements that have been parsed
+// so far.
+func (p *Parser) GetDataset() Dataset {
+	return p.dataset
+}
+
+func (p *Parser) GetPixelDataReader() (io.Reader, error) {
+	parsedData := p.dataset
+	nof, err := parsedData.FindElementByTag(tag.NumberOfFrames)
+	nFrames := 0
+	if err == nil {
+		// No error, so parse number of frames
+		nFrames, err = strconv.Atoi(MustGetStrings(nof.Value)[0]) // odd that number of frames is encoded as a string...
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// error fetching NumberOfFrames, so default to 1. TODO: revisit
+		nFrames = 1
+	}
+
+	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
+	rows, err := parsedData.FindElementByTag(tag.Rows)
+	if err != nil {
+		return nil, err
+	}
+
+	cols, err := parsedData.FindElementByTag(tag.Columns)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := parsedData.FindElementByTag(tag.BitsAllocated)
+	if err != nil {
+		return nil, err
+	}
+	bitsAllocated := MustGetInts(b.Value)[0]
+
+	s, err := parsedData.FindElementByTag(tag.SamplesPerPixel)
+	if err != nil {
+		return nil, err
+	}
+	samplesPerPixel := MustGetInts(s.Value)[0]
+
+	pixelsPerFrame := MustGetInts(rows.Value)[0] * MustGetInts(cols.Value)[0]
+
+	debug.Logf("readNativeFrames:\nRows: %d\nCols:%d\nFrames::%d\nBitsAlloc:%d\nSamplesPerPixel:%d", MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], nFrames, bitsAllocated, samplesPerPixel)
+
+	// Parse the pixels:
+	bytesAllocated := bitsAllocated / 8
+
+	frameSize := bytesAllocated * samplesPerPixel * pixelsPerFrame
+	var bytesTotal int64
+	bytesTotal = int64(frameSize) * int64(nFrames)
+
+	return io.LimitReader(p.reader, bytesTotal), nil
 }
 
 // GetMetadata returns just the set of metadata elements that have been parsed
@@ -221,7 +282,7 @@ func (p *Parser) readHeader() ([]*Element, error) {
 
 	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := readElement(p.reader, nil, nil)
+	maybeMetaLen, err := readElement(p.reader, nil, nil, p.stopAtPixelData)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +302,7 @@ func (p *Parser) readHeader() ([]*Element, error) {
 	}
 	defer p.reader.PopLimit()
 	for !p.reader.IsLimitExhausted() {
-		elem, err := readElement(p.reader, nil, nil)
+		elem, err := readElement(p.reader, nil, nil, p.stopAtPixelData)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
 			return nil, err
@@ -258,6 +319,7 @@ type ParseOption func(*parseOptSet)
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
 	skipMetadataReadOnNewParserInit bool
+	stopAtPixelDataStart            bool
 }
 
 func toParseOptSet(opts ...ParseOption) *parseOptSet {
@@ -273,5 +335,11 @@ func toParseOptSet(opts ...ParseOption) *parseOptSet {
 func SkipMetadataReadOnNewParserInit() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipMetadataReadOnNewParserInit = true
+	}
+}
+
+func StopAtPixelData() ParseOption {
+	return func(set *parseOptSet) {
+		set.stopAtPixelDataStart = true
 	}
 }

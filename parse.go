@@ -198,47 +198,41 @@ func (p *Parser) GetDataset() Dataset {
 	return p.dataset
 }
 
-func (p *Parser) GetPixelDataReader() (io.Reader, error) {
+func (p *Parser) GetPixelDataSize() (int64, error) {
 	parsedData := p.dataset
 	nof, err := parsedData.FindElementByTag(tag.NumberOfFrames)
-	nFrames := 0
-	if err == nil {
-		// No error, so parse number of frames
-		nFrames, err = strconv.Atoi(MustGetStrings(nof.Value)[0]) // odd that number of frames is encoded as a string...
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// error fetching NumberOfFrames, so default to 1. TODO: revisit
-		nFrames = 1
+	if err != nil {
+		return -1, err
+	}
+	nFrames, err := strconv.Atoi(MustGetStrings(nof.Value)[0]) // odd that number of frames is encoded as a string...
+	if err != nil {
+		return -1, err
 	}
 
 	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
 	rows, err := parsedData.FindElementByTag(tag.Rows)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 
 	cols, err := parsedData.FindElementByTag(tag.Columns)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 
 	b, err := parsedData.FindElementByTag(tag.BitsAllocated)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 	bitsAllocated := MustGetInts(b.Value)[0]
 
 	s, err := parsedData.FindElementByTag(tag.SamplesPerPixel)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 	samplesPerPixel := MustGetInts(s.Value)[0]
 
 	pixelsPerFrame := MustGetInts(rows.Value)[0] * MustGetInts(cols.Value)[0]
-
-	debug.Logf("readNativeFrames:\nRows: %d\nCols:%d\nFrames::%d\nBitsAlloc:%d\nSamplesPerPixel:%d", MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], nFrames, bitsAllocated, samplesPerPixel)
 
 	// Parse the pixels:
 	bytesAllocated := bitsAllocated / 8
@@ -247,6 +241,14 @@ func (p *Parser) GetPixelDataReader() (io.Reader, error) {
 	var bytesTotal int64
 	bytesTotal = int64(frameSize) * int64(nFrames)
 
+	return bytesTotal, nil
+}
+
+func (p *Parser) GetPixelDataReader() (io.Reader, error) {
+	bytesTotal, err := p.GetPixelDataSize()
+	if err != nil {
+		return nil, err
+	}
 	return io.LimitReader(p.reader, bytesTotal), nil
 }
 

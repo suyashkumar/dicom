@@ -31,6 +31,7 @@ var (
 const FrameBufferSize = 100
 
 func main() {
+	// test
 	flag.Parse()
 
 	if *version {

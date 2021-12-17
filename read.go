@@ -647,3 +647,14 @@ func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 	}
 	return data, false, nil
 }
+
+// tagNeededForFutureReads returns true if an element with the supplied tag
+// needs to be retained/used in order to parse other future elements that may
+// be encountered in a DICOM.
+func tagNeededForFutureReads(t tag.Tag) bool {
+	// Tags with the image pixel group are needed to process PixelData.
+	if t.Group == 0x0028 {
+		return true
+	}
+	return false
+}

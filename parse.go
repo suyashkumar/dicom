@@ -60,18 +60,22 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Datase
 		return Dataset{}, err
 	}
 
+	var dataset Dataset
+	dataset.Elements = make([]*Element, len(p.metadata.Elements))
+	copy(dataset.Elements, p.metadata.Elements)
 	for !p.reader.IsLimitExhausted() {
-		_, err := p.Next()
+		elem, err := p.Next()
 		if err != nil {
-			return p.dataset, err
+			return dataset, err
 		}
+		dataset.Elements = append(dataset.Elements, elem)
 	}
 
 	// Close the frameChannel if needed
 	if p.frameChannel != nil {
 		close(p.frameChannel)
 	}
-	return p.dataset, nil
+	return dataset, nil
 }
 
 // ParseFile parses the entire DICOM at the given filepath. See dicom.Parse as
@@ -184,7 +188,9 @@ func (p *Parser) Next() (*Element, error) {
 		p.reader.SetCodingSystem(cs)
 	}
 
-	p.dataset.Elements = append(p.dataset.Elements, elem)
+	if tagNeededForFutureReads(elem.Tag) {
+		p.dataset.Elements = append(p.dataset.Elements, elem)
+	}
 	return elem, nil
 
 }

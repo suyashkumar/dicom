@@ -37,8 +37,8 @@ release:
 	zip -r ${BINARY}-windows-amd64.exe.zip ${BINARY}-windows-amd64.exe;
 
 bench-diff:
-	go test -bench . -count 5 > bench_current.txt
+	go test -bench . -benchmem -count 5 > bench_current.txt
 	git checkout main
-	go test -bench . -count 5 > bench_main.txt
+	go test -bench . -benchmem -count 5 > bench_main.txt
 	benchstat bench_main.txt bench_current.txt
 	git checkout -

@@ -58,8 +58,18 @@ func TestWrite(t *testing.T) {
 						value: []string{"1234"},
 					},
 				},
+				{
+					Tag:                    tag.Tag{0x0019, 0x1027},
+					ValueRepresentation:    tag.VRInt32List,
+					RawValueRepresentation: "SL",
+					ValueLength:            4,
+					Value: &intsValue{
+						value: []int{100},
+					},
+				},
 			}},
 			expectedError: nil,
+			opts:          []WriteOption{SkipValueTypeVerification(), SkipVRVerification()},
 		},
 		{
 			name: "private tag",

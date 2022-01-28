@@ -3,6 +3,7 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -47,6 +48,16 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 				mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+				mustNewElement(tag.SelectorSLValue, []int{-20}),
+				{
+					Tag:                    tag.Tag{0x0019, 0x1026},
+					ValueRepresentation:    tag.VRStringList,
+					RawValueRepresentation: "UN",
+					ValueLength:            4,
+					Value: &stringsValue{
+						value: []string{"1234"},
+					},
+				},
 			}},
 			expectedError: nil,
 		},
@@ -467,6 +478,8 @@ func TestWrite(t *testing.T) {
 					cmpopts.SortSlices(func(x, y *Element) bool { return x.Tag.Compare(y.Tag) == 1 }),
 				}
 				cmpOpts = append(cmpOpts, tc.cmpOpts...)
+
+				fmt.Println(readDS.Elements)
 
 				if diff := cmp.Diff(
 					wantElems,

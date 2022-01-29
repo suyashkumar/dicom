@@ -168,9 +168,16 @@ func TestReadOWBytes(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name:        "even-number bytes",
+			name:        "OW VR with even-number bytes",
 			bytes:       []byte{0x1, 0x2, 0x3, 0x4},
 			VR:          vrraw.OtherWord,
+			want:        &bytesValue{value: []byte{0x1, 0x2, 0x3, 0x4}},
+			expectedErr: nil,
+		},
+		{
+			name:        "UN VR even-number bytes",
+			bytes:       []byte{0x1, 0x2, 0x3, 0x4},
+			VR:          vrraw.Unknown,
 			want:        &bytesValue{value: []byte{0x1, 0x2, 0x3, 0x4}},
 			expectedErr: nil,
 		},

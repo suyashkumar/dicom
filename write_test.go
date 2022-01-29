@@ -47,6 +47,17 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 				mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+				mustNewElement(tag.SelectorSLValue, []int{-20}),
+				// Some tag with an unknown VR.
+				{
+					Tag:                    tag.Tag{0x0019, 0x1027},
+					ValueRepresentation:    tag.VRBytes,
+					RawValueRepresentation: "UN",
+					ValueLength:            4,
+					Value: &bytesValue{
+						value: []byte{0x1, 0x2, 0x3, 0x4},
+					},
+				},
 			}},
 			expectedError: nil,
 		},

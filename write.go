@@ -313,7 +313,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		ok = valueType == Sequences
 	case "NA":
 		ok = valueType == SequenceItem
-	case vrraw.OtherWord, vrraw.OtherByte:
+	case vrraw.OtherWord, vrraw.OtherByte, vrraw.Unknown:
 		if t == tag.PixelData {
 			ok = valueType == PixelData
 		} else {
@@ -488,7 +488,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
 	switch vr {
-	case vrraw.OtherWord:
+	case vrraw.OtherWord, vrraw.Unknown:
 		err = writeOtherWordString(w, values)
 	case vrraw.OtherByte:
 		err = writeOtherByteString(w, values)

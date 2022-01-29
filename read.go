@@ -166,7 +166,7 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 		return nil, errors.New("the Dataset context cannot be nil in order to read Native PixelData")
 	}
 
-	i, _, err := readNativeFrames(r, d, fc)
+	i, _, err := readNativeFrames(r, d, fc, vl)
 
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func fillBufferSingleBitAllocated(pixelData []int, d dicomio.Reader, bo binary.B
 
 // readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
-func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Frame) (pixelData *PixelDataInfo,
+func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Frame, vl uint32) (pixelData *PixelDataInfo,
 	bytesRead int, err error) {
 	image := PixelDataInfo{
 		IsEncapsulated: false,
@@ -323,7 +323,17 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	}
 
 	bytesRead = bytesAllocated * samplesPerPixel * pixelsPerFrame * nFrames
-
+	if uint32(bytesRead) == vl-1 {
+		if vl%2 != 0 {
+			// this error should never happen if the file conforms to the DICOM spec
+			return nil, bytesRead, fmt.Errorf("odd number of bytes specified for PixelData violates DICOM spec: %d", vl)
+		}
+		err := d.Skip(1)
+		if err != nil {
+			return nil, bytesRead, fmt.Errorf("could not read padding byte: %w", err)
+		}
+		bytesRead++
+	}
 	return &image, bytesRead, nil
 }
 

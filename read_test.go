@@ -380,9 +380,138 @@ func TestReadNativeFrames(t *testing.T) {
 				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
 			}
 
-			pixelData, _, err := readNativeFrames(r, &tc.existingData, nil)
+			pixelData, _, err := readNativeFrames(r, &tc.existingData, nil, uint32(dcmdata.Len()))
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
+			}
+
+			if diff := cmp.Diff(tc.expectedPixelData, pixelData); diff != "" {
+				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.data, diff)
+			}
+		})
+	}
+}
+
+func TestReadNativeFrames_BytePixels(t *testing.T) {
+	cases := []struct {
+		Name              string
+		existingData      Dataset
+		data              []byte
+		expectedPixelData *PixelDataInfo
+		expectedError     error
+	}{
+		{
+			Name: "3x3, 3 frames, 1 samples/pixel",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{3}),
+				mustNewElement(tag.Columns, []int{3}),
+				mustNewElement(tag.NumberOfFrames, []string{"3"}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			data: []byte{11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 0}, // there is a 28th byte to make total value length even, as required by DICOM spec
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          3,
+							Cols:          3,
+							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						},
+					},
+
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          3,
+							Cols:          3,
+							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						},
+					},
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          3,
+							Cols:          3,
+							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						},
+					},
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			Name: "1x1, 3 frames, 3 samples/pixel",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{1}),
+				mustNewElement(tag.Columns, []int{1}),
+				mustNewElement(tag.NumberOfFrames, []string{"3"}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.SamplesPerPixel, []int{3}),
+			}},
+			data: []byte{1, 2, 3, 1, 2, 3, 1, 2, 3, 0}, // 10th byte to make total value length even
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          1,
+							Cols:          1,
+							Data:          [][]int{{1, 2, 3}},
+						},
+					},
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          1,
+							Cols:          1,
+							Data:          [][]int{{1, 2, 3}},
+						},
+					},
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          1,
+							Cols:          1,
+							Data:          [][]int{{1, 2, 3}},
+						},
+					},
+				},
+			},
+			expectedError: nil,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			dcmdata := bytes.Buffer{}
+			for _, item := range tc.data {
+				if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
+					t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
+				}
+			}
+			expectedBytes := dcmdata.Len()
+
+			r, err := dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len()))
+			if err != nil {
+				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
+			}
+
+			pixelData, bytesRead, err := readNativeFrames(r, &tc.existingData, nil, uint32(dcmdata.Len()))
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
+			}
+			if bytesRead != expectedBytes {
+				t.Errorf("TestReadNativeFrames(%v): did not read expected number of bytes. got: %d, want: %d", tc.data, bytesRead, expectedBytes)
 			}
 
 			if diff := cmp.Diff(tc.expectedPixelData, pixelData); diff != "" {
@@ -475,7 +604,7 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
 			}
 
-			pixelData, _, err := readNativeFrames(r, &tc.existingData, nil)
+			pixelData, _, err := readNativeFrames(r, &tc.existingData, nil, uint32(dcmdata.Len()))
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
 			}
@@ -529,7 +658,7 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 			dataset, r := buildReadNativeFramesInput(c.Rows, c.Cols, c.NumFrames, c.SamplesPerPixel, b)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _, _ = readNativeFrames(r, dataset, nil)
+				_, _, _ = readNativeFrames(r, dataset, nil, uint32(c.Rows*c.Cols*c.NumFrames))
 			}
 		})
 	}

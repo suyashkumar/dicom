@@ -210,7 +210,6 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 }
 
 func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
-	fmt.Println("WRITE ELEMENT ", elem.Tag)
 	vr := elem.RawValueRepresentation
 	var err error
 	vr, err = verifyVROrDefault(elem.Tag, elem.RawValueRepresentation, opts)
@@ -221,12 +220,9 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	if !opts.skipValueTypeVerification && elem.Value != nil {
 		err := verifyValueType(elem.Tag, elem.Value, vr)
 		if err != nil {
-			fmt.Println("return")
 			return err
 		}
 	}
-
-	fmt.Println("after verify")
 
 	length := elem.ValueLength
 	var valueData = &bytes.Buffer{}
@@ -317,7 +313,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		ok = valueType == Sequences
 	case "NA":
 		ok = valueType == SequenceItem
-	case vrraw.OtherWord, vrraw.OtherByte:
+	case vrraw.OtherWord, vrraw.OtherByte, vrraw.Unknown:
 		if t == tag.PixelData {
 			ok = valueType == PixelData
 		} else {
@@ -327,7 +323,6 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		ok = valueType == Floats
 	default:
 		ok = valueType == Strings
-		fmt.Println(valueType)
 	}
 
 	if !ok {
@@ -462,7 +457,6 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 }
 
 func writeStrings(w dicomio.Writer, values []string, vr string) error {
-	fmt.Println("WRITE STR ", values)
 	s := ""
 	for i, substr := range values {
 		if i > 0 {
@@ -494,7 +488,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
 	switch vr {
-	case vrraw.OtherWord:
+	case vrraw.OtherWord, vrraw.Unknown:
 		err = writeOtherWordString(w, values)
 	case vrraw.OtherByte:
 		err = writeOtherByteString(w, values)
@@ -516,7 +510,6 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 				return err
 			}
 		case vrraw.UnsignedLong, vrraw.SignedLong:
-			fmt.Println("WRITE: ", value)
 			if err := w.WriteUInt32(uint32(value)); err != nil {
 				return err
 			}

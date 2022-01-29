@@ -422,7 +422,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 
 func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add special handling of PixelData
-	if vr == vrraw.OtherByte {
+	if vr == vrraw.OtherByte || vr == vrraw.Unknown {
 		data := make([]byte, vl)
 		_, err := io.ReadFull(r, data)
 		return &bytesValue{value: data}, err
@@ -466,7 +466,6 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 
 	// Split multiple strings
 	strs := strings.Split(str, "\\")
-
 	return &stringsValue{value: strs}, err
 }
 

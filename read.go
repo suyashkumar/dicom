@@ -323,7 +323,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	}
 
 	bytesRead = bytesAllocated * samplesPerPixel * pixelsPerFrame * nFrames
-	if uint32(bytesRead) == vl-1 {
+	if vl > 0 && uint32(bytesRead) == vl-1 {
 		if vl%2 != 0 {
 			// this error should never happen if the file conforms to the DICOM spec
 			return nil, bytesRead, fmt.Errorf("odd number of bytes specified for PixelData violates DICOM spec: %d", vl)

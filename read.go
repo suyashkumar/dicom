@@ -30,6 +30,7 @@ var (
 	// dataset returned is still valid.
 	ErrorUnsupportedBitsAllocated = errors.New("unsupported BitsAllocated")
 	errorUnableToParseFloat       = errors.New("unable to parse float type")
+	ErrorDoesNotConformToDICOM    = errors.New("field length is not even, in violation of DICOM spec")
 )
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {
@@ -326,7 +327,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	if vl > 0 && uint32(bytesRead) == vl-1 {
 		if vl%2 != 0 {
 			// this error should never happen if the file conforms to the DICOM spec
-			return nil, bytesRead, fmt.Errorf("odd number of bytes specified for PixelData violates DICOM spec: %d", vl)
+			return nil, bytesRead, fmt.Errorf("odd number of bytes specified for PixelData violates DICOM spec: %d : %w", vl, ErrorDoesNotConformToDICOM)
 		}
 		err := d.Skip(1)
 		if err != nil {

@@ -114,6 +114,9 @@ const (
 	VRDate
 	// VRPixelData means the element stores a PixelDataInfo
 	VRPixelData
+	// VRUnknown means the VR of the element is unknown (possibly a private
+	// element seen while reading DICOMs in implicit transfer syntax).
+	VRUnknown
 )
 
 // GetVRKind returns the golang value encoding of an element with <tag, vr>.
@@ -128,7 +131,7 @@ func GetVRKind(tag Tag, vr string) VRKind {
 		return VRDate
 	case "AT":
 		return VRTagList
-	case "OW", "OB", "UN":
+	case "OW", "OB":
 		return VRBytes
 	case "LT", "UT":
 		return VRString
@@ -146,6 +149,8 @@ func GetVRKind(tag Tag, vr string) VRKind {
 		return VRFloat64List
 	case "SQ":
 		return VRSequence
+	case "UN":
+		return VRUnknown
 	default:
 		return VRStringList
 	}

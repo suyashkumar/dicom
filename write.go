@@ -313,7 +313,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		ok = valueType == Sequences
 	case "NA":
 		ok = valueType == SequenceItem
-	case vrraw.OtherWord, vrraw.OtherByte, vrraw.Unknown:
+	case vrraw.OtherWord, vrraw.OtherByte:
 		if t == tag.PixelData {
 			ok = valueType == PixelData
 		} else {
@@ -321,6 +321,8 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		}
 	case vrraw.FloatingPointSingle, vrraw.FloatingPointDouble:
 		ok = valueType == Floats
+	case vrraw.Unknown:
+		ok = (valueType == Bytes || valueType == Sequences)
 	default:
 		ok = valueType == Strings
 	}

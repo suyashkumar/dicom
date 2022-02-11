@@ -30,7 +30,7 @@ var (
 	// dataset returned is still valid.
 	ErrorUnsupportedBitsAllocated = errors.New("unsupported BitsAllocated")
 	errorUnableToParseFloat       = errors.New("unable to parse float type")
-	ErrorDoesNotConformToDICOM    = errors.New("field length is not even, in violation of DICOM spec")
+	ErrorExpectedEvenLength    = errors.New("field length is not even, in violation of DICOM spec")
 )
 
 func readTag(r dicomio.Reader) (*tag.Tag, error) {

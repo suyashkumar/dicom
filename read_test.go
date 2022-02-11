@@ -221,7 +221,7 @@ func TestReadNativeFrames(t *testing.T) {
 		dataBytes         []byte
 		expectedPixelData *PixelDataInfo
 		expectedError     error
-		pixelLength       uint32
+		pixelVLOverride   uint32
 	}{
 		{
 			Name: "5x5, 1 frame, 1 samples/pixel",
@@ -466,7 +466,7 @@ func TestReadNativeFrames(t *testing.T) {
 			}},
 			dataBytes:         []byte{1, 2, 3, 1, 2, 3},
 			expectedPixelData: nil,
-			pixelLength:       7,
+			pixelVLOverride:   7,
 			expectedError:     ErrorExpectedEvenLength,
 		},
 	}
@@ -500,8 +500,8 @@ func TestReadNativeFrames(t *testing.T) {
 			}
 
 			var vl uint32
-			if tc.pixelLength > 0 {
-				vl = tc.pixelLength
+			if tc.pixelVLOverride > 0 {
+				vl = tc.pixelVLOverride
 			} else {
 				vl = uint32(dcmdata.Len())
 			}

@@ -478,7 +478,6 @@ func TestReadNativeFrames(t *testing.T) {
 
 			if len(tc.data) == 0 {
 				// writing byte-by-bte
-
 				expectedBytes = len(tc.dataBytes)
 				for _, item := range tc.dataBytes {
 					if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {

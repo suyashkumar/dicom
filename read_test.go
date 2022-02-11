@@ -412,7 +412,7 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			Name: "1x1, 3 frames, 3 samples/pixel",
+			Name: "1x1, 3 frames, 3 samples/pixel, data bytes with padded 0",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{1}),
 				mustNewElement(tag.Columns, []int{1}),

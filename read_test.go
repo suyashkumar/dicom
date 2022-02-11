@@ -467,7 +467,7 @@ func TestReadNativeFrames(t *testing.T) {
 			dataBytes:         []byte{1, 2, 3, 1, 2, 3},
 			expectedPixelData: nil,
 			pixelLength:       7,
-			expectedError:     ErrorDoesNotConformToDICOM,
+			expectedError:     ErrorExpectedEvenLength,
 		},
 	}
 

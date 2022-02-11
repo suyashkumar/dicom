@@ -131,7 +131,7 @@ func GetVRKind(tag Tag, vr string) VRKind {
 		return VRDate
 	case "AT":
 		return VRTagList
-	case "OW", "OB", "UN":
+	case "OW", "OB":
 		return VRBytes
 	case "LT", "UT":
 		return VRString

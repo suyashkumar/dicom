@@ -108,17 +108,6 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readDate(r, t, vr, vl)
 	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List, tag.VRTagList:
 		return readInt(r, t, vr, vl)
-	// We read Unknown VRs as SQ VRs by default. More details on why can be
-	// found at https://github.com/suyashkumar/dicom/issues/220. It remains
-	// to be seen if this fits most DICOMs we see in the wild.
-	// TODO(suyashkumar): consider replacing UN VRs with SQ earlier on if they
-	// meet this criteria, so users of the Dataset can interact with it
-	// correctly.
-	case tag.VRUnknown:
-		if isImplicit && vl == tag.VLUndefinedLength {
-			return readSequence(r, t, vr, vl)
-		}
-		return readString(r, t, vr, vl)
 	case tag.VRSequence:
 		return readSequence(r, t, vr, vl)
 	case tag.VRItem:
@@ -127,6 +116,19 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readPixelData(r, t, vr, vl, d, fc)
 	case tag.VRFloat32List, tag.VRFloat64List:
 		return readFloat(r, t, vr, vl)
+	// More details on how we treat Unknown VRs can be found at
+	// https://github.com/suyashkumar/dicom/issues/220
+	// and
+	// https://github.com/suyashkumar/dicom/issues/231.
+	// It remains to be seen if this fits most DICOMs we see in the wild.
+	// TODO(suyashkumar): consider replacing UN VRs with SQ earlier on if they
+	// meet this criteria, so users of the Dataset can interact with it
+	// correctly.
+	case tag.VRUnknown:
+		if isImplicit && vl == tag.VLUndefinedLength {
+			return readSequence(r, t, vr, vl)
+		}
+		return readBytes(r, t, vr, vl)
 	default:
 		return readString(r, t, vr, vl)
 	}

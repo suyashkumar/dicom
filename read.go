@@ -574,6 +574,11 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 	}
 	debug.Logf("readElement: tag: %s", t.String())
 
+	if *t == tag.ItemDelimitationItem || *t == tag.SequenceDelimitationItem {
+		_ = r.Skip(4)
+		return &Element{Tag: *t}, nil
+	}
+
 	readImplicit := r.IsImplicit()
 	if *t == tag.Item {
 		// Always read implicit for item elements

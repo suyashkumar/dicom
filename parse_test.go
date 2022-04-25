@@ -138,3 +138,8 @@ func Example_getImageFrames() {
 		_ = f.Close()
 	}
 }
+
+func TestULSQ(t *testing.T) {
+	dataset, _ := dicom.ParseFile("testdata/CT000004.dcm", nil)
+	fmt.Println(dataset)
+}

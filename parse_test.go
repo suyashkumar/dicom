@@ -139,7 +139,9 @@ func Example_getImageFrames() {
 	}
 }
 
-func TestULSQ(t *testing.T) {
-	dataset, _ := dicom.ParseFile("testdata/CT000004.dcm", nil)
-	fmt.Println(dataset)
+func TestParseFileWithULSQ(t *testing.T) {
+	dataset, _ := dicom.ParseFile("testdata/6.dcm", nil)
+	if len(dataset.Elements) < 9 || dataset.Elements[8] == nil {
+		t.Errorf("cannot parse dicom file with ULSQ")
+	}
 }

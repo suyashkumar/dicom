@@ -135,6 +135,9 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 		}
 
 		for !r.IsLimitExhausted() {
+			// If the reader has the SkipPixelData option enabled, data will be
+			// an empty byte array. This means the returned pixelDataValue will
+			// have an image with empty frame data.
 			data, endOfItems, err := readRawItem(r)
 			if err != nil {
 				break
@@ -164,6 +167,20 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 	// We need Elements that have been already parsed (rows, cols, etc) to parse frames out of NativeData Pixel data
 	if d == nil {
 		return nil, errors.New("the Dataset context cannot be nil in order to read Native PixelData")
+	}
+
+	if r.SkipPixelData() {
+		r.Skip(int64(vl))
+		return &pixelDataValue{
+			PixelDataInfo: PixelDataInfo{
+				Frames: []frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData:   frame.NativeFrame{},
+					},
+				},
+			},
+		}, nil
 	}
 
 	i, _, err := readNativeFrames(r, d, fc)
@@ -636,6 +653,13 @@ func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 	}
 	if vr != "NA" {
 		return nil, true, fmt.Errorf("readRawItem: expected VR=NA, got VR=%s", vr)
+	}
+
+	// If the SkipPixelData option is set in the reader, tell the reader to
+	// skip the value length of bytes and return before creating the data buffer.
+	if *t == tag.PixelData && r.SkipPixelData() {
+		r.Skip(int64(vl))
+		return nil, false, nil
 	}
 
 	data := make([]byte, vl)

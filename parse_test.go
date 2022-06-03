@@ -69,6 +69,78 @@ func TestNewParserSkipMetadataReadOnNewParserInit(t *testing.T) {
 	}
 }
 
+// TestNewParserSkipPixelData tests that NewParser with the SkipPixelData option
+// parses the specified dataset but not its pixel data.
+func TestNewParserSkipPixelData(t *testing.T) {
+	for _, num := range []int{1, 2, 3, 4, 5} {
+		f := fmt.Sprintf("./testdata/%d.dcm", num)
+		ds, err := dicom.ParseFile(f, nil, dicom.SkipPixelData())
+		if err != nil {
+			t.Fatalf("dicom.Parse(%s) unexpected error: %v", f, err)
+		}
+
+		el, err := ds.FindElementByTag(tag.PixelData)
+		if err != nil {
+			t.Fatalf("dataset.FindElementByTag(%s) unexpected error: %v", tag.PixelData, err)
+		}
+
+		info, ok := el.Value.GetValue().(dicom.PixelDataInfo)
+		if !ok {
+			t.Fatalf("element.Value.GetValue() pixel data tag returns wrong value type: %T", el.Value.GetValue())
+		}
+		if len(info.Frames) == 0 {
+			t.Fatalf("unexpected error: pixel data value has zero frames")
+		}
+		for i, frame := range info.Frames {
+			if frame.Encapsulated {
+				if len(frame.EncapsulatedData.Data) > 0 {
+					t.Fatalf("frame %d encapsulated data is longer than zero bytes with SkipPixelData option enabled", i+1)
+				}
+			} else {
+				if len(frame.NativeData.Data) > 0 {
+					t.Fatalf("frame %d native data is longer than zero bytes with SkipPixelData option enabled", i+1)
+				}
+			}
+		}
+	}
+}
+
+// TestNewParserPixelData tests that NewParser with no options parses the
+// specified dataset including its pixel data.
+func TestNewParserPixelData(t *testing.T) {
+	for _, num := range []int{1, 2, 3, 4, 5} {
+		f := fmt.Sprintf("./testdata/%d.dcm", num)
+		ds, err := dicom.ParseFile(f, nil)
+		if err != nil {
+			t.Fatalf("dicom.Parse(%s) unexpected error: %v", f, err)
+		}
+
+		el, err := ds.FindElementByTag(tag.PixelData)
+		if err != nil {
+			t.Fatalf("dataset.FindElementByTag(%s) unexpected error: %v", tag.PixelData, err)
+		}
+
+		info, ok := el.Value.GetValue().(dicom.PixelDataInfo)
+		if !ok {
+			t.Fatalf("element.Value.GetValue() pixel data tag returns wrong value type: %T", el.Value.GetValue())
+		}
+		if len(info.Frames) == 0 {
+			t.Fatalf("unexpected error: pixel data value has zero frames")
+		}
+		for i, frame := range info.Frames {
+			if frame.Encapsulated {
+				if len(frame.EncapsulatedData.Data) == 0 {
+					t.Fatalf("frame %d encapsulated data is empty with no options enabled", i+1)
+				}
+			} else {
+				if len(frame.NativeData.Data) == 0 {
+					t.Fatalf("frame %d native data is empty with no options enabled", i+1)
+				}
+			}
+		}
+	}
+}
+
 // BenchmarkParse runs sanity benchmarks over the sample files in testdata.
 func BenchmarkParse(b *testing.B) {
 	files, err := ioutil.ReadDir("./testdata")

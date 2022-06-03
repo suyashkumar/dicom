@@ -54,8 +54,8 @@ var (
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
 // looking to parse the DICOM all at once, instead of element-by-element.
-func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Dataset, error) {
-	p, err := NewParser(in, bytesToRead, frameChan)
+func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+	p, err := NewParser(in, bytesToRead, frameChan, opts...)
 	if err != nil {
 		return Dataset{}, err
 	}
@@ -76,7 +76,7 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Datase
 
 // ParseFile parses the entire DICOM at the given filepath. See dicom.Parse as
 // well for a more generic io.Reader based API.
-func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
+func ParseFile(filepath string, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
 	f, err := os.Open(filepath)
 	if err != nil {
 		return Dataset{}, err
@@ -88,7 +88,7 @@ func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
 		return Dataset{}, err
 	}
 
-	return Parse(f, info.Size(), frameChan)
+	return Parse(f, info.Size(), frameChan, opts...)
 }
 
 // Parser is a struct that allows a user to parse Elements from a DICOM element-by-element using Next(), which may be
@@ -114,6 +114,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	if err != nil {
 		return nil, err
 	}
+	reader.SetSkipPixelData(optSet.skipPixelData)
 
 	p := Parser{
 		reader:       reader,
@@ -258,6 +259,7 @@ type ParseOption func(*parseOptSet)
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
 	skipMetadataReadOnNewParserInit bool
+	skipPixelData                   bool
 }
 
 func toParseOptSet(opts ...ParseOption) *parseOptSet {
@@ -273,5 +275,11 @@ func toParseOptSet(opts ...ParseOption) *parseOptSet {
 func SkipMetadataReadOnNewParserInit() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipMetadataReadOnNewParserInit = true
+	}
+}
+
+func SkipPixelData() ParseOption {
+	return func(set *parseOptSet) {
+		set.skipPixelData = true
 	}
 }

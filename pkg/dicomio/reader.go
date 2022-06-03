@@ -67,7 +67,12 @@ type Reader interface {
 	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString
 	// is called.
 	SetCodingSystem(cs charset.CodingSystem)
+	// ByteOrder returns the byte order of the reader (endianness)
 	ByteOrder() binary.ByteOrder
+	// SkipPixelData returns whether or not the reader will skip pixel data
+	SkipPixelData() bool
+	// SetSkipPixelData sets whether or not the reader will skip pixel data
+	SetSkipPixelData(bool)
 }
 
 type reader struct {
@@ -80,7 +85,8 @@ type reader struct {
 	// cs represents the CodingSystem to use when reading the string. If a
 	// particular encoding.Decoder within this CodingSystem is nil, assume
 	// ASCII.
-	cs charset.CodingSystem
+	cs            charset.CodingSystem
+	skipPixelData bool
 }
 
 // NewReader creates and returns a new dicomio.Reader.
@@ -238,4 +244,12 @@ func (r *reader) Peek(n int) ([]byte, error) {
 
 func (r *reader) ByteOrder() binary.ByteOrder {
 	return r.bo
+}
+
+func (r *reader) SkipPixelData() bool {
+	return r.skipPixelData
+}
+
+func (r *reader) SetSkipPixelData(skip bool) {
+	r.skipPixelData = skip
 }

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"io"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -16,6 +15,7 @@ import (
 	"github.com/suyashkumar/dicom/pkg/frame"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
@@ -339,7 +339,43 @@ func TestReadNativeFrames(t *testing.T) {
 			}},
 			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
 			expectedPixelData: nil,
-			expectedError:     io.ErrUnexpectedEOF,
+			expectedError:     ErrorMismatchPixelDataLength,
+		},
+		{
+			Name: "redundant bytes, uint32",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{32}),
+				mustNewElement(tag.SamplesPerPixel, []int{2}),
+			}},
+			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			expectedPixelData: nil,
+			expectedError:     ErrorMismatchPixelDataLength,
+		},
+		{
+			Name: "redundant bytes, uint32 with allowing mismatch length",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{32}),
+				mustNewElement(tag.SamplesPerPixel, []int{2}),
+			}, opts: parseOptSet{allowMismatchPixelDataLength: true}},
+			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: true,
+				Frames: []frame.Frame{
+					{
+						Encapsulated: true,
+						EncapsulatedData: frame.EncapsulatedFrame{
+							Data: []byte{1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 2, 0},
+						},
+					},
+				},
+			},
+			expectedError: nil,
 		},
 		{
 			Name: "missing Columns",
@@ -359,15 +395,15 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.Rows, []int{5}),
 				mustNewElement(tag.Columns, []int{2}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
-				mustNewElement(tag.BitsAllocated, []int{2}),
+				mustNewElement(tag.BitsAllocated, []int{24}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
-			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorUnsupportedBitsAllocated,
 		},
 		{
-			Name: "3x3, 3 frames, 1 samples/pixel, data bytes with padded 0",
+			Name: "3x3, 3 framesples/pixel, data bytes with padded 0",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{3}),
 				mustNewElement(tag.Columns, []int{3}),

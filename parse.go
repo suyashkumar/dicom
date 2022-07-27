@@ -50,6 +50,9 @@ var (
 	// has been fully parsed. Users using one of the other Parse APIs should not
 	// need to use this.
 	ErrorEndOfDICOM = errors.New("this indicates to the caller of Next() that the DICOM has been fully parsed")
+
+	// ErrorMismatchPixelDataLength indicates that the size calulated from DICOM mismatch the VL.
+	ErrorMismatchPixelDataLength = errors.New("the size calculated from DICOM elements and VL are mismatch")
 )
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
@@ -60,6 +63,28 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Datase
 		return Dataset{}, err
 	}
 
+	for !p.reader.IsLimitExhausted() {
+		_, err := p.Next()
+		if err != nil {
+			return p.dataset, err
+		}
+	}
+
+	// Close the frameChannel if needed
+	if p.frameChannel != nil {
+		close(p.frameChannel)
+	}
+	return p.dataset, nil
+}
+
+// ParseWithOption parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements.
+// Allow user to use it with option.
+func ParseWithOption(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+	p, err := NewParser(in, bytesToRead, frameChan, opts...)
+	if err != nil {
+		return Dataset{}, err
+	}
+	
 	for !p.reader.IsLimitExhausted() {
 		_, err := p.Next()
 		if err != nil {
@@ -131,7 +156,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 		debug.Log("NewParser: readHeader complete")
 	}
 
-	p.dataset = Dataset{Elements: elems}
+	p.dataset = Dataset{Elements: elems, opts: optSet}
 	// TODO(suyashkumar): avoid storing the metadata pointers twice (though not that expensive)
 	p.metadata = Dataset{Elements: elems}
 
@@ -258,14 +283,22 @@ type ParseOption func(*parseOptSet)
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
 	skipMetadataReadOnNewParserInit bool
+	allowMismatchPixelDataLength    bool
 }
 
-func toParseOptSet(opts ...ParseOption) *parseOptSet {
-	optSet := &parseOptSet{}
+func toParseOptSet(opts ...ParseOption) parseOptSet {
+	optSet := parseOptSet{}
 	for _, opt := range opts {
-		opt(optSet)
+		opt(&optSet)
 	}
 	return optSet
+}
+
+// AllowMismatchPixelDataLength allow parser not returning an error when the length calculated from elements do not match with value length
+func AllowMismatchPixelDataLength() ParseOption {
+	return func(set *parseOptSet) {
+		set.allowMismatchPixelDataLength = true
+	}
 }
 
 // SkipMetadataReadOnNewParserInit makes NewParser skip trying to parse metadata. This will make the Parser default to implicit little endian byte order.

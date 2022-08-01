@@ -9,6 +9,6 @@ require (
 )
 
 require (
-	golang.org/x/perf v0.0.0-20220411212318-84e58bfe0a7e // indirect
+	golang.org/x/perf v0.0.0-20220722155240-3d85ee92886d // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 )

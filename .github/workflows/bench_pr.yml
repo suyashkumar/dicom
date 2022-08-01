@@ -21,7 +21,6 @@ jobs:
   
     - name: Benchmark against GITHUB_BASE_REF
       run: |
-       export PATH=$PATH:$GOBIN
        go get golang.org/x/perf/cmd/benchstat
        echo "New Commit:"
        git log -1 --format="%H"

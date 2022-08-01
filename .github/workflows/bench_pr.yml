@@ -4,8 +4,9 @@ jobs:
   build:
     name: Benchmark (PR)
     runs-on: ubuntu-latest
+    env:
+      GOBIN: /home/runner/go
     steps:
-
     - name: Set up Go 1.18
       uses: actions/setup-go@v3
       with:
@@ -30,5 +31,5 @@ jobs:
        echo "Base Commit:"
        git log -1 --format="%H"
        go test -bench=. -benchtime=.75s -count=8 > $HOME/old.txt
-       benchstat $HOME/old.txt $HOME/new.txt
+       $GOBIN/benchstat $HOME/old.txt $HOME/new.txt
        

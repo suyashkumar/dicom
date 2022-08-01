@@ -4,6 +4,8 @@ jobs:
   build:
     name: Benchmark (push)
     runs-on: ubuntu-latest
+    env:
+      GOBIN: /home/runner/go
     steps:
     - name: Set up Go 1.18
       uses: actions/setup-go@v3

@@ -31,5 +31,5 @@ jobs:
        echo "Base Commit:"
        git log -1 --format="%H"
        go test -bench=. -benchtime=.75s -count=8 > $HOME/old.txt
-       $GOBIN/benchstat $HOME/old.txt $HOME/new.txt
+       benchstat $HOME/old.txt $HOME/new.txt
        

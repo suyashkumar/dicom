@@ -365,10 +365,10 @@ func TestReadNativeFrames(t *testing.T) {
 			}, opts: parseOptSet{allowMismatchPixelDataLength: true}},
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
-				IsEncapsulated: true,
+				IsVLMismatch: true,
 				Frames: []frame.Frame{
 					{
-						Encapsulated: true,
+						VLMismatch: true,
 						EncapsulatedData: frame.EncapsulatedFrame{
 							Data: []byte{1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 2, 0},
 						},

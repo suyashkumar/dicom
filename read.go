@@ -289,7 +289,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		}
 
 		f := frame.Frame{
-			Encapsulated: true,
+			VLMismatch: true,
 			EncapsulatedData: frame.EncapsulatedFrame{
 				Data: data,
 			},
@@ -299,7 +299,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 			fc <- &f
 		}
 		image := PixelDataInfo{
-			IsEncapsulated: true,
+			IsVLMismatch: true,
 		}
 		image.Frames = append(image.Frames, f)
 		return &image, int(vl), nil

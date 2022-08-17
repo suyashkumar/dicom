@@ -20,6 +20,8 @@ type CommonFrame interface {
 	GetImage() (image.Image, error)
 	// IsEncapsulated indicates if the underlying Frame is an EncapsulatedFrame.
 	IsEncapsulated() bool
+	// IsVLMismatch indicates if the pixel-data VL mismatches with calculated value
+	IsVLMismatch() bool
 	// GetNativeFrame attempts to get the underlying NativeFrame (or returns an error)
 	GetNativeFrame() (*NativeFrame, error)
 	// GetEncapsulatedFrame attempts to get the underlying EncapsulatedFrame (or returns an error)
@@ -30,6 +32,9 @@ type CommonFrame interface {
 // TODO: deprecate this old intermediate representation in favor of CommonFrame
 // once happy and solid with API.
 type Frame struct {
+	// VLMismatch indicates if the pixel-data VL mismatches with calculated value
+	// the data will be stored in EncapsulatedData
+	VLMismatch bool
 	// Encapsulated indicates whether the underlying frame is encapsulated or
 	// not.
 	Encapsulated bool
@@ -43,6 +48,9 @@ type Frame struct {
 
 // IsEncapsulated indicates if the frame is encapsulated or not.
 func (f *Frame) IsEncapsulated() bool { return f.Encapsulated }
+
+// IsVLMismatch indicates if the pixel-data VL mismatches with calculated value
+func (f *Frame) IsVLMismatch() bool { return f.VLMismatch }
 
 // GetNativeFrame returns a NativeFrame from this frame. If the underlying frame
 // is not a NativeFrame, ErrorFrameTypeNotPresent will be returned.

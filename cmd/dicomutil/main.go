@@ -62,7 +62,7 @@ func main() {
 			if *allowPixelDataVLMismatch {
 				opts = append(opts, dicom.AllowMismatchPixelDataLength())
 			}
-			data, err := dicom.ParseWithOption(f, info.Size(), nil, opts...)
+			data, err := dicom.Parse(f, info.Size(), nil, opts...)
 			if err != nil {
 				log.Fatalf("error parsing data: %v", err)
 			}

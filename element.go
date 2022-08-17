@@ -297,6 +297,7 @@ func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 // PixelDataInfo is a representation of DICOM PixelData.
 type PixelDataInfo struct {
 	Frames         []frame.Frame
+	IsVLMismatch   bool `json:"isVLMismatch"`
 	IsEncapsulated bool `json:"isEncapsulated"`
 	Offsets        []uint32
 }
@@ -315,6 +316,9 @@ func (e *pixelDataValue) String() string {
 	}
 	if e.IsEncapsulated {
 		return fmt.Sprintf("encapsulated FramesLength=%d Frame[0] size=%d", len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+	}
+	if e.IsVLMismatch {
+		return fmt.Sprintf("vlMismatch FramesLength=%d Frame[0] size=%d", len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
 	}
 	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(e.Frames), e.Frames[0].NativeData.Rows, e.Frames[0].NativeData.Cols)
 }

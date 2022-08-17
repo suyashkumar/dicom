@@ -57,34 +57,12 @@ var (
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
 // looking to parse the DICOM all at once, instead of element-by-element.
-func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Dataset, error) {
-	p, err := NewParser(in, bytesToRead, frameChan)
-	if err != nil {
-		return Dataset{}, err
-	}
-
-	for !p.reader.IsLimitExhausted() {
-		_, err := p.Next()
-		if err != nil {
-			return p.dataset, err
-		}
-	}
-
-	// Close the frameChannel if needed
-	if p.frameChannel != nil {
-		close(p.frameChannel)
-	}
-	return p.dataset, nil
-}
-
-// ParseWithOption parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements.
-// Allow user to use it with option.
-func ParseWithOption(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
 	p, err := NewParser(in, bytesToRead, frameChan, opts...)
 	if err != nil {
 		return Dataset{}, err
 	}
-	
+
 	for !p.reader.IsLimitExhausted() {
 		_, err := p.Next()
 		if err != nil {
@@ -101,7 +79,7 @@ func ParseWithOption(in io.Reader, bytesToRead int64, frameChan chan *frame.Fram
 
 // ParseFile parses the entire DICOM at the given filepath. See dicom.Parse as
 // well for a more generic io.Reader based API.
-func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
+func ParseFile(filepath string, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
 	f, err := os.Open(filepath)
 	if err != nil {
 		return Dataset{}, err
@@ -113,7 +91,7 @@ func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
 		return Dataset{}, err
 	}
 
-	return Parse(f, info.Size(), frameChan)
+	return Parse(f, info.Size(), frameChan, opts...)
 }
 
 // Parser is a struct that allows a user to parse Elements from a DICOM element-by-element using Next(), which may be

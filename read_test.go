@@ -403,7 +403,7 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError:     ErrorUnsupportedBitsAllocated,
 		},
 		{
-			Name: "3x3, 3 framesples/pixel, data bytes with padded 0",
+			Name: "3x3, 3 frames, 1 samples/pixel, data bytes with padded 0",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{3}),
 				mustNewElement(tag.Columns, []int{3}),

@@ -314,7 +314,7 @@ func (e *pixelDataValue) String() string {
 		return "empty pixel data"
 	}
 	if e.IsEncapsulated {
-		return fmt.Sprintf("encapsulated FramesLength=%d FrameSize=%d", len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+		return fmt.Sprintf("encapsulated FramesLength=%d Frame[0] size=%d", len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
 	}
 	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(e.Frames), e.Frames[0].NativeData.Rows, e.Frames[0].NativeData.Cols)
 }

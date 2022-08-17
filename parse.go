@@ -294,7 +294,7 @@ func toParseOptSet(opts ...ParseOption) parseOptSet {
 	return optSet
 }
 
-// AllowMismatchPixelDataLength allow parser not returning an error when the length calculated from elements do not match with value length
+// AllowMismatchPixelDataLength allows parser to ignore an error when the length calculated from elements do not match with value length.
 func AllowMismatchPixelDataLength() ParseOption {
 	return func(set *parseOptSet) {
 		set.allowMismatchPixelDataLength = true

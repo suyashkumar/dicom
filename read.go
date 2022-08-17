@@ -114,7 +114,6 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 	case tag.VRItem:
 		return readSequenceItem(r, t, vr, vl, d)
 	case tag.VRPixelData:
-
 		return readPixelData(r, t, vr, vl, d, fc)
 	case tag.VRFloat32List, tag.VRFloat64List:
 		return readFloat(r, t, vr, vl)
@@ -225,7 +224,7 @@ func fillBufferSingleBitAllocated(pixelData []int, d dicomio.Reader, bo binary.B
 // readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
 func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Frame, vl uint32) (pixelData *PixelDataInfo,
-	bytesRead int, err error) {
+	bytesToRead int, err error) {
 	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
 	rows, err := parsedData.FindElementByTag(tag.Rows)
 	if err != nil {
@@ -267,26 +266,26 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	debug.Logf("readNativeFrames:\nRows: %d\nCols:%d\nFrames::%d\nBitsAlloc:%d\nSamplesPerPixel:%d", MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], nFrames, bitsAllocated, samplesPerPixel)
 
 	bytesAllocated := bitsAllocated / 8
-	bytesRead = bytesAllocated * samplesPerPixel * pixelsPerFrame * nFrames
+	bytesToRead = bytesAllocated * samplesPerPixel * pixelsPerFrame * nFrames
 	if bitsAllocated == 1 {
-		bytesRead = pixelsPerFrame * samplesPerPixel / 8 * nFrames
+		bytesToRead = pixelsPerFrame * samplesPerPixel / 8 * nFrames
 	}
 
 	skipOne := false
 	switch {
-	case uint32(bytesRead) == vl: // we good nothing
-	case uint32(bytesRead) == vl-1 && vl%2 == 0:
+	case uint32(bytesToRead) == vl: // we good nothing
+	case uint32(bytesToRead) == vl-1 && vl%2 == 0:
 		skipOne = true
-	case uint32(bytesRead) == vl-1 && vl%2 != 0:
+	case uint32(bytesToRead) == vl-1 && vl%2 != 0:
 		return nil, 0, fmt.Errorf("vl=%d: %w", vl, ErrorExpectedEvenLength)
 	default:
 		if !parsedData.opts.allowMismatchPixelDataLength {
-			return nil, 0, fmt.Errorf("expected_vl=%d actual_vl=%d %w", bytesRead, vl, ErrorMismatchPixelDataLength)
+			return nil, 0, fmt.Errorf("expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
 		}
 		data := make([]byte, vl)
 		_, err = io.ReadFull(d, data)
 		if err != nil {
-			panic(err)
+			return nil, 0, fmt.Errorf("read pixelData: %w", err)
 		}
 
 		f := frame.Frame{
@@ -327,7 +326,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		buf := make([]int, pixelsPerFrame*samplesPerPixel)
 		if bitsAllocated == 1 {
 			if err := fillBufferSingleBitAllocated(buf, d, bo); err != nil {
-				return nil, bytesRead, err
+				return nil, bytesToRead, err
 			}
 			for pixel := 0; pixel < pixelsPerFrame; pixel++ {
 				for value := 0; value < samplesPerPixel; value++ {
@@ -339,7 +338,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 				for value := 0; value < samplesPerPixel; value++ {
 					_, err := io.ReadFull(d, pixelBuf)
 					if err != nil {
-						return nil, bytesRead,
+						return nil, bytesToRead,
 							fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
 					}
 					if bitsAllocated == 8 {
@@ -349,7 +348,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 					} else if bitsAllocated == 32 {
 						buf[(pixel*samplesPerPixel)+value] = int(bo.Uint32(pixelBuf))
 					} else {
-						return nil, bytesRead, fmt.Errorf("bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
+						return nil, bytesToRead, fmt.Errorf("bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 					}
 				}
 				currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
@@ -363,11 +362,11 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 	if skipOne {
 		err := d.Skip(1)
 		if err != nil {
-			return nil, bytesRead, fmt.Errorf("could not read padding byte: %w", err)
+			return nil, bytesToRead, fmt.Errorf("could not read padding byte: %w", err)
 		}
-		bytesRead++
+		bytesToRead++
 	}
-	return &image, bytesRead, nil
+	return &image, bytesToRead, nil
 }
 
 // readSequence reads a sequence element (VR = SQ) that contains a subset of Items. Each item contains

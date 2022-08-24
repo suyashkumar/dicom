@@ -4,11 +4,13 @@ jobs:
   build:
     name: Benchmark (push)
     runs-on: ubuntu-latest
+    env:
+      GOBIN: /home/runner/go
     steps:
-    - name: Set up Go 1.15
-      uses: actions/setup-go@v2
+    - name: Set up Go 1.18
+      uses: actions/setup-go@v3
       with:
-        go-version: 1.15
+        go-version: 1.18
       id: go
 
     - name: Check out code 
@@ -20,8 +22,7 @@ jobs:
   
     - name: Benchmark (against HEAD~1)
       run: |
-       export PATH=$PATH:$GOBIN
-       go get golang.org/x/perf/cmd/benchstat
+       go install golang.org/x/perf/cmd/benchstat@latest
        echo "New Commit:"
        git log -1 --format="%H"
        go test -bench=. -benchtime=.75s -count=8 > $HOME/new.txt
@@ -30,4 +31,4 @@ jobs:
        echo "Base Commit:"
        git log -1 --format="%H"
        go test -bench=. -benchtime=.75s -count=8 > $HOME/old.txt
-       benchstat $HOME/old.txt $HOME/new.txt
+       $GOBIN/benchstat $HOME/old.txt $HOME/new.txt

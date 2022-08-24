@@ -221,6 +221,29 @@ func fillBufferSingleBitAllocated(pixelData []int, d dicomio.Reader, bo binary.B
 	return nil
 }
 
+func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, parseErr error) (*PixelDataInfo, error) {
+	data := make([]byte, vl)
+	_, err := io.ReadFull(reader, data)
+	if err != nil {
+		return nil, fmt.Errorf("read pixelData: %w", err)
+	}
+
+	f := frame.Frame{
+		EncapsulatedData: frame.EncapsulatedFrame{
+			Data: data,
+		},
+	}
+
+	if fc != nil {
+		fc <- &f
+	}
+	image := PixelDataInfo{
+		ParsingErr: parseErr,
+		Frames:     []frame.Frame{f},
+	}
+	return &image, nil
+}
+
 // readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
 func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Frame, vl uint32) (pixelData *PixelDataInfo,
@@ -271,37 +294,24 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		bytesToRead = pixelsPerFrame * samplesPerPixel / 8 * nFrames
 	}
 
-	skipOne := false
-	switch {
-	case uint32(bytesToRead) == vl: // we good nothing
-	case uint32(bytesToRead) == vl-1 && vl%2 == 0:
-		skipOne = true
-	case uint32(bytesToRead) == vl-1 && vl%2 != 0:
-		return nil, 0, fmt.Errorf("vl=%d: %w", vl, ErrorExpectedEvenLength)
-	default:
-		if !parsedData.opts.allowMismatchPixelDataLength {
-			return nil, 0, fmt.Errorf("expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
+	skipFinalPaddingByte := false
+	if uint32(bytesToRead) != vl {
+		switch {
+		case uint32(bytesToRead) == vl-1 && vl%2 == 0:
+			skipFinalPaddingByte = true
+		case uint32(bytesToRead) == vl-1 && vl%2 != 0:
+			return nil, 0, fmt.Errorf("vl=%d: %w", vl, ErrorExpectedEvenLength)
+		default:
+			// calculated bytesToRead and actual VL mismatch
+			if !parsedData.opts.allowMismatchPixelDataLength {
+				return nil, 0, fmt.Errorf("expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
+			}
+			image, err := makeErrorPixelData(d, vl, fc, ErrorMismatchPixelDataLength)
+			if err != nil {
+				return nil, 0, err
+			}
+			return image, int(vl), nil
 		}
-		data := make([]byte, vl)
-		_, err = io.ReadFull(d, data)
-		if err != nil {
-			return nil, 0, fmt.Errorf("read pixelData: %w", err)
-		}
-
-		f := frame.Frame{
-			EncapsulatedData: frame.EncapsulatedFrame{
-				Data: data,
-			},
-		}
-
-		if fc != nil {
-			fc <- &f
-		}
-		image := PixelDataInfo{
-			ParsingErr: ErrorMismatchPixelDataLength,
-		}
-		image.Frames = append(image.Frames, f)
-		return &image, int(vl), nil
 	}
 
 	// Parse the pixels:
@@ -358,7 +368,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 			fc <- &currentFrame // write the current frame to the frame channel
 		}
 	}
-	if skipOne {
+	if skipFinalPaddingByte {
 		err := d.Skip(1)
 		if err != nil {
 			return nil, bytesToRead, fmt.Errorf("could not read padding byte: %w", err)

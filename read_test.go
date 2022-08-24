@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/suyashkumar/dicom/pkg/vrraw"
 
 	"github.com/suyashkumar/dicom/pkg/dicomio"
@@ -365,10 +367,9 @@ func TestReadNativeFrames(t *testing.T) {
 			}, opts: parseOptSet{allowMismatchPixelDataLength: true}},
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
-				IsVLMismatch: true,
+				ParsingErr: ErrorMismatchPixelDataLength,
 				Frames: []frame.Frame{
 					{
-						VLMismatch: true,
 						EncapsulatedData: frame.EncapsulatedFrame{
 							Data: []byte{1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 2, 0},
 						},
@@ -549,7 +550,7 @@ func TestReadNativeFrames(t *testing.T) {
 				t.Errorf("TestReadNativeFrames(%v): did not read expected number of bytes. got: %d, want: %d", tc.data, bytesRead, expectedBytes)
 			}
 
-			if diff := cmp.Diff(tc.expectedPixelData, pixelData); diff != "" {
+			if diff := cmp.Diff(tc.expectedPixelData, pixelData, cmpopts.EquateErrors()); diff != "" {
 				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.data, diff)
 			}
 		})

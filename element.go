@@ -296,8 +296,12 @@ func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 
 // PixelDataInfo is a representation of DICOM PixelData.
 type PixelDataInfo struct {
-	Frames         []frame.Frame
-	IsEncapsulated bool `json:"isEncapsulated"`
+	Frames []frame.Frame
+	// ParseErr indicates if there was an error when reading this Frame from the DICOM.
+	// If this is set, this means fallback behavior was triggered to blindly write the PixelData bytes to an encapsulated frame.
+	// The ParseErr will contain details about the specific error encountered.
+	ParseErr       error `json:"parseErr"`
+	IsEncapsulated bool  `json:"isEncapsulated"`
 	Offsets        []uint32
 }
 
@@ -310,8 +314,16 @@ func (e *pixelDataValue) isElementValue()       {}
 func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
 func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
 func (e *pixelDataValue) String() string {
-	// TODO: consider adding more sophisticated formatting
-	return ""
+	if len(e.Frames) == 0 {
+		return "empty pixel data"
+	}
+	if e.IsEncapsulated {
+		return fmt.Sprintf("encapsulated FramesLength=%d Frame[0] size=%d", len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+	}
+	if e.ParseErr != nil {
+		return fmt.Sprintf("parseErr err=%s FramesLength=%d Frame[0] size=%d", e.ParseErr.Error(), len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+	}
+	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(e.Frames), e.Frames[0].NativeData.Rows, e.Frames[0].NativeData.Cols)
 }
 
 func (e *pixelDataValue) MarshalJSON() ([]byte, error) {

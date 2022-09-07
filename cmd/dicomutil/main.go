@@ -21,10 +21,11 @@ import (
 var GitVersion = "unknown"
 
 var (
-	version             = flag.Bool("version", false, "print current version and exit")
-	filepath            = flag.String("path", "", "path")
-	extractImagesStream = flag.Bool("extract-images-stream", false, "Extract images using frame streaming capability")
-	printJSON           = flag.Bool("json", false, "Print dataset as JSON")
+	version                  = flag.Bool("version", false, "print current version and exit")
+	filepath                 = flag.String("path", "", "path")
+	extractImagesStream      = flag.Bool("extract-images-stream", false, "Extract images using frame streaming capability")
+	printJSON                = flag.Bool("json", false, "Print dataset as JSON")
+	allowPixelDataVLMismatch = flag.Bool("allow-pixel-data-mismatch", false, "Allows the pixel data mismatch")
 )
 
 // FrameBufferSize represents the size of the *Frame buffered channel for streaming calls
@@ -57,7 +58,11 @@ func main() {
 		if *extractImagesStream {
 			ds = parseWithStreaming(f, info.Size())
 		} else {
-			data, err := dicom.Parse(f, info.Size(), nil)
+			var opts []dicom.ParseOption
+			if *allowPixelDataVLMismatch {
+				opts = append(opts, dicom.AllowMismatchPixelDataLength())
+			}
+			data, err := dicom.Parse(f, info.Size(), nil, opts...)
 			if err != nil {
 				log.Fatalf("error parsing data: %v", err)
 			}
@@ -131,7 +136,8 @@ func writeStreamingFrames(frameChan chan *frame.Frame, doneWG *sync.WaitGroup) {
 func generateImage(fr *frame.Frame, frameIndex int, frameSuffix string, wg *sync.WaitGroup) {
 	i, err := fr.GetImage()
 	if err != nil {
-		log.Fatal("Error while getting image")
+		fmt.Printf("Error while getting image: %v\n", err)
+		return
 	}
 
 	ext := ".jpg"

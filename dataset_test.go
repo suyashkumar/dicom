@@ -268,7 +268,7 @@ func ExampleDataset_String() {
 	//   VR: VRInt32List
 	//   VR Raw: UL
 	//   VL: 0
-	//   Value: &{[100]}
+	//   Value: [100]
 	// ]
 	//
 	// [
@@ -277,7 +277,7 @@ func ExampleDataset_String() {
 	//   VR: VRInt32List
 	//   VR Raw: UL
 	//   VL: 0
-	//   Value: &{[200]}
+	//   Value: [200]
 	// ]
 
 }

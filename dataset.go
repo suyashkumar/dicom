@@ -23,6 +23,8 @@ var ErrorElementNotFound = errors.New("element not found")
 // within this Dataset (including Elements nested within Sequences).
 type Dataset struct {
 	Elements []*Element `json:"elements"`
+
+	opts parseOptSet
 }
 
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.
@@ -183,7 +185,7 @@ func (d *Dataset) String() string {
 		b.WriteString(fmt.Sprintf("%s  VR: %s\n", tabs, elem.e.ValueRepresentation))
 		b.WriteString(fmt.Sprintf("%s  VR Raw: %s\n", tabs, elem.e.RawValueRepresentation))
 		b.WriteString(fmt.Sprintf("%s  VL: %d\n", tabs, elem.e.ValueLength))
-		b.WriteString(fmt.Sprintf("%s  Value: %d\n", tabs, elem.e.Value))
+		b.WriteString(fmt.Sprintf("%s  Value: %s\n", tabs, elem.e.Value.String()))
 		b.WriteString(fmt.Sprintf("%s]\n\n", tabs))
 	}
 	return b.String()

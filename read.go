@@ -225,7 +225,7 @@ func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, par
 	data := make([]byte, vl)
 	_, err := io.ReadFull(reader, data)
 	if err != nil {
-		return nil, fmt.Errorf("read pixelData: %w", err)
+		return nil, fmt.Errorf("makeErrorPixelData: read pixelData: %w", err)
 	}
 
 	f := frame.Frame{
@@ -238,8 +238,8 @@ func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, par
 		fc <- &f
 	}
 	image := PixelDataInfo{
-		ParsingErr: parseErr,
-		Frames:     []frame.Frame{f},
+		ParseErr: parseErr,
+		Frames:   []frame.Frame{f},
 	}
 	return &image, nil
 }

@@ -51,8 +51,8 @@ var (
 	// need to use this.
 	ErrorEndOfDICOM = errors.New("this indicates to the caller of Next() that the DICOM has been fully parsed")
 
-	// ErrorMismatchPixelDataLength indicates that the size calulated from DICOM mismatch the VL.
-	ErrorMismatchPixelDataLength = errors.New("the size calculated from DICOM elements and VL are mismatch")
+	// ErrorMismatchPixelDataLength indicates that the size calculated from DICOM mismatch the VL.
+	ErrorMismatchPixelDataLength = errors.New("the size calculated from DICOM elements and the PixelData element's VL are mismatched")
 )
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are

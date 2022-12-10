@@ -18,7 +18,7 @@ After a fair bit of work, I've just released v1.0 of this library which is essen
 Some notable features:
 - [x] Parse multi-frame DICOM imagery (both encapsulated and native pixel data)
 - [x] Channel-based streaming of `Frame`s to a client _as they are parsed_ out of the dicom
-- [x] Cleaner Go Element and Dataset representations (in the absense of Go generics)
+- [x] Cleaner Go Element and Dataset representations (in the absence of Go generics)
 - [x] Better support for icon image sets in addition to primary image sets
 - [x] Write and encode Datasets back to DICOM files
 - [x] Enhanced testing and benchmarking support
@@ -80,7 +80,7 @@ That represents the __v0__ history of the repository.
 
 ### v1
 
-For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happend at the [`s/1.0-rewrite`](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite) branch. 
+For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happened at the [`s/1.0-rewrite`](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite) branch. 
 
 
 ## Acknowledgements

@@ -14,7 +14,7 @@ import (
 var ErrorUnexpectedDataType = errors.New("the type of the data was unexpected or not allowed")
 
 // Element represents a standard DICOM data element (see the DICOM standard:
-// http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1 ).
+// https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1 ).
 // This Element can be serialized to JSON out of the box and pretty printed as a string via the String() method.
 type Element struct {
 	Tag                    tag.Tag    `json:"tag"`
@@ -251,7 +251,7 @@ func (s *floatsValue) MarshalJSON() ([]byte, error) {
 
 // SequenceItemValue is a Value that represents a single Sequence Item. Learn
 // more about Sequences at
-// http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html.
+// https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html.
 type SequenceItemValue struct {
 	elements []*Element
 }

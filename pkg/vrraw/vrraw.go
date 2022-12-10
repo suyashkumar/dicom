@@ -1,6 +1,6 @@
 // Package vrraw offers aliases to all VR abbreviations as defined here:
 //
-// http://dicom.nema.org/medical/dicom/current/output/html/part05.html#table_6.2-1
+// https://dicom.nema.org/medical/dicom/current/output/html/part05.html#table_6.2-1
 //
 // Deprecated VRs from older editions are also included
 package vrraw

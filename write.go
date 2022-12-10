@@ -473,7 +473,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 			vrraw.ShortString, vrraw.ShortText, vrraw.UnlimitedText,
 			vrraw.DecimalString, vrraw.CodeString, vrraw.Time,
 			vrraw.IntegerString, vrraw.Unknown:
-			if err := w.WriteString(" "); err != nil { // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+			if err := w.WriteString(" "); err != nil { // https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 				return err
 			}
 		default:
@@ -610,7 +610,7 @@ func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr 
 	// Note: we currently don't validate that the length of the sequence matches
 	// the VL if it's not undefined VL.
 	// More details about the sequence structure can be found at:
-	// http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
+	// https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
 
 	// Write out the items.
 	for _, seqItem := range values {

@@ -90,5 +90,5 @@ For __v1__ I rewrote and redesigned the core library essentially from scratch, a
 * Grailbio [go-dicom](https://github.com/grailbio/go-dicom) -- commits from their fork were applied to ours
 * GradientHealth for supporting work I did on this while there [gradienthealth/dicom](https://github.com/gradienthealth/dicom)
 * Innolitics [DICOM browser](https://dicom.innolitics.com/ciods)
-* [DICOM Specification](http://dicom.nema.org/medical/dicom/current/output/pdf/part05.pdf)
-* <div>Icons made by <a href="https://www.freepik.com/?__hstc=57440181.48e262e7f01bcb2b41259e2e5a8103b3.1557697512782.1557697512782.1557697512782.1&__hssc=57440181.4.1557697512783&__hsfp=2768524783" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+* [DICOM Specification](https://dicom.nema.org/medical/dicom/current/output/pdf/part05.pdf)
+* <div>Icons made by <a href="https://www.freepik.com/?__hstc=57440181.48e262e7f01bcb2b41259e2e5a8103b3.1557697512782.1557697512782.1557697512782.1&__hssc=57440181.4.1557697512783&__hsfp=2768524783" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>

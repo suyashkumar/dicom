@@ -47,7 +47,7 @@ type durationInfo struct {
 }
 
 // extractDurationInfo extracts a piece of DA, TM, or DT info from a parsed regex,
-// handling all validation checks, emtpy values, etc.
+// handling all validation checks, empty values, etc.
 func extractDurationInfo(subMatches []string, index int, isFractal bool) (durationInfo, error) {
 	info := durationInfo{}
 

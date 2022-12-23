@@ -19,7 +19,7 @@ import (
 var (
 	// ErrorUnimplemented is for not yet finished things.
 	ErrorUnimplemented = errors.New("this functionality is not yet implemented")
-	// ErrorMismatchValueTypeAndVR is for when there's a discrepency betweeen the ValueType and what the VR specifies.
+	// ErrorMismatchValueTypeAndVR is for when there's a discrepancy between the ValueType and what the VR specifies.
 	ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match the VR required")
 	// ErrorUnexpectedValueType indicates an unexpected value type was seen.
 	ErrorUnexpectedValueType = errors.New("Unexpected ValueType")

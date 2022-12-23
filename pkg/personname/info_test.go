@@ -400,7 +400,7 @@ func TestParse_Err(t *testing.T) {
 			ErrString: "error parsing PN value: no more than 3 groups with " +
 				"'[Alphabetic]=[Ideographic]=[Phonetic]' format are allowed: value " +
 				"contains 4 groups. see 'PN' entry in official dicom spec: " +
-				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
+				"https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 		{
 			Raw: "^^^^^",
@@ -408,7 +408,7 @@ func TestParse_Err(t *testing.T) {
 				"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: " +
 				"value group Alphabetic contains 6 segments. see 'PN' entry in " +
 				"official dicom spec: " +
-				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
+				"https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 		{
 			Raw: "=^^^^^",
@@ -416,7 +416,7 @@ func TestParse_Err(t *testing.T) {
 				"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: " +
 				"value group Ideographic contains 6 segments. see 'PN' entry in " +
 				"official dicom spec: " +
-				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
+				"https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 		{
 			Raw: "==^^^^^",
@@ -424,7 +424,7 @@ func TestParse_Err(t *testing.T) {
 				"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: " +
 				"value group Phonetic contains 6 segments. see 'PN' entry in " +
 				"official dicom spec: " +
-				"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
+				"https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		},
 	}
 

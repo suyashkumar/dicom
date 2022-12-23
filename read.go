@@ -63,7 +63,7 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 	}
 
 	// Explicit Transfer Syntax
-	// More details here: http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1.2
+	// More details here: https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1.2
 	switch vr {
 	// TODO: Parsed VR should be an enum. Will require refactors of tag pkg.
 	case "NA", vrraw.OtherByte, vrraw.OtherDouble, vrraw.OtherFloat,
@@ -380,7 +380,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 
 // readSequence reads a sequence element (VR = SQ) that contains a subset of Items. Each item contains
 // a set of Elements.
-// See http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.2.html#table_7.5-1
+// See https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.2.html#table_7.5-1
 func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset) (Value, error) {
 	var sequences sequencesValue
 

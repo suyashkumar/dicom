@@ -35,7 +35,7 @@ be mentioned in one of them for brevity.
 ### Relevant Citations
 #### For files 1.dcm, 2.dcm:
 ##### Data Citation:
-Kinahan, Paul; Muzi, Mark; Bialecki, Brian; Coombs, Laura. (2017). Data from ACRIN-FLT-Breast. The Cancer Imaging Archive. http://doi.org/10.7937/K9/TCIA.2017.ol20zmxg
+Kinahan, Paul; Muzi, Mark; Bialecki, Brian; Coombs, Laura. (2017). Data from ACRIN-FLT-Breast. The Cancer Imaging Archive. https://doi.org/10.7937/K9/TCIA.2017.ol20zmxg
 
 ##### Publication Citation
 Kostakoglu L ,  Duan F ,  Idowu MO ,  Jolles PR ,  Bear HD ,  Muzi M ,  Cormack J ,  Muzi JP ,  Pryma DA ,  Specht JM ,  Hovanessian-Larsen L ,  Miliziano J ,  Mallett S ,  Shields AF ,  Mankoff DA ;  ACRIN 668 Investigative Team . A Phase II Study of 3'-Deoxy-3'-18F-Fluorothymidine PET in the Assessment of Early Response of Breast Cancer to Neoadjuvant Chemotherapy: Results from ACRIN 6688. J Nucl Med. 2015 Nov;56(11):1681-9. doi: 10.2967/jnumed.115.160663. Epub 2015 Sep 10. 
@@ -44,7 +44,7 @@ Kostakoglu L ,  Duan F ,  Idowu MO ,  Jolles PR ,  Bear HD ,  Muzi M ,  Cormack 
 #### For file 3.dcm
 
 ##### Data Citation:
-Choyke P, Turkbey B, Pinto P, Merino M, Wood B. (2016). Data From PROSTATE-MRI. The Cancer Imaging Archive. http://doi.org/10.7937/K9/TCIA.2016.6046GUDv
+Choyke P, Turkbey B, Pinto P, Merino M, Wood B. (2016). Data From PROSTATE-MRI. The Cancer Imaging Archive. https://doi.org/10.7937/K9/TCIA.2016.6046GUDv
 
 
 #### TCIA Citation

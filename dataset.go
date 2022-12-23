@@ -15,7 +15,7 @@ import (
 var ErrorElementNotFound = errors.New("element not found")
 
 // Dataset represents a DICOM dataset, see
-// http://dicom.nema.org/medical/dicom/current/output/html/part05.html#chapter_7.
+// https://dicom.nema.org/medical/dicom/current/output/html/part05.html#chapter_7.
 //
 // This Dataset representation is JSON serializable out of the box
 // (implements json.Marshaler) and will also pretty print as a string nicely (see String example).

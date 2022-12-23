@@ -1,5 +1,5 @@
 // Package dicom provides a set of tools to read, write, and generally
-// work with DICOM (http://dicom.nema.org/) medical image files in Go.
+// work with DICOM (https://dicom.nema.org/) medical image files in Go.
 //
 // dicom.Parse and dicom.Write provide the core functionality to read and write
 // DICOM Datasets. This package provides Go data structures that represent

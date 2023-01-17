@@ -96,12 +96,12 @@ func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
 // useful for some streaming processing applications. If you instead just want to parse the whole input DICOM at once,
 // just use the dicom.Parse(...) method.
 type Parser struct {
-	reader          dicomio.Reader
-	dataset         Dataset
-	metadata        Dataset
+	reader   dicomio.Reader
+	dataset  Dataset
+	metadata Dataset
 	// file is optional, might be populated if reading from an underlying file
-	file         *os.File
-	frameChannel chan *frame.Frame
+	file            *os.File
+	frameChannel    chan *frame.Frame
 	stopAtPixelData bool
 }
 
@@ -118,8 +118,8 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	}
 
 	p := Parser{
-		reader:       reader,
-		frameChannel: frameChannel,
+		reader:          reader,
+		frameChannel:    frameChannel,
 		stopAtPixelData: optSet.stopAtPixelDataStart,
 	}
 
@@ -198,15 +198,19 @@ func (p *Parser) GetDataset() Dataset {
 	return p.dataset
 }
 
-func (p *Parser) GetPixelDataSize() (int64, error) {
+func (p *Parser) GetPixelDataSize(optionalNumberOfFrames bool) (int64, error) {
 	parsedData := p.dataset
 	nof, err := parsedData.FindElementByTag(tag.NumberOfFrames)
+	var nFrames = 1
 	if err != nil {
-		return -1, err
-	}
-	nFrames, err := strconv.Atoi(MustGetStrings(nof.Value)[0]) // odd that number of frames is encoded as a string...
-	if err != nil {
-		return -1, err
+		if !optionalNumberOfFrames {
+			return -1, err
+		}
+	} else {
+		nFrames, err = strconv.Atoi(MustGetStrings(nof.Value)[0])
+		if err != nil {
+			return -1, err
+		}
 	}
 
 	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
@@ -244,11 +248,7 @@ func (p *Parser) GetPixelDataSize() (int64, error) {
 	return bytesTotal, nil
 }
 
-func (p *Parser) GetPixelDataReader() (io.Reader, error) {
-	bytesTotal, err := p.GetPixelDataSize()
-	if err != nil {
-		return nil, err
-	}
+func (p *Parser) GetPixelDataReader(bytesTotal int64) (io.Reader, error) {
 	return io.LimitReader(p.reader, bytesTotal), nil
 }
 

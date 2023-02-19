@@ -63,7 +63,7 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ..
 		return Dataset{}, err
 	}
 
-	for !p.reader.IsLimitExhausted() {
+	for !p.rawReader.IsLimitExhausted() {
 		_, err := p.Next()
 		if err != nil {
 			return p.dataset, err
@@ -98,9 +98,10 @@ func ParseFile(filepath string, frameChan chan *frame.Frame, opts ...ParseOption
 // useful for some streaming processing applications. If you instead just want to parse the whole input DICOM at once,
 // just use the dicom.Parse(...) method.
 type Parser struct {
-	reader   dicomio.Reader
-	dataset  Dataset
-	metadata Dataset
+	reader    *reader
+	rawReader dicomio.Reader
+	dataset   Dataset
+	metadata  Dataset
 	// file is optional, might be populated if reading from an underlying file
 	file         *os.File
 	frameChannel chan *frame.Frame
@@ -113,17 +114,22 @@ type Parser struct {
 // provided).
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, opts ...ParseOption) (*Parser, error) {
 	optSet := toParseOptSet(opts...)
-	reader, err := dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead)
+	r, err := dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead)
 	if err != nil {
 		return nil, err
 	}
 
 	p := Parser{
-		reader:       reader,
+		rawReader:    r,
 		frameChannel: frameChannel,
 	}
 
 	elems := []*Element{}
+
+	p.reader = &reader{
+		rawReader: r,
+		opts:      optSet,
+	}
 
 	if !optSet.skipMetadataReadOnNewParserInit {
 		debug.Log("NewParser: readHeader")
@@ -134,7 +140,8 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 		debug.Log("NewParser: readHeader complete")
 	}
 
-	p.dataset = Dataset{Elements: elems, opts: optSet}
+	p.dataset = Dataset{Elements: elems}
+
 	// TODO(suyashkumar): avoid storing the metadata pointers twice (though not that expensive)
 	p.metadata = Dataset{Elements: elems}
 
@@ -154,21 +161,21 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 			debug.Log("WARN: could not parse transfer syntax uid in metadata")
 		}
 	}
-	p.reader.SetTransferSyntax(bo, implicit)
+	p.rawReader.SetTransferSyntax(bo, implicit)
 
 	return &p, nil
 }
 
 // Next parses and returns the next top-level element from the DICOM this Parser points to.
 func (p *Parser) Next() (*Element, error) {
-	if p.reader.IsLimitExhausted() {
+	if p.rawReader.IsLimitExhausted() {
 		// Close the frameChannel if needed
 		if p.frameChannel != nil {
 			close(p.frameChannel)
 		}
 		return nil, ErrorEndOfDICOM
 	}
-	elem, err := readElement(p.reader, &p.dataset, p.frameChannel)
+	elem, err := p.reader.readElement(&p.dataset, p.frameChannel)
 	if err != nil {
 		// TODO: tolerate some kinds of errors and continue parsing
 		return nil, err
@@ -184,7 +191,7 @@ func (p *Parser) Next() (*Element, error) {
 			// TODO: add option continue, even if unable to parse
 			return nil, err
 		}
-		p.reader.SetCodingSystem(cs)
+		p.rawReader.SetCodingSystem(cs)
 	}
 
 	p.dataset.Elements = append(p.dataset.Elements, elem)
@@ -200,7 +207,7 @@ func (p *Parser) GetMetadata() Dataset {
 
 // SetTransferSyntax sets the transfer syntax for the underlying dicomio.Reader.
 func (p *Parser) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
-	p.reader.SetTransferSyntax(bo, implicit)
+	p.rawReader.SetTransferSyntax(bo, implicit)
 }
 
 // readHeader reads the DICOM magic header and group two metadata elements.
@@ -209,7 +216,7 @@ func (p *Parser) readHeader() ([]*Element, error) {
 	// non-standard non-compliant DICOM. We try to read this DICOM in a
 	// compatibility mode, where we rewind to position 0 and blindly attempt to
 	// parse a Dataset (and do not parse metadata in the usual way).
-	data, err := p.reader.Peek(128 + 4)
+	data, err := p.rawReader.Peek(128 + 4)
 	if err != nil {
 		return nil, err
 	}
@@ -217,14 +224,14 @@ func (p *Parser) readHeader() ([]*Element, error) {
 		return nil, nil
 	}
 
-	err = p.reader.Skip(128 + 4) // skip preamble + magic word
+	err = p.rawReader.Skip(128 + 4) // skip preamble + magic word
 	if err != nil {
 		return nil, err
 	}
 
 	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := readElement(p.reader, nil, nil)
+	maybeMetaLen, err := p.reader.readElement(nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -238,13 +245,13 @@ func (p *Parser) readHeader() ([]*Element, error) {
 	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
 
 	// Read the metadata elements
-	err = p.reader.PushLimit(int64(metaLen))
+	err = p.rawReader.PushLimit(int64(metaLen))
 	if err != nil {
 		return nil, err
 	}
-	defer p.reader.PopLimit()
-	for !p.reader.IsLimitExhausted() {
-		elem, err := readElement(p.reader, nil, nil)
+	defer p.rawReader.PopLimit()
+	for !p.rawReader.IsLimitExhausted() {
+		elem, err := p.reader.readElement(nil, nil)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
 			return nil, err

@@ -23,8 +23,6 @@ var ErrorElementNotFound = errors.New("element not found")
 // within this Dataset (including Elements nested within Sequences).
 type Dataset struct {
 	Elements []*Element `json:"elements"`
-
-	opts parseOptSet
 }
 
 // FindElementByTag searches through the dataset and returns a pointer to the matching element.

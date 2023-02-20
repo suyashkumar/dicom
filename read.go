@@ -233,6 +233,13 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 		return &pixelDataValue{PixelDataInfo{IntentionallySkipped: true}}, nil
 	}
 
+	if r.opts.skipProcessingPixelDataValue {
+		val := &pixelDataValue{PixelDataInfo{IntentionallyUnprocessed: true}}
+		val.PixelDataInfo.UnprocessedValueData = make([]byte, vl)
+		_, err := io.ReadFull(r.rawReader, val.PixelDataInfo.UnprocessedValueData)
+		return val, err
+	}
+
 	// Assume we're reading NativeData data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
 	// We need Elements that have been already parsed (rows, cols, etc) to parse frames out of NativeData Pixel data
 	if d == nil {

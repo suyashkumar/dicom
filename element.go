@@ -296,17 +296,32 @@ func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 
 // PixelDataInfo is a representation of DICOM PixelData.
 type PixelDataInfo struct {
-	// IntentionallySkipped indicates if parsing/processing this PixelData tag
-	// was intentionally skipped. This is likely true if the dicom.SkipPixelData
-	// option was set. If true, the rest of this PixelDataInfo will be empty.
-	IntentionallySkipped bool
-	Frames               []frame.Frame
+	// IntentionallySkipped indicates that reading the PixelData value was
+	// intentionally skipped and no Value data for this tag was read.
+	// This is likely true if the dicom.SkipPixelData option was set. If true,
+	// the rest of this PixelDataInfo will be empty.
+	IntentionallySkipped bool `json:"intentionallySkipped"`
+
+	// Frames hold the processed PixelData frames (either Native or Encapsulated
+	// PixelData).
+	Frames []frame.Frame
+
 	// ParseErr indicates if there was an error when reading this Frame from the DICOM.
 	// If this is set, this means fallback behavior was triggered to blindly write the PixelData bytes to an encapsulated frame.
 	// The ParseErr will contain details about the specific error encountered.
 	ParseErr       error `json:"parseErr"`
 	IsEncapsulated bool  `json:"isEncapsulated"`
 	Offsets        []uint32
+
+	// IntentionallyUnprocessed indicates that the PixelData Value was actually
+	// read (as opposed to skipped over, as in IntentionallySkipped above) and
+	// blindly placed into RawData (if possible). Writing this element back out
+	// should work. This will be true if the
+	// dicom.SkipProcessingPixelDataValue flag is set with a PixelData tag.
+	IntentionallyUnprocessed bool `json:"intentionallyUnprocessed"`
+	// UnprocessedValueData holds the unprocessed Element value data if
+	// IntentionallyUnprocessed=true.
+	UnprocessedValueData []byte
 }
 
 // pixelDataValue represents DICOM PixelData

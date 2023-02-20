@@ -35,6 +35,9 @@ var (
 
 // reader is responsible for mid-level dicom parsing capabilities, like
 // reading tags, VRs, and elements from the low-level dicomio.Reader dicom data.
+// TODO(suyashkumar): consider revisiting naming of this struct "reader" as it
+// interplays with the rawReader dicomio.Reader. We could consider combining
+// them, or embedding the dicomio.Reader struct into reader.
 type reader struct {
 	rawReader dicomio.Reader
 	opts      parseOptSet

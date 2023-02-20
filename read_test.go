@@ -595,7 +595,7 @@ func TestReadPixelData_SkipPixelData(t *testing.T) {
 	}
 }
 
-func TestReadPixelData_TrySkipProcessingElementValue(t *testing.T) {
+func TestReadPixelData_TrySkipProcessingPixelDataValue(t *testing.T) {
 	opts := parseOptSet{skipProcessingPixelDataValue: true}
 	valueBytes := []byte{1, 2, 3, 4, 5, 6}
 	dcmdata := bytes.NewBuffer(valueBytes)

@@ -460,6 +460,38 @@ func TestWrite(t *testing.T) {
 			parseOpts:     []ParseOption{SkipProcessingPixelDataValue()},
 			expectedError: nil,
 		},
+		{
+			name: "Native PixelData with IntentionallySkipped=true",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IntentionallySkipped: true,
+					IsEncapsulated:       false,
+				}),
+			}},
+			parseOpts:     []ParseOption{SkipPixelData()},
+			expectedError: nil,
+		},
+		{
+			name: "Encapsulated PixelData with IntentionallySkipped=true",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+					IntentionallySkipped: true,
+					IsEncapsulated:       true,
+				})),
+			}},
+			parseOpts:     []ParseOption{SkipPixelData()},
+			expectedError: nil,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

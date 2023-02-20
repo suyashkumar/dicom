@@ -451,9 +451,13 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{8}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
-				makeUnprocessedPixelData(),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IntentionallyUnprocessed: true,
+					UnprocessedValueData:     []byte{1, 2, 3, 4},
+					IsEncapsulated:           false,
+				}),
 			}},
-			parseOpts:     []ParseOption{TrySkipProcessingElementValue(&tag.PixelData)},
+			parseOpts:     []ParseOption{SkipProcessingPixelDataValue()},
 			expectedError: nil,
 		},
 	}
@@ -734,13 +738,4 @@ func TestWriteElement(t *testing.T) {
 			t.Errorf("unexpected diff in element: %s", diff)
 		}
 	}
-}
-
-func makeUnprocessedPixelData() *Element {
-	elem := mustNewElement(tag.PixelData, PixelDataInfo{
-		IntentionallyUnprocessed: true,
-		UnprocessedValueData:     []byte{1, 2, 3, 4},
-		IsEncapsulated:           false,
-	})
-	return elem
 }

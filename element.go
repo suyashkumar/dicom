@@ -317,7 +317,7 @@ type PixelDataInfo struct {
 	// read (as opposed to skipped over, as in IntentionallySkipped above) and
 	// blindly placed into RawData (if possible). Writing this element back out
 	// should work. This will be true if the
-	// dicom.TrySkipProcessingElementValue flag is set with a PixelData tag.
+	// dicom.SkipProcessingPixelDataValue flag is set with a PixelData tag.
 	IntentionallyUnprocessed bool `json:"intentionallyUnprocessed"`
 	// UnprocessedValueData holds the unprocessed Element value data if
 	// IntentionallyUnprocessed=true.

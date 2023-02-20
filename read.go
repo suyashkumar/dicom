@@ -233,7 +233,7 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 		return &pixelDataValue{PixelDataInfo{IntentionallySkipped: true}}, nil
 	}
 
-	if r.opts.skipTags.Contains(&tag.PixelData) {
+	if r.opts.skipProcessingPixelDataValue {
 		val := &pixelDataValue{PixelDataInfo{IntentionallyUnprocessed: true}}
 		val.PixelDataInfo.UnprocessedValueData = make([]byte, vl)
 		_, err := io.ReadFull(r.rawReader, val.PixelDataInfo.UnprocessedValueData)

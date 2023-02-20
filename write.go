@@ -662,10 +662,8 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 		return ErrorOWRequiresEvenVL
 	}
 	bo, _ := w.GetTransferSyntax()
-	r, err := dicomio.NewReader(bufio.NewReader(bytes.NewBuffer(data)), bo, int64(len(data)))
-	if err != nil {
-		return err
-	}
+	r := dicomio.NewReader(bufio.NewReader(bytes.NewBuffer(data)), bo, int64(len(data)))
+
 	for i := 0; i < int(len(data)/2); i++ {
 		v, err := r.ReadUInt16()
 		if err != nil {

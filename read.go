@@ -127,7 +127,59 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 	default:
 		return r.readString(t, vr, vl)
 	}
+}
 
+// readHeader reads the DICOM magic header and group two metadata elements.
+// This should only be called once per DICOM at the start of parsing.
+func (r *reader) readHeader() ([]*Element, error) {
+	// Check to see if magic word is at byte offset 128. If not, this is a
+	// non-standard non-compliant DICOM. We try to read this DICOM in a
+	// compatibility mode, where we rewind to position 0 and blindly attempt to
+	// parse a Dataset (and do not parse metadata in the usual way).
+	data, err := r.rawReader.Peek(128 + 4)
+	if err != nil {
+		return nil, err
+	}
+	if string(data[128:]) != magicWord {
+		return nil, nil
+	}
+
+	err = r.rawReader.Skip(128 + 4) // skip preamble + magic word
+	if err != nil {
+		return nil, err
+	}
+
+	// Must read metadata as LittleEndian explicit VR
+	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
+	maybeMetaLen, err := r.readElement(nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
+		return nil, ErrorMetaElementGroupLength
+	}
+
+	metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
+
+	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
+
+	// Read the metadata elements
+	err = r.rawReader.PushLimit(int64(metaLen))
+	if err != nil {
+		return nil, err
+	}
+	defer r.rawReader.PopLimit()
+	for !r.rawReader.IsLimitExhausted() {
+		elem, err := r.readElement(nil, nil)
+		if err != nil {
+			// TODO: see if we can skip over malformed elements somehow
+			return nil, err
+		}
+		// log.Printf("Metadata Element: %s\n", elem)
+		metaElems = append(metaElems, elem)
+	}
+	return metaElems, nil
 }
 
 func (r *reader) readPixelData(t tag.Tag, vr string, vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,

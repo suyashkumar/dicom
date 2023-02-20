@@ -225,7 +225,6 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 	}
 
 	if r.opts.skipPixelData {
-		log.Println("skip pixeldata")
 		// If we're here, it means the VL isn't undefined length, so we should
 		// be able to safely skip the native PixelData.
 		if err := r.rawReader.Skip(int64(vl)); err != nil {
@@ -777,43 +776,6 @@ func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 		return data, false, nil
 	}
 	return nil, false, nil
-}
-
-func (r *reader) skipRawItem() (bool, error) {
-	t, err := r.readTag()
-	if err != nil {
-		return true, err
-	}
-	// Item is always encoded implicit. PS3.6 7.5
-	vr, err := r.readVR(true, *t)
-	if err != nil {
-		return true, err
-	}
-	vl, err := r.readVL(true, *t, vr)
-	if err != nil {
-		return true, err
-	}
-
-	if *t == tag.SequenceDelimitationItem {
-		if vl != 0 {
-			log.Printf("SequenceDelimitationItem's VL != 0: %d", vl)
-		}
-		return true, nil
-	}
-
-	if *t != tag.Item {
-		log.Printf("Expect Item in pixeldata but found tag %s", tag.DebugString(*t))
-		return false, nil
-	}
-	if vl == tag.VLUndefinedLength {
-		log.Println("Expect defined-length item in pixeldata")
-		return false, nil
-	}
-	if vr != "NA" {
-		return true, fmt.Errorf("readRawItem: expected VR=NA, got VR=%s", vr)
-	}
-
-	return false, nil
 }
 
 // moreToRead returns true if there is more to read from the underlying dicom.

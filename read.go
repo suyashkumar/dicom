@@ -760,3 +760,8 @@ func (r *reader) readRawItem() ([]byte, bool, error) {
 	}
 	return data, false, nil
 }
+
+// moreToRead returns true if there is more to read from the underlying dicom.
+func (r *reader) moreToRead() bool {
+	return !r.rawReader.IsLimitExhausted()
+}

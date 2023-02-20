@@ -161,7 +161,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 
 // Next parses and returns the next top-level element from the DICOM this Parser points to.
 func (p *Parser) Next() (*Element, error) {
-	if p.reader.rawReader.IsLimitExhausted() {
+	if !p.reader.moreToRead() {
 		// Close the frameChannel if needed
 		if p.frameChannel != nil {
 			close(p.frameChannel)

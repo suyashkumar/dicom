@@ -33,9 +33,19 @@ var (
 	ErrorExpectedEvenLength       = errors.New("field length is not even, in violation of DICOM spec")
 )
 
-func readTag(r dicomio.Reader) (*tag.Tag, error) {
-	group, gerr := r.ReadUInt16()
-	element, eerr := r.ReadUInt16()
+// reader is responsible for mid-level dicom parsing capabilities, like
+// reading tags, VRs, and elements from the low-level dicomio.Reader dicom data.
+// TODO(suyashkumar): consider revisiting naming of this struct "reader" as it
+// interplays with the rawReader dicomio.Reader. We could consider combining
+// them, or embedding the dicomio.Reader struct into reader.
+type reader struct {
+	rawReader dicomio.Reader
+	opts      parseOptSet
+}
+
+func (r *reader) readTag() (*tag.Tag, error) {
+	group, gerr := r.rawReader.ReadUInt16()
+	element, eerr := r.rawReader.ReadUInt16()
 
 	if gerr == nil && eerr == nil {
 		return &tag.Tag{Group: group, Element: element}, nil
@@ -44,7 +54,7 @@ func readTag(r dicomio.Reader) (*tag.Tag, error) {
 }
 
 // TODO: Parsed VR should be an enum. Will require refactors of tag pkg.
-func readVR(r dicomio.Reader, isImplicit bool, t tag.Tag) (string, error) {
+func (r *reader) readVR(isImplicit bool, t tag.Tag) (string, error) {
 	if isImplicit {
 		if entry, err := tag.Find(t); err == nil {
 			return entry.VR, nil
@@ -53,13 +63,13 @@ func readVR(r dicomio.Reader, isImplicit bool, t tag.Tag) (string, error) {
 	}
 
 	// Explicit Transfer Syntax, read 2 byte VR:
-	return r.ReadString(2)
+	return r.rawReader.ReadString(2)
 
 }
 
-func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, error) {
+func (r *reader) readVL(isImplicit bool, t tag.Tag, vr string) (uint32, error) {
 	if isImplicit {
-		return r.ReadUInt32()
+		return r.rawReader.ReadUInt32()
 	}
 
 	// Explicit Transfer Syntax
@@ -70,8 +80,8 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 		vrraw.OtherLong, vrraw.OtherWord, vrraw.Sequence, vrraw.Unknown,
 		vrraw.UnlimitedCharacters, vrraw.UniversalResourceIdentifier,
 		vrraw.UnlimitedText:
-		_ = r.Skip(2) // ignore two reserved bytes (0000H)
-		vl, err := r.ReadUInt32()
+		_ = r.rawReader.Skip(2) // ignore two reserved bytes (0000H)
+		vl, err := r.rawReader.ReadUInt32()
 		if err != nil {
 			return 0, err
 		}
@@ -84,7 +94,7 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 		}
 		return vl, nil
 	default:
-		vl16, err := r.ReadUInt16()
+		vl16, err := r.rawReader.ReadUInt16()
 		if err != nil {
 			return 0, err
 		}
@@ -97,46 +107,98 @@ func readVL(r dicomio.Reader, isImplicit bool, t tag.Tag, vr string) (uint32, er
 	}
 }
 
-func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit bool, d *Dataset, fc chan<- *frame.Frame) (Value, error) {
+func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *Dataset, fc chan<- *frame.Frame) (Value, error) {
 	vrkind := tag.GetVRKind(t, vr)
 	// TODO: if we keep consistent function signature, consider a static map of VR to func?
 	switch vrkind {
 	case tag.VRBytes:
-		return readBytes(r, t, vr, vl)
+		return r.readBytes(t, vr, vl)
 	case tag.VRString:
-		return readString(r, t, vr, vl)
+		return r.readString(t, vr, vl)
 	case tag.VRDate:
-		return readDate(r, t, vr, vl)
+		return r.readDate(t, vr, vl)
 	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List, tag.VRTagList:
-		return readInt(r, t, vr, vl)
+		return r.readInt(t, vr, vl)
 	case tag.VRSequence:
-		return readSequence(r, t, vr, vl, d)
+		return r.readSequence(t, vr, vl, d)
 	case tag.VRItem:
-		return readSequenceItem(r, t, vr, vl, d)
+		return r.readSequenceItem(t, vr, vl, d)
 	case tag.VRPixelData:
-		return readPixelData(r, t, vr, vl, d, fc)
+		return r.readPixelData(t, vr, vl, d, fc)
 	case tag.VRFloat32List, tag.VRFloat64List:
-		return readFloat(r, t, vr, vl)
+		return r.readFloat(t, vr, vl)
 	default:
-		return readString(r, t, vr, vl)
+		return r.readString(t, vr, vl)
 	}
-
 }
 
-func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,
+// readHeader reads the DICOM magic header and group two metadata elements.
+// This should only be called once per DICOM at the start of parsing.
+func (r *reader) readHeader() ([]*Element, error) {
+	// Check to see if magic word is at byte offset 128. If not, this is a
+	// non-standard non-compliant DICOM. We try to read this DICOM in a
+	// compatibility mode, where we rewind to position 0 and blindly attempt to
+	// parse a Dataset (and do not parse metadata in the usual way).
+	data, err := r.rawReader.Peek(128 + 4)
+	if err != nil {
+		return nil, err
+	}
+	if string(data[128:]) != magicWord {
+		return nil, nil
+	}
+
+	err = r.rawReader.Skip(128 + 4) // skip preamble + magic word
+	if err != nil {
+		return nil, err
+	}
+
+	// Must read metadata as LittleEndian explicit VR
+	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
+	maybeMetaLen, err := r.readElement(nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
+		return nil, ErrorMetaElementGroupLength
+	}
+
+	metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
+
+	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
+
+	// Read the metadata elements
+	err = r.rawReader.PushLimit(int64(metaLen))
+	if err != nil {
+		return nil, err
+	}
+	defer r.rawReader.PopLimit()
+	for !r.rawReader.IsLimitExhausted() {
+		elem, err := r.readElement(nil, nil)
+		if err != nil {
+			// TODO: see if we can skip over malformed elements somehow
+			return nil, err
+		}
+		// log.Printf("Metadata Element: %s\n", elem)
+		metaElems = append(metaElems, elem)
+	}
+	return metaElems, nil
+}
+
+func (r *reader) readPixelData(t tag.Tag, vr string, vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,
 	error) {
 	if vl == tag.VLUndefinedLength {
 		var image PixelDataInfo
 		image.IsEncapsulated = true
 		// The first Item in PixelData is the basic offset table. Skip this for now.
 		// TODO: use basic offset table
-		_, _, err := readRawItem(r)
+		_, _, err := r.readRawItem()
 		if err != nil {
 			return nil, err
 		}
 
-		for !r.IsLimitExhausted() {
-			data, endOfItems, err := readRawItem(r)
+		for !r.rawReader.IsLimitExhausted() {
+			data, endOfItems, err := r.readRawItem()
 			if err != nil {
 				break
 			}
@@ -167,7 +229,7 @@ func readPixelData(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset
 		return nil, errors.New("the Dataset context cannot be nil in order to read Native PixelData")
 	}
 
-	i, _, err := readNativeFrames(r, d, fc, vl)
+	i, _, err := r.readNativeFrames(d, fc, vl)
 
 	if err != nil {
 		return nil, err
@@ -246,7 +308,7 @@ func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, par
 
 // readNativeFrames reads NativeData frames from a Decoder based on already parsed pixel information
 // that should be available in parsedData (elements like NumberOfFrames, rows, columns, etc)
-func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Frame, vl uint32) (pixelData *PixelDataInfo,
+func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, vl uint32) (pixelData *PixelDataInfo,
 	bytesToRead int, err error) {
 	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
 	rows, err := parsedData.FindElementByTag(tag.Rows)
@@ -303,10 +365,10 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 			return nil, 0, fmt.Errorf("vl=%d: %w", vl, ErrorExpectedEvenLength)
 		default:
 			// calculated bytesToRead and actual VL mismatch
-			if !parsedData.opts.allowMismatchPixelDataLength {
+			if !r.opts.allowMismatchPixelDataLength {
 				return nil, 0, fmt.Errorf("expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
 			}
-			image, err := makeErrorPixelData(d, vl, fc, ErrorMismatchPixelDataLength)
+			image, err := makeErrorPixelData(r.rawReader, vl, fc, ErrorMismatchPixelDataLength)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -319,7 +381,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		IsEncapsulated: false,
 	}
 	image.Frames = make([]frame.Frame, nFrames)
-	bo := d.ByteOrder()
+	bo := r.rawReader.ByteOrder()
 	pixelBuf := make([]byte, bytesAllocated)
 	for frameIdx := 0; frameIdx < nFrames; frameIdx++ {
 		// Init current frame
@@ -334,7 +396,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		}
 		buf := make([]int, pixelsPerFrame*samplesPerPixel)
 		if bitsAllocated == 1 {
-			if err := fillBufferSingleBitAllocated(buf, d, bo); err != nil {
+			if err := fillBufferSingleBitAllocated(buf, r.rawReader, bo); err != nil {
 				return nil, bytesToRead, err
 			}
 			for pixel := 0; pixel < pixelsPerFrame; pixel++ {
@@ -345,7 +407,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		} else {
 			for pixel := 0; pixel < pixelsPerFrame; pixel++ {
 				for value := 0; value < samplesPerPixel; value++ {
-					_, err := io.ReadFull(d, pixelBuf)
+					_, err := io.ReadFull(r.rawReader, pixelBuf)
 					if err != nil {
 						return nil, bytesToRead,
 							fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
@@ -369,7 +431,7 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 		}
 	}
 	if skipFinalPaddingByte {
-		err := d.Skip(1)
+		err := r.rawReader.Skip(1)
 		if err != nil {
 			return nil, bytesToRead, fmt.Errorf("could not read padding byte: %w", err)
 		}
@@ -381,13 +443,13 @@ func readNativeFrames(d dicomio.Reader, parsedData *Dataset, fc chan<- *frame.Fr
 // readSequence reads a sequence element (VR = SQ) that contains a subset of Items. Each item contains
 // a set of Elements.
 // See https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.2.html#table_7.5-1
-func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset) (Value, error) {
+func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Value, error) {
 	var sequences sequencesValue
 
-	seqElements := &Dataset{opts: d.opts}
+	seqElements := &Dataset{}
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElement, err := readElement(r, seqElements, nil)
+			subElement, err := r.readElement(seqElements, nil)
 			if err != nil {
 				// Stop reading due to error
 				log.Println("error reading subitem, ", err)
@@ -409,12 +471,12 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset)
 		}
 	} else {
 		// Sequence of elements for a total of VL bytes
-		err := r.PushLimit(int64(vl))
+		err := r.rawReader.PushLimit(int64(vl))
 		if err != nil {
 			return nil, err
 		}
-		for !r.IsLimitExhausted() {
-			subElement, err := readElement(r, seqElements, nil)
+		for !r.rawReader.IsLimitExhausted() {
+			subElement, err := r.readElement(seqElements, nil)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, err
@@ -423,7 +485,7 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset)
 			// Append the Item element's dataset of elements to this Sequence's sequencesValue.
 			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
 		}
-		r.PopLimit()
+		r.rawReader.PopLimit()
 	}
 
 	return &sequences, nil
@@ -431,16 +493,16 @@ func readSequence(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset)
 
 // readSequenceItem reads an item component of a sequence dicom element and returns an Element
 // with a SequenceItem value.
-func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Dataset) (Value, error) {
+func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (Value, error) {
 	var sequenceItem SequenceItemValue
 
-	// seqElements holds items read so far.
+	// seqElements holds items read so farawReader.
 	// TODO: deduplicate with sequenceItem above
-	seqElements := Dataset{opts: d.opts}
+	seqElements := Dataset{}
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElem, err := readElement(r, &seqElements, nil)
+			subElem, err := r.readElement(&seqElements, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -452,13 +514,13 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Data
 			seqElements.Elements = append(seqElements.Elements, subElem)
 		}
 	} else {
-		err := r.PushLimit(int64(vl))
+		err := r.rawReader.PushLimit(int64(vl))
 		if err != nil {
 			return nil, err
 		}
 
-		for !r.IsLimitExhausted() {
-			subElem, err := readElement(r, &seqElements, nil)
+		for !r.rawReader.IsLimitExhausted() {
+			subElem, err := r.readElement(&seqElements, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -466,17 +528,17 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32, d *Data
 			sequenceItem.elements = append(sequenceItem.elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
 		}
-		r.PopLimit()
+		r.rawReader.PopLimit()
 	}
 
 	return &sequenceItem, nil
 }
 
-func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add special handling of PixelData
 	if vr == vrraw.OtherByte || vr == vrraw.Unknown {
 		data := make([]byte, vl)
-		_, err := io.ReadFull(r, data)
+		_, err := io.ReadFull(r.rawReader, data)
 		return &bytesValue{value: data}, err
 	} else if vr == vrraw.OtherWord {
 		// OW -> stream of 16 bit words
@@ -487,7 +549,7 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 		buf := bytes.NewBuffer(make([]byte, 0, vl))
 		numWords := int(vl / 2)
 		for i := 0; i < numWords; i++ {
-			word, err := r.ReadUInt16()
+			word, err := r.rawReader.ReadUInt16()
 			if err != nil {
 				return nil, err
 			}
@@ -503,8 +565,8 @@ func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 	return nil, ErrorUnsupportedVR
 }
 
-func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
-	str, err := r.ReadString(vl)
+func (r *reader) readString(t tag.Tag, vr string, vl uint32) (Value, error) {
+	str, err := r.rawReader.ReadString(vl)
 	onlySpaces := true
 	for _, char := range str {
 		if !unicode.IsSpace(char) {
@@ -521,16 +583,16 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 	return &stringsValue{value: strs}, err
 }
 
-func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
-	err := r.PushLimit(int64(vl))
+func (r *reader) readFloat(t tag.Tag, vr string, vl uint32) (Value, error) {
+	err := r.rawReader.PushLimit(int64(vl))
 	if err != nil {
 		return nil, err
 	}
 	retVal := &floatsValue{value: make([]float64, 0, vl/2)}
-	for !r.IsLimitExhausted() {
+	for !r.rawReader.IsLimitExhausted() {
 		switch vr {
 		case vrraw.FloatingPointSingle:
-			val, err := r.ReadFloat32()
+			val, err := r.rawReader.ReadFloat32()
 			if err != nil {
 				return nil, err
 			}
@@ -544,7 +606,7 @@ func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 			retVal.value = append(retVal.value, pval)
 			break
 		case vrraw.FloatingPointDouble:
-			val, err := r.ReadFloat64()
+			val, err := r.rawReader.ReadFloat64()
 			if err != nil {
 				return nil, err
 			}
@@ -554,12 +616,12 @@ func readFloat(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error)
 			return nil, errorUnableToParseFloat
 		}
 	}
-	r.PopLimit()
+	r.rawReader.PopLimit()
 	return retVal, nil
 }
 
-func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
-	rawDate, err := r.ReadString(vl)
+func (r *reader) readDate(t tag.Tag, vr string, vl uint32) (Value, error) {
+	rawDate, err := r.rawReader.ReadString(vl)
 	if err != nil {
 		return nil, err
 	}
@@ -569,38 +631,38 @@ func readDate(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) 
 
 }
 
-func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
+func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add other integer types here
-	err := r.PushLimit(int64(vl))
+	err := r.rawReader.PushLimit(int64(vl))
 	if err != nil {
 		return nil, err
 	}
 	retVal := &intsValue{value: make([]int, 0, vl/2)}
-	for !r.IsLimitExhausted() {
+	for !r.rawReader.IsLimitExhausted() {
 		switch vr {
 		case vrraw.UnsignedShort, vrraw.AttributeTag:
-			val, err := r.ReadUInt16()
+			val, err := r.rawReader.ReadUInt16()
 			if err != nil {
 				return nil, err
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
 		case vrraw.UnsignedLong:
-			val, err := r.ReadUInt32()
+			val, err := r.rawReader.ReadUInt32()
 			if err != nil {
 				return nil, err
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
 		case vrraw.SignedLong:
-			val, err := r.ReadInt32()
+			val, err := r.rawReader.ReadInt32()
 			if err != nil {
 				return nil, err
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
 		case vrraw.SignedShort:
-			val, err := r.ReadInt16()
+			val, err := r.rawReader.ReadInt16()
 			if err != nil {
 				return nil, err
 			}
@@ -610,7 +672,7 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 			return nil, errors.New("unable to parse integer type")
 		}
 	}
-	r.PopLimit()
+	r.rawReader.PopLimit()
 	return retVal, err
 }
 
@@ -619,32 +681,32 @@ func readInt(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 // elements read so far, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.
-func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
-	t, err := readTag(r)
+func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
+	t, err := r.readTag()
 	if err != nil {
 		return nil, err
 	}
 	debug.Logf("readElement: tag: %s", t.String())
 
-	readImplicit := r.IsImplicit()
+	readImplicit := r.rawReader.IsImplicit()
 	if *t == tag.Item {
 		// Always read implicit for item elements
 		readImplicit = true
 	}
 
-	vr, err := readVR(r, readImplicit, *t)
+	vr, err := r.readVR(readImplicit, *t)
 	if err != nil {
 		return nil, err
 	}
 	debug.Logf("readElement: vr: %s", vr)
 
-	vl, err := readVL(r, readImplicit, *t, vr)
+	vl, err := r.readVL(readImplicit, *t, vr)
 	if err != nil {
 		return nil, err
 	}
 	debug.Logf("readElement: vl: %d", vl)
 
-	val, err := readValue(r, *t, vr, vl, readImplicit, d, fc)
+	val, err := r.readValue(*t, vr, vl, readImplicit, d, fc)
 	if err != nil {
 		log.Println("error reading value ", err)
 		return nil, err
@@ -656,18 +718,18 @@ func readElement(r dicomio.Reader, d *Dataset, fc chan<- *frame.Frame) (*Element
 
 // Read an Item object as raw bytes, useful when parsing encapsulated PixelData.
 // This returns the read raw item, an indication if this is the end of the set
-// of items, and a possible error.
-func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
-	t, err := readTag(r)
+// of items, and a possible errorawReader.
+func (r *reader) readRawItem() ([]byte, bool, error) {
+	t, err := r.readTag()
 	if err != nil {
 		return nil, true, err
 	}
 	// Item is always encoded implicit. PS3.6 7.5
-	vr, err := readVR(r, true, *t)
+	vr, err := r.readVR(true, *t)
 	if err != nil {
 		return nil, true, err
 	}
-	vl, err := readVL(r, true, *t, vr)
+	vl, err := r.readVL(true, *t, vr)
 	if err != nil {
 		return nil, true, err
 	}
@@ -691,10 +753,15 @@ func readRawItem(r dicomio.Reader) ([]byte, bool, error) {
 	}
 
 	data := make([]byte, vl)
-	_, err = io.ReadFull(r, data)
+	_, err = io.ReadFull(r.rawReader, data)
 	if err != nil {
 		log.Println(err)
 		return nil, false, err
 	}
 	return data, false, nil
+}
+
+// moreToRead returns true if there is more to read from the underlying dicom.
+func (r *reader) moreToRead() bool {
+	return !r.rawReader.IsLimitExhausted()
 }

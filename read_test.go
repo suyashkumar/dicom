@@ -45,12 +45,11 @@ func TestReadTag(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			data := bytes.NewBuffer(tc.data)
-			r, err := dicomio.NewReader(bufio.NewReader(data), binary.LittleEndian, int64(data.Len()))
-			if err != nil {
-				t.Errorf("TestReadTag: unable to create new dicomio.Reader")
-			}
 
-			gotTag, err := readTag(r)
+			r := &reader{
+				rawReader: dicomio.NewReader(bufio.NewReader(data), binary.LittleEndian, int64(data.Len())),
+			}
+			gotTag, err := r.readTag()
 			if err != tc.wantErr {
 				t.Errorf("TestReadTag: unexpected err. got: %v, want: %v", err, tc.wantErr)
 			}
@@ -96,12 +95,10 @@ func TestReadFloat_float64(t *testing.T) {
 				}
 			}
 
-			r, err := dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))
-			if err != nil {
-				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
+			r := &reader{
+				rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len())),
 			}
-
-			got, err := readFloat(r, tag.Tag{}, tc.VR, uint32(data.Len()))
+			got, err := r.readFloat(tag.Tag{}, tc.VR, uint32(data.Len()))
 			if err != tc.expectedErr {
 				t.Fatalf("readFloat(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
@@ -145,12 +142,10 @@ func TestReadFloat_float32(t *testing.T) {
 				}
 			}
 
-			r, err := dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))
-			if err != nil {
-				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
+			r := &reader{
+				rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len())),
 			}
-
-			got, err := readFloat(r, tag.Tag{}, tc.VR, uint32(data.Len()))
+			got, err := r.readFloat(tag.Tag{}, tc.VR, uint32(data.Len()))
 			if err != tc.expectedErr {
 				t.Fatalf("readFloat(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
@@ -199,12 +194,8 @@ func TestReadOWBytes(t *testing.T) {
 				t.Errorf("TestReadOWBytes: Unable to setup test buffer")
 			}
 
-			r, err := dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))
-			if err != nil {
-				t.Errorf("TestReadOWBytes: unable to create new dicomio.Reader")
-			}
-
-			got, err := readBytes(r, tag.Tag{}, tc.VR, uint32(data.Len()))
+			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))}
+			got, err := r.readBytes(tag.Tag{}, tc.VR, uint32(data.Len()))
 			if err != tc.expectedErr {
 				t.Fatalf("readBytes(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
@@ -224,6 +215,7 @@ func TestReadNativeFrames(t *testing.T) {
 		expectedPixelData *PixelDataInfo
 		expectedError     error
 		pixelVLOverride   uint32
+		parseOptSet       parseOptSet
 	}{
 		{
 			Name: "5x5, 1 frame, 1 samples/pixel",
@@ -364,7 +356,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
-			}, opts: parseOptSet{allowMismatchPixelDataLength: true}},
+			}},
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
 				ParseErr: ErrorMismatchPixelDataLength,
@@ -376,6 +368,7 @@ func TestReadNativeFrames(t *testing.T) {
 					},
 				},
 			},
+			parseOptSet:   parseOptSet{allowMismatchPixelDataLength: true},
 			expectedError: nil,
 		},
 		{
@@ -531,18 +524,18 @@ func TestReadNativeFrames(t *testing.T) {
 				}
 			}
 
-			r, err := dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len()))
-			if err != nil {
-				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
-			}
-
 			var vl uint32
 			if tc.pixelVLOverride > 0 {
 				vl = tc.pixelVLOverride
 			} else {
 				vl = uint32(dcmdata.Len())
 			}
-			pixelData, bytesRead, err := readNativeFrames(r, &tc.existingData, nil, vl)
+
+			r := &reader{
+				rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
+				opts:      tc.parseOptSet,
+			}
+			pixelData, bytesRead, err := r.readNativeFrames(&tc.existingData, nil, vl)
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
 			}
@@ -635,12 +628,9 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				}
 			}
 
-			r, err := dicomio.NewReader(bufio.NewReader(&dcmdata), tc.byteOrder, int64(dcmdata.Len()))
-			if err != nil {
-				t.Errorf("TestReadFloat: unable to create new dicomio.Reader")
-			}
+			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), tc.byteOrder, int64(dcmdata.Len()))}
 
-			pixelData, _, err := readNativeFrames(r, &tc.existingData, nil, uint32(dcmdata.Len()))
+			pixelData, _, err := r.readNativeFrames(&tc.existingData, nil, uint32(dcmdata.Len()))
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
 			}
@@ -691,10 +681,11 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 	}
 	for _, c := range cases {
 		b.Run(c.Name, func(b *testing.B) {
-			dataset, r := buildReadNativeFramesInput(c.Rows, c.Cols, c.NumFrames, c.SamplesPerPixel, b)
+			dataset, rawReader := buildReadNativeFramesInput(c.Rows, c.Cols, c.NumFrames, c.SamplesPerPixel, b)
+			r := &reader{rawReader: rawReader}
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _, _ = readNativeFrames(r, dataset, nil, uint32(c.Rows*c.Cols*c.NumFrames))
+				_, _, _ = r.readNativeFrames(dataset, nil, uint32(c.Rows*c.Cols*c.NumFrames))
 			}
 		})
 	}
@@ -723,12 +714,8 @@ func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *t
 			}
 		}
 	}
-	r, err := dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len()))
-	if err != nil {
-		b.Errorf("buildReadNativeFramesInput: unable to create new dicomio.Reader")
-	}
 
-	return &dataset, r
+	return &dataset, dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len()))
 }
 
 func buildTagData(t *testing.T, tg tag.Tag) []byte {

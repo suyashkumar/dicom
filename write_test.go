@@ -34,6 +34,7 @@ func TestWrite(t *testing.T) {
 		extraElems    []*Element
 		expectedError error
 		opts          []WriteOption
+		parseOpts     []ParseOption
 		cmpOpts       []cmp.Option
 	}{
 		{
@@ -441,6 +442,20 @@ func TestWrite(t *testing.T) {
 			}},
 			expectedError: nil,
 		},
+		{
+			name: "PixelData with IntentionallyUnprocessed=true",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+				makeUnprocessedPixelData(),
+			}},
+			parseOpts:     []ParseOption{TrySkipProcessingElementValue(&tag.PixelData)},
+			expectedError: nil,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -464,7 +479,7 @@ func TestWrite(t *testing.T) {
 					t.Fatalf("Unexpected error state file: %s: %v", file.Name(), err)
 				}
 
-				readDS, err := Parse(f, info.Size(), nil)
+				readDS, err := Parse(f, info.Size(), nil, tc.parseOpts...)
 				if err != nil {
 					t.Errorf("Parse of written file, unexpected error: %v", err)
 				}
@@ -719,4 +734,13 @@ func TestWriteElement(t *testing.T) {
 			t.Errorf("unexpected diff in element: %s", diff)
 		}
 	}
+}
+
+func makeUnprocessedPixelData() *Element {
+	elem := mustNewElement(tag.PixelData, PixelDataInfo{
+		IntentionallyUnprocessed: true,
+		UnprocessedValueData:     []byte{1, 2, 3, 4},
+		IsEncapsulated:           false,
+	})
+	return elem
 }

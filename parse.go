@@ -113,7 +113,6 @@ type Parser struct {
 // provided).
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, opts ...ParseOption) (*Parser, error) {
 	optSet := toParseOptSet(opts...)
-
 	p := Parser{
 		reader: &reader{
 			rawReader: dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead),
@@ -211,6 +210,7 @@ type parseOptSet struct {
 	skipMetadataReadOnNewParserInit bool
 	allowMismatchPixelDataLength    bool
 	skipPixelData                   bool
+	skipTags                        tag.Tags
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
@@ -239,8 +239,30 @@ func SkipMetadataReadOnNewParserInit() ParseOption {
 // SkipPixelData skips parsing/processing the PixelData tag, wherever it appears
 // (e.g. even if within an IconSequence). A PixelDataInfo will be added to the
 // Dataset with the IntentionallySkipped property set to true.
+// Use this option if you don't need the PixelData value to be in the Dataset
+// at all, and want to save both CPU and Memory. If you need the PixelData value
+// in the Dataset (e.g. so it can be written out identically later) but _don't_
+// want to process/parse the value, see the TrySkipProcessingElementValue option
+// below.
 func SkipPixelData() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipPixelData = true
+	}
+}
+
+// TrySkipProcessingElementValue will attempt to skip processing the _value_
+// of the Elements identified by the passed in tags. This means the Elements
+// will still be present in the Dataset, and can be written back out via this
+// library's write functionality. But, if possible, the value will be read in
+// as raw bytes with no further processing instead of being parsed. In the
+// future, we may be able to extend this functionality to support on-demand
+// processing of only Tag values of interest or offer an inverse to this
+// option (e.g. ProcessOnlyElements(tags ...tag.Tag)).
+//
+// Important note: for now, this will only support PixelData, since that is
+// likely the largest CPU allocation during processing a DICOM.
+func TrySkipProcessingElementValue(tags ...*tag.Tag) ParseOption {
+	return func(set *parseOptSet) {
+		set.skipTags = tags
 	}
 }

@@ -595,6 +595,32 @@ func TestReadPixelData_SkipPixelData(t *testing.T) {
 	}
 }
 
+func TestReadPixelData_TrySkipProcessingElementValue(t *testing.T) {
+	opts := parseOptSet{skipTags: []*tag.Tag{&tag.PixelData}}
+	valueBytes := []byte{1, 2, 3, 4, 5, 6}
+	dcmdata := bytes.NewBuffer(valueBytes)
+
+	r := &reader{
+		rawReader: dicomio.NewReader(bufio.NewReader(dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
+		opts:      opts,
+	}
+	val, err := r.readPixelData(6, &Dataset{}, nil)
+	if err != nil {
+		t.Errorf("unexpected error in readPixelData: %v", err)
+	}
+	pixelVal, ok := val.GetValue().(PixelDataInfo)
+	if !ok {
+		t.Errorf("Expected value to be of type PixelDataInfo")
+	}
+	if !pixelVal.IntentionallyUnprocessed {
+		t.Errorf("Expected PixelDataInfo to have IntentionallyUnprocessed=true")
+	}
+	if !cmp.Equal(pixelVal.UnprocessedValueData, valueBytes) {
+		t.Errorf("expected UnprocessedValueData to match valueBytes. got: %v, want: %v", pixelVal.UnprocessedValueData, valueBytes)
+	}
+
+}
+
 func makeEncapsulatedSequence(t *testing.T) []byte {
 	t.Helper()
 	buf := &bytes.Buffer{}

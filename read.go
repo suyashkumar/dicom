@@ -124,7 +124,7 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 	case tag.VRItem:
 		return r.readSequenceItem(t, vr, vl, d)
 	case tag.VRPixelData:
-		return r.readPixelData(t, vr, vl, d, fc)
+		return r.readPixelData(vl, d, fc)
 	case tag.VRFloat32List, tag.VRFloat64List:
 		return r.readFloat(t, vr, vl)
 	default:
@@ -185,20 +185,20 @@ func (r *reader) readHeader() ([]*Element, error) {
 	return metaElems, nil
 }
 
-func (r *reader) readPixelData(t tag.Tag, vr string, vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,
+func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,
 	error) {
 	if vl == tag.VLUndefinedLength {
 		var image PixelDataInfo
 		image.IsEncapsulated = true
 		// The first Item in PixelData is the basic offset table. Skip this for now.
 		// TODO: use basic offset table
-		_, _, err := r.readRawItem()
+		_, _, err := r.readRawItem(true /*shouldSkip*/)
 		if err != nil {
 			return nil, err
 		}
 
 		for !r.rawReader.IsLimitExhausted() {
-			data, endOfItems, err := r.readRawItem()
+			data, endOfItems, err := r.readRawItem(r.opts.skipPixelData /*shouldSkip*/)
 			if err != nil {
 				break
 			}
@@ -220,7 +220,17 @@ func (r *reader) readPixelData(t tag.Tag, vr string, vl uint32, d *Dataset, fc c
 
 			image.Frames = append(image.Frames, f)
 		}
+		image.IntentionallySkipped = r.opts.skipPixelData
 		return &pixelDataValue{PixelDataInfo: image}, nil
+	}
+
+	if r.opts.skipPixelData {
+		// If we're here, it means the VL isn't undefined length, so we should
+		// be able to safely skip the native PixelData.
+		if err := r.rawReader.Skip(int64(vl)); err != nil {
+			return nil, err
+		}
+		return &pixelDataValue{PixelDataInfo{IntentionallySkipped: true}}, nil
 	}
 
 	// Assume we're reading NativeData data since we have a defined value length as per Part 5 Sec A.4 of DICOM spec.
@@ -719,7 +729,7 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 // Read an Item object as raw bytes, useful when parsing encapsulated PixelData.
 // This returns the read raw item, an indication if this is the end of the set
 // of items, and a possible errorawReader.
-func (r *reader) readRawItem() ([]byte, bool, error) {
+func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 	t, err := r.readTag()
 	if err != nil {
 		return nil, true, err
@@ -752,13 +762,20 @@ func (r *reader) readRawItem() ([]byte, bool, error) {
 		return nil, true, fmt.Errorf("readRawItem: expected VR=NA, got VR=%s", vr)
 	}
 
-	data := make([]byte, vl)
-	_, err = io.ReadFull(r.rawReader, data)
-	if err != nil {
-		log.Println(err)
-		return nil, false, err
+	if shouldSkip {
+		if err := r.rawReader.Skip(int64(vl)); err != nil {
+			return nil, false, err
+		}
+	} else {
+		data := make([]byte, vl)
+		_, err = io.ReadFull(r.rawReader, data)
+		if err != nil {
+			log.Println(err)
+			return nil, false, err
+		}
+		return data, false, nil
 	}
-	return data, false, nil
+	return nil, false, nil
 }
 
 // moreToRead returns true if there is more to read from the underlying dicom.

@@ -69,6 +69,43 @@ func TestNewParserSkipMetadataReadOnNewParserInit(t *testing.T) {
 	}
 }
 
+func TestNewParserSkipPixelData(t *testing.T) {
+	t.Run("WithSkipPixelData", func(t *testing.T) {
+		dataset, err := dicom.ParseFile("./testdata/1.dcm", nil, dicom.SkipPixelData())
+		if err != nil {
+			t.Errorf("Unexpected error parsing dataset: %v", dataset)
+		}
+		el, err := dataset.FindElementByTag(tag.PixelData)
+		if err != nil {
+			t.Errorf("Unexpected error when finding PixelData in Dataset: %v", err)
+		}
+		pixelData := dicom.MustGetPixelDataInfo(el.Value)
+		if !pixelData.IntentionallySkipped {
+			t.Errorf("Expected pixelData.IntentionallySkipped=true, got false")
+		}
+		if got := len(pixelData.Frames); got != 0 {
+			t.Errorf("unexpected frames length. got: %v, want: %v", got, 0)
+		}
+	})
+	t.Run("WithNOSkipPixelData", func(t *testing.T) {
+		dataset, err := dicom.ParseFile("./testdata/1.dcm", nil)
+		if err != nil {
+			t.Errorf("Unexpected error parsing dataset: %v", dataset)
+		}
+		el, err := dataset.FindElementByTag(tag.PixelData)
+		if err != nil {
+			t.Errorf("Unexpected error when finding PixelData in Dataset: %v", err)
+		}
+		pixelData := dicom.MustGetPixelDataInfo(el.Value)
+		if pixelData.IntentionallySkipped {
+			t.Errorf("Expected pixelData.IntentionallySkipped=false when SkipPixelData option not present, got true")
+		}
+		if len(pixelData.Frames) == 0 {
+			t.Errorf("unexpected frames length when SkipPixelData=false. got: %v, want: >0", len(pixelData.Frames))
+		}
+	})
+}
+
 // BenchmarkParse runs sanity benchmarks over the sample files in testdata.
 func BenchmarkParse(b *testing.B) {
 	files, err := ioutil.ReadDir("./testdata")

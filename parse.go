@@ -210,6 +210,7 @@ type ParseOption func(*parseOptSet)
 type parseOptSet struct {
 	skipMetadataReadOnNewParserInit bool
 	allowMismatchPixelDataLength    bool
+	skipPixelData                   bool
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
@@ -232,5 +233,14 @@ func AllowMismatchPixelDataLength() ParseOption {
 func SkipMetadataReadOnNewParserInit() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipMetadataReadOnNewParserInit = true
+	}
+}
+
+// SkipPixelData skips parsing/processing the PixelData tag, wherever it appears
+// (e.g. even if within an IconSequence). A PixelDataInfo will be added to the
+// Dataset with the IntentionallySkipped property set to true.
+func SkipPixelData() ParseOption {
+	return func(set *parseOptSet) {
+		set.skipPixelData = true
 	}
 }

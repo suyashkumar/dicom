@@ -502,6 +502,7 @@ func TestReadNativeFrames(t *testing.T) {
 	}
 
 	for _, tc := range cases {
+		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			dcmdata := bytes.Buffer{}
 			var expectedBytes int
@@ -535,6 +536,7 @@ func TestReadNativeFrames(t *testing.T) {
 				rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
 				opts:      tc.parseOptSet,
 			}
+
 			pixelData, bytesRead, err := r.readNativeFrames(&tc.existingData, nil, vl)
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
@@ -548,6 +550,67 @@ func TestReadNativeFrames(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReadPixelData_SkipPixelData(t *testing.T) {
+	cases := []struct {
+		name string
+		vl   uint32
+		data []byte
+	}{
+		{
+			name: "NativePixelData",
+			vl:   6,
+			data: []byte{1, 2, 3, 4, 5, 6},
+		},
+		{
+			name: "EncapsulatedPixelData",
+			vl:   tag.VLUndefinedLength,
+			data: makeEncapsulatedSequence(t),
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			opts := parseOptSet{skipPixelData: true}
+			dcmdata := bytes.NewBuffer(tc.data)
+
+			r := &reader{
+				rawReader: dicomio.NewReader(bufio.NewReader(dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
+				opts:      opts,
+			}
+			val, err := r.readPixelData(tc.vl, &Dataset{}, nil)
+			if err != nil {
+				t.Errorf("unexpected error in readPixelData: %v", err)
+			}
+			pixelVal, ok := val.GetValue().(PixelDataInfo)
+			if !ok {
+				t.Errorf("Expected value to be of type PixelDataInfo")
+			}
+			if !pixelVal.IntentionallySkipped {
+				t.Errorf("Expected PixelDataInfo to have IntentionallySkipped=true")
+			}
+		})
+	}
+}
+
+func makeEncapsulatedSequence(t *testing.T) []byte {
+	t.Helper()
+	buf := &bytes.Buffer{}
+	w := dicomio.NewWriter(buf, binary.LittleEndian, true)
+
+	writePixelData(w, tag.PixelData, &pixelDataValue{PixelDataInfo{IsEncapsulated: true, Frames: []frame.Frame{
+		{
+			Encapsulated: true,
+			EncapsulatedData: frame.EncapsulatedFrame{
+				Data: []byte{1, 2, 3, 4},
+			},
+		},
+	}}}, "", tag.VLUndefinedLength)
+
+	return buf.Bytes()
+
 }
 
 func TestReadNativeFrames_OneBitAllocated(t *testing.T) {

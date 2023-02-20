@@ -56,7 +56,7 @@ func (e *Element) String() string {
 //			// or
 //			s := myvalue.GetValue().([]string)
 //			break;
-// 		case dicom.Bytes:
+//		case dicom.Bytes:
 //			// ...
 //	}
 //
@@ -296,7 +296,11 @@ func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 
 // PixelDataInfo is a representation of DICOM PixelData.
 type PixelDataInfo struct {
-	Frames []frame.Frame
+	// IntentionallySkipped indicates if parsing/processing this PixelData tag
+	// was intentionally skipped. This is likely true if the dicom.SkipPixelData
+	// option was set. If true, the rest of this PixelDataInfo will be empty.
+	IntentionallySkipped bool
+	Frames               []frame.Frame
 	// ParseErr indicates if there was an error when reading this Frame from the DICOM.
 	// If this is set, this means fallback behavior was triggered to blindly write the PixelData bytes to an encapsulated frame.
 	// The ParseErr will contain details about the specific error encountered.

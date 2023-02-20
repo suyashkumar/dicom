@@ -548,6 +548,7 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
+
 	if vl == tag.VLUndefinedLength {
 		if err := writeBasicOffsetTable(w, image.Offsets); err != nil {
 			return err
@@ -562,6 +563,9 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 			return err
 		}
 	} else {
+		if image.IntentionallySkipped {
+			return nil
+		}
 		// For now, IntentionallyUnprocessed will only happen for Native
 		// PixelData.
 		if image.IntentionallyUnprocessed {

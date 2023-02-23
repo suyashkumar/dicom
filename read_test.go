@@ -792,6 +792,7 @@ func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *t
 		},
 	}
 	dcmdata := bytes.Buffer{}
+	dcmdata.Grow(2 * numFrames * rows * cols * samplesPerPixel)
 	for fr := 0; fr < numFrames; fr++ {
 		for r := 0; r < rows; r++ {
 			for c := 0; c < cols; c++ {

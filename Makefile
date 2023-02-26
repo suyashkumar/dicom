@@ -36,6 +36,10 @@ release:
 	tar -zcvf ${BINARY}-darwin-amd64.tar.gz ${BINARY}-darwin-amd64; \
 	zip -r ${BINARY}-windows-amd64.exe.zip ${BINARY}-windows-amd64.exe;
 
+.PHONY: bench
+bench:
+	go test -bench . -benchmem -benchtime=10x 
+
 bench-diff:
 	go test -bench . -benchmem -benchtime=10x -count 5 > bench_current.txt
 	git checkout main

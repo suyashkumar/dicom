@@ -153,30 +153,53 @@ func TestParseFile_SkipProcessingPixelDataValue(t *testing.T) {
 
 // BenchmarkParse runs sanity benchmarks over the sample files in testdata.
 func BenchmarkParse(b *testing.B) {
-	files, err := ioutil.ReadDir("./testdata")
-	if err != nil {
-		b.Fatalf("unable to read testdata/: %v", err)
+	cases := []struct {
+		name string
+		opts []dicom.ParseOption
+	}{
+		{
+			name: "NoOptions",
+		},
+		{
+			name: "SkipPixelData",
+			opts: []dicom.ParseOption{dicom.SkipPixelData()},
+		},
+		{
+			name: "SkipProcessingPixelDataValue",
+			opts: []dicom.ParseOption{dicom.SkipProcessingPixelDataValue()},
+		},
 	}
-	for _, f := range files {
-		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
-			b.Run(f.Name(), func(b *testing.B) {
-				dcm, err := os.Open("./testdata/" + f.Name())
-				if err != nil {
-					b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
-				}
-				defer dcm.Close()
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			files, err := ioutil.ReadDir("./testdata")
+			if err != nil {
+				b.Fatalf("unable to read testdata/: %v", err)
+			}
+			for _, f := range files {
+				if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
+					b.Run(f.Name(), func(b *testing.B) {
 
-				data, err := ioutil.ReadAll(dcm)
-				if err != nil {
-					b.Errorf("Unable to read file into memory for benchmark: %v", err)
-				}
+						dcm, err := os.Open("./testdata/" + f.Name())
+						if err != nil {
+							b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
+						}
+						defer dcm.Close()
 
-				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
-					_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil)
+						data, err := ioutil.ReadAll(dcm)
+						if err != nil {
+							b.Errorf("Unable to read file into memory for benchmark: %v", err)
+						}
+
+						b.ResetTimer()
+
+						for i := 0; i < b.N; i++ {
+							_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil, tc.opts...)
+						}
+
+					})
 				}
-			})
-		}
+			}
+		})
 	}
 }
 

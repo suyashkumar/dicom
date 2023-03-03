@@ -52,7 +52,9 @@ func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {
 // FindElementByTagNested searches through the dataset and returns a pointer to the matching element.
 // This call searches through a flat representation of the dataset, including within sequences.
 func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
-	for e := range d.FlatIterator() {
+	c := dataset.FlatIterator()
+  	defer ExhaustElementChannel(c)
+	for e := range c {
 		if e.Tag == tag {
 			return e, nil
 		}
@@ -105,7 +107,7 @@ func ExhaustElementChannel(c <-chan *Element) {
 
 func flatElementsIterator(elems []*Element, elemChan chan<- *Element) {
 	for _, elem := range elems {
-		if elem.Value.ValueType() == Sequences {
+		if elem.Value != nil && elem.Value.ValueType() == Sequences {
 			elemChan <- elem
 			for _, seqItem := range elem.Value.GetValue().([]*SequenceItemValue) {
 				flatElementsIterator(seqItem.elements, elemChan)

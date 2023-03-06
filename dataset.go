@@ -52,8 +52,8 @@ func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {
 // FindElementByTagNested searches through the dataset and returns a pointer to the matching element.
 // This call searches through a flat representation of the dataset, including within sequences.
 func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
-	c := dataset.FlatIterator()
-  	defer ExhaustElementChannel(c)
+	c := d.FlatIterator()
+	defer ExhaustElementChannel(c)
 	for e := range c {
 		if e.Tag == tag {
 			return e, nil
@@ -73,13 +73,14 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 // If for some reason your code will not exhaust the iterator (read all
 // elements), be sure to call ExhaustElementChannel to prevent leaving the
 // underlying Goroutine alive (you can safely do this in a defer).
-//  c := dataset.FlatIterator()
-//  defer ExhaustElementChannel(c)
-//  for elem := range c {
-//      // Even if you exit before reading everything in c (e.g. due to an
-//      // error)
-//      // things will be ok.
-//  }
+//
+//	c := dataset.FlatIterator()
+//	defer ExhaustElementChannel(c)
+//	for elem := range c {
+//	    // Even if you exit before reading everything in c (e.g. due to an
+//	    // error)
+//	    // things will be ok.
+//	}
 //
 // Note that the sequence element itself is sent on the channel in addition to
 // the child elements in the sequence.

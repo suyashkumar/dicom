@@ -363,9 +363,11 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	}
 	samplesPerPixel := MustGetInts(s.Value)[0]
 
-	pixelsPerFrame := MustGetInts(rows.Value)[0] * MustGetInts(cols.Value)[0]
+	rowsInt := MustGetInts(rows.Value)[0]
+	colsInt := MustGetInts(cols.Value)[0]
+	pixelsPerFrame := rowsInt * colsInt
 
-	debug.Logf("readNativeFrames:\nRows: %d\nCols:%d\nFrames::%d\nBitsAlloc:%d\nSamplesPerPixel:%d", MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], nFrames, bitsAllocated, samplesPerPixel)
+	debug.Logf("readNativeFrames:\nRows: %d\nCols:%d\nFrames::%d\nBitsAlloc:%d\nSamplesPerPixel:%d", rowsInt, colsInt, nFrames, bitsAllocated, samplesPerPixel)
 
 	bytesAllocated := bitsAllocated / 8
 	bytesToRead = bytesAllocated * samplesPerPixel * pixelsPerFrame * nFrames

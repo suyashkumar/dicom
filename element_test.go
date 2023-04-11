@@ -2,6 +2,7 @@ package dicom
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -63,23 +64,27 @@ func TestNewValue(t *testing.T) {
 		name      string
 		data      interface{}
 		wantValue Value
+		wantCount int
 		wantError error
 	}{
 		{
 			name:      "strings",
 			data:      []string{"a", "b"},
 			wantValue: &stringsValue{value: []string{"a", "b"}},
+			wantCount: 2,
 			wantError: nil,
 		},
 		{
 			name:      "floats",
 			data:      []float64{1.11, 1.22},
+			wantCount: 2,
 			wantValue: &floatsValue{value: []float64{1.11, 1.22}},
 			wantError: nil,
 		},
 		{
 			name:      "ints",
 			data:      []int{1, 2},
+			wantCount: 2,
 			wantValue: &intsValue{value: []int{1, 2}},
 			wantError: nil,
 		},
@@ -87,6 +92,7 @@ func TestNewValue(t *testing.T) {
 			name:      "bytes",
 			data:      []byte{0x00, 0x01},
 			wantValue: &bytesValue{value: []byte{0x00, 0x01}},
+			wantCount: 1,
 			wantError: nil,
 		},
 		{
@@ -94,6 +100,7 @@ func TestNewValue(t *testing.T) {
 			name:      "PixelDataInfo",
 			data:      PixelDataInfo{IsEncapsulated: true},
 			wantValue: &pixelDataValue{PixelDataInfo{IsEncapsulated: true}},
+			wantCount: 1,
 			wantError: nil,
 		},
 		{
@@ -122,6 +129,7 @@ func TestNewValue(t *testing.T) {
 					},
 				},
 			}},
+			wantCount: 1,
 		},
 	}
 	for _, tc := range cases {
@@ -130,9 +138,41 @@ func TestNewValue(t *testing.T) {
 			if err != tc.wantError {
 				t.Fatalf("NewValue(%v) returned unexpected error: %v", tc.data, err)
 			}
-			if diff := cmp.Diff(v, tc.wantValue, cmp.AllowUnexported(allValues...)); diff != "" {
-				t.Errorf("NewValue(%v) unexpected value. diff: %v", tc.data, diff)
-			}
+
+			t.Run("Value", func(t *testing.T) {
+				if diff := cmp.Diff(v, tc.wantValue, cmp.AllowUnexported(allValues...)); diff != "" {
+					t.Errorf("NewValue(%v) unexpected value. diff: %v", tc.data, diff)
+				}
+			})
+
+			t.Run("ValueCount()", func(t *testing.T) {
+				if v.ValueCount() != tc.wantCount {
+					t.Fatalf("Value.ValueCount() expected count %v, got %v", tc.wantCount, v.ValueCount())
+				}
+			})
+
+			t.Run("GetValueIndex()", func(t *testing.T) {
+				if v.ValueCount() != tc.wantCount {
+					t.Fatalf("cannot evaluate GetValueIndex() without expected value count")
+				}
+
+				for i := 0; i < v.ValueCount(); i++ {
+					innerValue := v.GetValueIndex(i)
+					var expected interface{}
+					switch tc.wantValue.ValueType() {
+					case Sequences:
+						sq := tc.wantValue.(*sequencesValue)
+						expected = sq.value[i]
+					case Bytes, PixelData:
+						expected = tc.data
+					default:
+						expected = reflect.ValueOf(tc.data).Index(i).Interface()
+					}
+					if diff := cmp.Diff(expected, innerValue, cmp.AllowUnexported(allValues...)); diff != "" {
+						t.Fatalf("Value.GetValueIndex(%v) unexpected value. diff: %v", i, diff)
+					}
+				}
+			})
 		})
 	}
 }

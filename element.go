@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/suyashkumar/dicom/pkg/frame"
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/amitbet/dicom/pkg/frame"
+	"github.com/amitbet/dicom/pkg/tag"
 )
 
 // ErrorUnexpectedDataType indicates that an unexpected (not allowed) data type was sent to NewValue.

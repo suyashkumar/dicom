@@ -8,7 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/suyashkumar/dicom/pkg/charset"
+	"github.com/amitbet/dicom/pkg/charset"
 	"golang.org/x/text/encoding"
 )
 

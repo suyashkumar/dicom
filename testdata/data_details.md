@@ -13,12 +13,12 @@ The sub-bullets mention potentially interesting characteristics of the test file
 Some of the interesting characteristics may apply to more than one file, but may only
 be mentioned in one of them for brevity.
 
-* [1.dcm](1.dcm) (from [#77](https://github.com/suyashkumar/dicom/issues/77)) 
+* [1.dcm](1.dcm) (from [#77](https://github.com/amitbet/dicom/issues/77)) 
   * Modality: PET 
   * Native Pixel Data
   * Doubly Nested Sequences
   * Icon pixel data in addition to typical pixel data 
-* [2.dcm](2.dcm) (from [#77](https://github.com/suyashkumar/dicom/issues/77))
+* [2.dcm](2.dcm) (from [#77](https://github.com/amitbet/dicom/issues/77))
   * Modality: PET
   * Other items similar to 1.dcm
 * [3.dcm](3.dcm)

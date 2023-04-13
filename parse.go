@@ -27,12 +27,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/suyashkumar/dicom/pkg/charset"
-	"github.com/suyashkumar/dicom/pkg/debug"
-	"github.com/suyashkumar/dicom/pkg/dicomio"
-	"github.com/suyashkumar/dicom/pkg/frame"
-	"github.com/suyashkumar/dicom/pkg/tag"
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/amitbet/dicom/pkg/charset"
+	"github.com/amitbet/dicom/pkg/debug"
+	"github.com/amitbet/dicom/pkg/dicomio"
+	"github.com/amitbet/dicom/pkg/frame"
+	"github.com/amitbet/dicom/pkg/tag"
+	"github.com/amitbet/dicom/pkg/uid"
 )
 
 const (

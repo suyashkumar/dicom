@@ -3,9 +3,9 @@
   <h3 align="center">dicom</h3>
   <p align="center">High Performance Golang DICOM Medical Image Parser<p>
   <p align="center"> 
-    <a href="https://github.com/suyashkumar/dicom/actions"><img src="https://github.com/suyashkumar/dicom/workflows/build/badge.svg" /></a> 
-    <a href="https://godoc.org/github.com/suyashkumar/dicom"><img src="https://godoc.org/github.com/suyashkumar/dicom?status.svg" alt="" /></a>
-    <a href="https://goreportcard.com/report/github.com/suyashkumar/dicom"><img src="https://goreportcard.com/badge/github.com/suyashkumar/dicom" alt=""></a> 
+    <a href="https://github.com/amitbet/dicom/actions"><img src="https://github.com/amitbet/dicom/workflows/build/badge.svg" /></a> 
+    <a href="https://godoc.org/github.com/amitbet/dicom"><img src="https://godoc.org/github.com/amitbet/dicom?status.svg" alt="" /></a>
+    <a href="https://goreportcard.com/report/github.com/amitbet/dicom"><img src="https://goreportcard.com/badge/github.com/amitbet/dicom" alt=""></a> 
   </p>
 </p>
 
@@ -25,7 +25,7 @@ Some notable features:
 - [x] Modern, canonical Go.
 
 ## Usage
-To use this in your golang project, import `github.com/suyashkumar/dicom`. This repository supports Go modules, and regularly tags releases using semantic versioning. Typical usage is straightforward:
+To use this in your golang project, import `github.com/amitbet/dicom`. This repository supports Go modules, and regularly tags releases using semantic versioning. Typical usage is straightforward:
 ```go 
 
 dataset, _ := dicom.ParseFile("testdata/1.dcm", nil) // See also: dicom.Parse which has a generic io.Reader API.
@@ -37,13 +37,13 @@ fmt.Println(dataset)
 j, _ := json.Marshal(dataset)
 fmt.Println(j)
 ```
-More details about the package (and additional examples and APIs) can be found in the [godoc](https://godoc.org/github.com/suyashkumar/dicom).
+More details about the package (and additional examples and APIs) can be found in the [godoc](https://godoc.org/github.com/amitbet/dicom).
 
 ## CLI Tool
 A CLI tool that uses this package to parse imagery and metadata out of DICOMs is provided in the `cmd/dicomutil` package. This tool can take in a DICOM, and dump out all the elements to STDOUT, in addition to writing out any imagery to the current working directory either as PNGs or JPEG (note, it does not perform any automatic color rescaling by default).
 
 ### Installation
-You can download the prebuilt binaries from the [releases tab](https://github.com/suyashkumar/dicom/releases), or use the following to download the binary at the command line using my [getbin tool](https://github.com/suyashkumar/getbin):
+You can download the prebuilt binaries from the [releases tab](https://github.com/amitbet/dicom/releases), or use the following to download the binary at the command line using my [getbin tool](https://github.com/suyashkumar/getbin):
 
 ```sh
 wget -qO- "https://getbin.io/suyashkumar/dicom" | tar xvz
@@ -74,13 +74,13 @@ go build -o dicomutil ./cmd/dicomutil
 Here's a little more history on this repository for those who are interested! 
 
 ### v0
-The v0 [suyashkumar/dicom](https://github.com/suyashkumar/dicom) started off as a hard fork of [go-dicom](https://github.com/gillesdemey/go-dicom) which was not being maintained actively anymore (with the [original author being supportive of my fork](https://www.reddit.com/r/golang/comments/bnu47l/high_performance_dicom_medical_image_parser_in/en9hp6h?utm_source=share&utm_medium=web2x&context=3)--thank you!). I worked on adding several new capabilities, bug fixes, and general maintainability refactors (like multiframe support, streaming parsing, updated APIs, low-level parsing bug fixes, and more).
+The v0 [suyashkumar/dicom](https://github.com/amitbet/dicom) started off as a hard fork of [go-dicom](https://github.com/gillesdemey/go-dicom) which was not being maintained actively anymore (with the [original author being supportive of my fork](https://www.reddit.com/r/golang/comments/bnu47l/high_performance_dicom_medical_image_parser_in/en9hp6h?utm_source=share&utm_medium=web2x&context=3)--thank you!). I worked on adding several new capabilities, bug fixes, and general maintainability refactors (like multiframe support, streaming parsing, updated APIs, low-level parsing bug fixes, and more).
 
 That represents the __v0__ history of the repository. 
 
 ### v1
 
-For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happened at the [`s/1.0-rewrite`](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite) branch. 
+For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happened at the [`s/1.0-rewrite`](https://github.com/amitbet/dicom/tree/s/1.0-rewrite) branch. 
 
 
 ## Acknowledgements

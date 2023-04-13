@@ -55,9 +55,17 @@ var (
 	ErrorMismatchPixelDataLength = errors.New("the size calculated from DICOM elements and the PixelData element's VL are mismatched")
 )
 
+func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+	return parseInternal(in, bytesToRead, frameChan, opts...)
+}
+
+func ParseUntilEOF(in io.Reader, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+	return parseInternal(in, -1, frameChan, opts...)
+}
+
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
 // looking to parse the DICOM all at once, instead of element-by-element.
-func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+func parseInternal(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
 	p, err := NewParser(in, bytesToRead, frameChan, opts...)
 	if err != nil {
 		return Dataset{}, err
@@ -66,6 +74,9 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ..
 	for !p.reader.rawReader.IsLimitExhausted() {
 		_, err := p.Next()
 		if err != nil {
+			if err.Error() == "EOF" {
+				err = nil
+			}
 			return p.dataset, err
 		}
 	}

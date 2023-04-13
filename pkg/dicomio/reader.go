@@ -218,7 +218,8 @@ func (r *reader) PopLimit() {
 }
 
 func (r *reader) IsLimitExhausted() bool {
-	return r.BytesLeftUntilLimit() <= 0
+	// if limit < 0 than we should read until EOF
+	return (r.BytesLeftUntilLimit() <= 0 || r.limit < 0)
 }
 
 func (r *reader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {

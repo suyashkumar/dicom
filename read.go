@@ -50,6 +50,14 @@ func (r *reader) readTag() (*tag.Tag, error) {
 	if gerr == nil && eerr == nil {
 		return &tag.Tag{Group: group, Element: element}, nil
 	}
+	if gerr != nil || eerr != nil {
+		if gerr.Error() == "EOF" {
+			return nil, gerr
+		}
+		if eerr.Error() == "EOF" {
+			return nil, eerr
+		}
+	}
 	return nil, fmt.Errorf("error reading tag: %v %v", gerr, eerr)
 }
 

@@ -75,8 +75,12 @@ func parseInternal(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame,
 		_, err := p.Next()
 		if err != nil {
 			if err.Error() == "EOF" {
+				// exiting on EOF
 				err = nil
+				break
 			}
+
+			// exit on error
 			return p.dataset, err
 		}
 	}

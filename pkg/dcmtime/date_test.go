@@ -209,8 +209,8 @@ func TestDate_SaneDefaults(t *testing.T) {
 	}
 
 	dcmVal := newValue.DCM()
-	expexted := "20210316"
-	if dcmVal != expexted {
-		t.Errorf("DCM(): expected '%v', but got '%v'", expexted, dcmVal)
+	expected := "20210316"
+	if dcmVal != expected {
+		t.Errorf("DCM(): expected '%v', but got '%v'", expected, dcmVal)
 	}
 }

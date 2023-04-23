@@ -40,7 +40,7 @@ var ErrNullSepLevelInvalid = fmt.Errorf("TrailingNullLevel exceeded maximum")
 func newErrTooManyGroups(groupsFound int) error {
 	return fmt.Errorf(
 		"%w: value contains %v groups. see 'PN' entry in official dicom spec: "+
-			"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
+			"https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		ErrParseGroupCount,
 		groupsFound,
 	)
@@ -51,7 +51,7 @@ func newErrTooManyGroups(groupsFound int) error {
 func newErrTooManyGroupSegments(group pnGroup, segmentsFound int) error {
 	return fmt.Errorf(
 		"%w: value group %v contains %v segments. see 'PN' entry in official "+
-			"dicom spec: http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
+			"dicom spec: https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2",
 		ErrParseGroupSegmentCount,
 		group,
 		segmentsFound,

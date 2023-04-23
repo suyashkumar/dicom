@@ -14,7 +14,7 @@ import (
 var ErrorUnexpectedDataType = errors.New("the type of the data was unexpected or not allowed")
 
 // Element represents a standard DICOM data element (see the DICOM standard:
-// http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1 ).
+// https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_7.1 ).
 // This Element can be serialized to JSON out of the box and pretty printed as a string via the String() method.
 type Element struct {
 	Tag                    tag.Tag    `json:"tag"`
@@ -56,7 +56,7 @@ func (e *Element) String() string {
 //			// or
 //			s := myvalue.GetValue().([]string)
 //			break;
-// 		case dicom.Bytes:
+//		case dicom.Bytes:
 //			// ...
 //	}
 //
@@ -251,7 +251,7 @@ func (s *floatsValue) MarshalJSON() ([]byte, error) {
 
 // SequenceItemValue is a Value that represents a single Sequence Item. Learn
 // more about Sequences at
-// http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html.
+// https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html.
 type SequenceItemValue struct {
 	elements []*Element
 }
@@ -296,9 +296,32 @@ func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 
 // PixelDataInfo is a representation of DICOM PixelData.
 type PixelDataInfo struct {
-	Frames         []frame.Frame
-	IsEncapsulated bool `json:"isEncapsulated"`
+	// IntentionallySkipped indicates that reading the PixelData value was
+	// intentionally skipped and no Value data for this tag was read.
+	// This is likely true if the dicom.SkipPixelData option was set. If true,
+	// the rest of this PixelDataInfo will be empty.
+	IntentionallySkipped bool `json:"intentionallySkipped"`
+
+	// Frames hold the processed PixelData frames (either Native or Encapsulated
+	// PixelData).
+	Frames []frame.Frame
+
+	// ParseErr indicates if there was an error when reading this Frame from the DICOM.
+	// If this is set, this means fallback behavior was triggered to blindly write the PixelData bytes to an encapsulated frame.
+	// The ParseErr will contain details about the specific error encountered.
+	ParseErr       error `json:"parseErr"`
+	IsEncapsulated bool  `json:"isEncapsulated"`
 	Offsets        []uint32
+
+	// IntentionallyUnprocessed indicates that the PixelData Value was actually
+	// read (as opposed to skipped over, as in IntentionallySkipped above) and
+	// blindly placed into RawData (if possible). Writing this element back out
+	// should work. This will be true if the
+	// dicom.SkipProcessingPixelDataValue flag is set with a PixelData tag.
+	IntentionallyUnprocessed bool `json:"intentionallyUnprocessed"`
+	// UnprocessedValueData holds the unprocessed Element value data if
+	// IntentionallyUnprocessed=true.
+	UnprocessedValueData []byte
 }
 
 // pixelDataValue represents DICOM PixelData
@@ -310,8 +333,16 @@ func (e *pixelDataValue) isElementValue()       {}
 func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
 func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
 func (e *pixelDataValue) String() string {
-	// TODO: consider adding more sophisticated formatting
-	return ""
+	if len(e.Frames) == 0 {
+		return "empty pixel data"
+	}
+	if e.IsEncapsulated {
+		return fmt.Sprintf("encapsulated FramesLength=%d Frame[0] size=%d", len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+	}
+	if e.ParseErr != nil {
+		return fmt.Sprintf("parseErr err=%s FramesLength=%d Frame[0] size=%d", e.ParseErr.Error(), len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+	}
+	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(e.Frames), e.Frames[0].NativeData.Rows, e.Frames[0].NativeData.Cols)
 }
 
 func (e *pixelDataValue) MarshalJSON() ([]byte, error) {

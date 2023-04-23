@@ -84,13 +84,13 @@ type reader struct {
 }
 
 // NewReader creates and returns a new dicomio.Reader.
-func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) (Reader, error) {
+func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) Reader {
 	return &reader{
 		in:        in,
 		bo:        bo,
 		limit:     limit,
 		bytesRead: 0,
-	}, nil
+	}
 }
 
 func (r *reader) BytesLeftUntilLimit() int64 {

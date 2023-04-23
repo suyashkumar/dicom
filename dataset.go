@@ -15,7 +15,7 @@ import (
 var ErrorElementNotFound = errors.New("element not found")
 
 // Dataset represents a DICOM dataset, see
-// http://dicom.nema.org/medical/dicom/current/output/html/part05.html#chapter_7.
+// https://dicom.nema.org/medical/dicom/current/output/html/part05.html#chapter_7.
 //
 // This Dataset representation is JSON serializable out of the box
 // (implements json.Marshaler) and will also pretty print as a string nicely (see String example).
@@ -186,7 +186,7 @@ func (d *Dataset) String() string {
 		b.WriteString(fmt.Sprintf("%s  VR: %s\n", tabs, elem.e.ValueRepresentation))
 		b.WriteString(fmt.Sprintf("%s  VR Raw: %s\n", tabs, elem.e.RawValueRepresentation))
 		b.WriteString(fmt.Sprintf("%s  VL: %d\n", tabs, elem.e.ValueLength))
-		b.WriteString(fmt.Sprintf("%s  Value: %d\n", tabs, elem.e.Value))
+		b.WriteString(fmt.Sprintf("%s  Value: %s\n", tabs, elem.e.Value.String()))
 		b.WriteString(fmt.Sprintf("%s]\n\n", tabs))
 	}
 	return b.String()

@@ -80,7 +80,7 @@ func validateInfoNullSepLevel(level InfoTrailingNullLevel) error {
 }
 
 // Info holds information from an element with a "PN" VR. See the "PN"
-// entry at: http://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
+// entry at: https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html
 //
 // PN values are split into three groups which represent three different ways to
 // represent a name:

@@ -19,7 +19,7 @@ import (
 var (
 	// ErrorUnimplemented is for not yet finished things.
 	ErrorUnimplemented = errors.New("this functionality is not yet implemented")
-	// ErrorMismatchValueTypeAndVR is for when there's a discrepency betweeen the ValueType and what the VR specifies.
+	// ErrorMismatchValueTypeAndVR is for when there's a discrepancy between the ValueType and what the VR specifies.
 	ErrorMismatchValueTypeAndVR = errors.New("ValueType does not match the VR required")
 	// ErrorUnexpectedValueType indicates an unexpected value type was seen.
 	ErrorUnexpectedValueType = errors.New("Unexpected ValueType")
@@ -313,7 +313,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		ok = valueType == Sequences
 	case "NA":
 		ok = valueType == SequenceItem
-	case vrraw.OtherWord, vrraw.OtherByte:
+	case vrraw.OtherWord, vrraw.OtherByte, vrraw.Unknown:
 		if t == tag.PixelData {
 			ok = valueType == PixelData
 		} else {
@@ -473,7 +473,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 			vrraw.ShortString, vrraw.ShortText, vrraw.UnlimitedText,
 			vrraw.DecimalString, vrraw.CodeString, vrraw.Time,
 			vrraw.IntegerString, vrraw.Unknown:
-			if err := w.WriteString(" "); err != nil { // http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
+			if err := w.WriteString(" "); err != nil { // https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 				return err
 			}
 		default:
@@ -488,7 +488,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
 	switch vr {
-	case vrraw.OtherWord:
+	case vrraw.OtherWord, vrraw.Unknown:
 		err = writeOtherWordString(w, values)
 	case vrraw.OtherByte:
 		err = writeOtherByteString(w, values)
@@ -548,6 +548,7 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 
 func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
+
 	if vl == tag.VLUndefinedLength {
 		if err := writeBasicOffsetTable(w, image.Offsets); err != nil {
 			return err
@@ -562,6 +563,15 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 			return err
 		}
 	} else {
+		if image.IntentionallySkipped {
+			return nil
+		}
+		// For now, IntentionallyUnprocessed will only happen for Native
+		// PixelData.
+		if image.IntentionallyUnprocessed {
+			w.WriteBytes(image.UnprocessedValueData)
+			return nil
+		}
 		numFrames := len(image.Frames)
 		numPixels := len(image.Frames[0].NativeData.Data)
 		numValues := len(image.Frames[0].NativeData.Data[0])
@@ -610,7 +620,7 @@ func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr 
 	// Note: we currently don't validate that the length of the sequence matches
 	// the VL if it's not undefined VL.
 	// More details about the sequence structure can be found at:
-	// http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
+	// https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.5.html
 
 	// Write out the items.
 	for _, seqItem := range values {
@@ -662,10 +672,8 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 		return ErrorOWRequiresEvenVL
 	}
 	bo, _ := w.GetTransferSyntax()
-	r, err := dicomio.NewReader(bufio.NewReader(bytes.NewBuffer(data)), bo, int64(len(data)))
-	if err != nil {
-		return err
-	}
+	r := dicomio.NewReader(bufio.NewReader(bytes.NewBuffer(data)), bo, int64(len(data)))
+
 	for i := 0; i < int(len(data)/2); i++ {
 		v, err := r.ReadUInt16()
 		if err != nil {

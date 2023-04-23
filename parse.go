@@ -1,5 +1,5 @@
 // Package dicom provides a set of tools to read, write, and generally
-// work with DICOM (http://dicom.nema.org/) medical image files in Go.
+// work with DICOM (https://dicom.nema.org/) medical image files in Go.
 //
 // dicom.Parse and dicom.Write provide the core functionality to read and write
 // DICOM Datasets. This package provides Go data structures that represent
@@ -51,17 +51,20 @@ var (
 	// has been fully parsed. Users using one of the other Parse APIs should not
 	// need to use this.
 	ErrorEndOfDICOM = errors.New("this indicates to the caller of Next() that the DICOM has been fully parsed")
+
+	// ErrorMismatchPixelDataLength indicates that the size calculated from DICOM mismatch the VL.
+	ErrorMismatchPixelDataLength = errors.New("the size calculated from DICOM elements and the PixelData element's VL are mismatched")
 )
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are
 // looking to parse the DICOM all at once, instead of element-by-element.
-func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Dataset, error) {
-	p, err := NewParser(in, bytesToRead, frameChan)
+func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
+	p, err := NewParser(in, bytesToRead, frameChan, opts...)
 	if err != nil {
 		return Dataset{}, err
 	}
 
-	for !p.reader.IsLimitExhausted() {
+	for !p.reader.rawReader.IsLimitExhausted() {
 		_, err := p.Next()
 		if err != nil {
 			return p.dataset, err
@@ -77,7 +80,7 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame) (Datase
 
 // ParseFile parses the entire DICOM at the given filepath. See dicom.Parse as
 // well for a more generic io.Reader based API.
-func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
+func ParseFile(filepath string, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
 	f, err := os.Open(filepath)
 	if err != nil {
 		return Dataset{}, err
@@ -89,14 +92,14 @@ func ParseFile(filepath string, frameChan chan *frame.Frame) (Dataset, error) {
 		return Dataset{}, err
 	}
 
-	return Parse(f, info.Size(), frameChan)
+	return Parse(f, info.Size(), frameChan, opts...)
 }
 
 // Parser is a struct that allows a user to parse Elements from a DICOM element-by-element using Next(), which may be
 // useful for some streaming processing applications. If you instead just want to parse the whole input DICOM at once,
 // just use the dicom.Parse(...) method.
 type Parser struct {
-	reader   dicomio.Reader
+	reader   *reader
 	dataset  Dataset
 	metadata Dataset
 	// file is optional, might be populated if reading from an underlying file
@@ -112,22 +115,20 @@ type Parser struct {
 // provided).
 func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, opts ...ParseOption) (*Parser, error) {
 	optSet := toParseOptSet(opts...)
-	reader, err := dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead)
-	if err != nil {
-		return nil, err
-	}
-
 	p := Parser{
-		reader:          reader,
+		reader: &reader{
+			rawReader: dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead),
+			opts:      optSet,
+		},
 		frameChannel:    frameChannel,
 		stopAtPixelData: optSet.stopAtPixelDataStart,
 	}
 
 	elems := []*Element{}
-
+	var err error
 	if !optSet.skipMetadataReadOnNewParserInit {
 		debug.Log("NewParser: readHeader")
-		elems, err = p.readHeader()
+		elems, err = p.reader.readHeader()
 		if err != nil {
 			return nil, err
 		}
@@ -135,6 +136,7 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	}
 
 	p.dataset = Dataset{Elements: elems}
+
 	// TODO(suyashkumar): avoid storing the metadata pointers twice (though not that expensive)
 	p.metadata = Dataset{Elements: elems}
 
@@ -154,21 +156,21 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 			debug.Log("WARN: could not parse transfer syntax uid in metadata")
 		}
 	}
-	p.reader.SetTransferSyntax(bo, implicit)
+	p.SetTransferSyntax(bo, implicit)
 
 	return &p, nil
 }
 
 // Next parses and returns the next top-level element from the DICOM this Parser points to.
 func (p *Parser) Next() (*Element, error) {
-	if p.reader.IsLimitExhausted() {
+	if !p.reader.moreToRead() {
 		// Close the frameChannel if needed
 		if p.frameChannel != nil {
 			close(p.frameChannel)
 		}
 		return nil, ErrorEndOfDICOM
 	}
-	elem, err := readElement(p.reader, &p.dataset, p.frameChannel, p.stopAtPixelData)
+	elem, err := p.reader.readElement(&p.dataset, p.frameChannel, p.stopAtPixelData)
 	if err != nil {
 		// TODO: tolerate some kinds of errors and continue parsing
 		return nil, err
@@ -184,7 +186,7 @@ func (p *Parser) Next() (*Element, error) {
 			// TODO: add option continue, even if unable to parse
 			return nil, err
 		}
-		p.reader.SetCodingSystem(cs)
+		p.reader.rawReader.SetCodingSystem(cs)
 	}
 
 	p.dataset.Elements = append(p.dataset.Elements, elem)
@@ -249,7 +251,7 @@ func (p *Parser) GetPixelDataSize(optionalNumberOfFrames bool) (int64, error) {
 }
 
 func (p *Parser) GetPixelDataReader(bytesTotal int64) (io.Reader, error) {
-	return io.LimitReader(p.reader, bytesTotal), nil
+	return io.LimitReader(p.reader.rawReader, bytesTotal), nil
 }
 
 // GetMetadata returns just the set of metadata elements that have been parsed
@@ -260,59 +262,7 @@ func (p *Parser) GetMetadata() Dataset {
 
 // SetTransferSyntax sets the transfer syntax for the underlying dicomio.Reader.
 func (p *Parser) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
-	p.reader.SetTransferSyntax(bo, implicit)
-}
-
-// readHeader reads the DICOM magic header and group two metadata elements.
-func (p *Parser) readHeader() ([]*Element, error) {
-	// Check to see if magic word is at byte offset 128. If not, this is a
-	// non-standard non-compliant DICOM. We try to read this DICOM in a
-	// compatibility mode, where we rewind to position 0 and blindly attempt to
-	// parse a Dataset (and do not parse metadata in the usual way).
-	data, err := p.reader.Peek(128 + 4)
-	if err != nil {
-		return nil, err
-	}
-	if string(data[128:]) != magicWord {
-		return nil, nil
-	}
-
-	err = p.reader.Skip(128 + 4) // skip preamble + magic word
-	if err != nil {
-		return nil, err
-	}
-
-	// Must read metadata as LittleEndian explicit VR
-	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := readElement(p.reader, nil, nil, p.stopAtPixelData)
-	if err != nil {
-		return nil, err
-	}
-
-	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
-		return nil, ErrorMetaElementGroupLength
-	}
-
-	metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
-
-	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
-
-	// Read the metadata elements
-	err = p.reader.PushLimit(int64(metaLen))
-	if err != nil {
-		return nil, err
-	}
-	defer p.reader.PopLimit()
-	for !p.reader.IsLimitExhausted() {
-		elem, err := readElement(p.reader, nil, nil, p.stopAtPixelData)
-		if err != nil {
-			// TODO: see if we can skip over malformed elements somehow
-			return nil, err
-		}
-		// log.Printf("Metadata Element: %s\n", elem)
-		metaElems = append(metaElems, elem)
-	}
-	return metaElems, nil
+	p.reader.rawReader.SetTransferSyntax(bo, implicit)
 }
 
 // ParseOption represents an option that can be passed to NewParser.
@@ -321,15 +271,25 @@ type ParseOption func(*parseOptSet)
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
 	skipMetadataReadOnNewParserInit bool
+	allowMismatchPixelDataLength    bool
+	skipPixelData                   bool
+	skipProcessingPixelDataValue    bool
 	stopAtPixelDataStart            bool
 }
 
-func toParseOptSet(opts ...ParseOption) *parseOptSet {
-	optSet := &parseOptSet{}
+func toParseOptSet(opts ...ParseOption) parseOptSet {
+	optSet := parseOptSet{}
 	for _, opt := range opts {
-		opt(optSet)
+		opt(&optSet)
 	}
 	return optSet
+}
+
+// AllowMismatchPixelDataLength allows parser to ignore an error when the length calculated from elements do not match with value length.
+func AllowMismatchPixelDataLength() ParseOption {
+	return func(set *parseOptSet) {
+		set.allowMismatchPixelDataLength = true
+	}
 }
 
 // SkipMetadataReadOnNewParserInit makes NewParser skip trying to parse metadata. This will make the Parser default to implicit little endian byte order.
@@ -337,6 +297,33 @@ func toParseOptSet(opts ...ParseOption) *parseOptSet {
 func SkipMetadataReadOnNewParserInit() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipMetadataReadOnNewParserInit = true
+	}
+}
+
+// SkipPixelData skips reading data from the PixelData tag, wherever it appears
+// (e.g. even if within an IconSequence). A PixelDataInfo will be added to the
+// Dataset with the IntentionallySkipped property set to true, and no other
+// data. Use this option if you don't need the PixelData value to be in the
+// Dataset at all, and want to save both CPU and Memory. If you need the
+// PixelData value in the Dataset (e.g. so it can be written out identically
+// later) but _don't_ want to process/parse the value, see the
+// SkipProcessingPixelDataValue option below.
+func SkipPixelData() ParseOption {
+	return func(set *parseOptSet) {
+		set.skipPixelData = true
+	}
+}
+
+// SkipProcessingPixelDataValue will attempt to skip processing the _value_
+// of any PixelData elements. Unlike SkipPixelData(), this means the PixelData
+// bytes will still be read into the Dataset, and can be written back out via
+// this library's write functionality. But, if possible, the value will be read
+// in as raw bytes with no further processing instead of being parsed. In the
+// future, we may be able to extend this functionality to support on-demand
+// processing of elements elsewhere in the library.
+func SkipProcessingPixelDataValue() ParseOption {
+	return func(set *parseOptSet) {
+		set.skipProcessingPixelDataValue = true
 	}
 }
 

@@ -18,7 +18,7 @@ After a fair bit of work, I've just released v1.0 of this library which is essen
 Some notable features:
 - [x] Parse multi-frame DICOM imagery (both encapsulated and native pixel data)
 - [x] Channel-based streaming of `Frame`s to a client _as they are parsed_ out of the dicom
-- [x] Cleaner Go Element and Dataset representations (in the absense of Go generics)
+- [x] Cleaner Go Element and Dataset representations (in the absence of Go generics)
 - [x] Better support for icon image sets in addition to primary image sets
 - [x] Write and encode Datasets back to DICOM files
 - [x] Enhanced testing and benchmarking support
@@ -80,7 +80,7 @@ That represents the __v0__ history of the repository.
 
 ### v1
 
-For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happend at the [`s/1.0-rewrite`](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite) branch. 
+For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happened at the [`s/1.0-rewrite`](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite) branch. 
 
 
 ## Acknowledgements
@@ -90,5 +90,5 @@ For __v1__ I rewrote and redesigned the core library essentially from scratch, a
 * Grailbio [go-dicom](https://github.com/grailbio/go-dicom) -- commits from their fork were applied to ours
 * GradientHealth for supporting work I did on this while there [gradienthealth/dicom](https://github.com/gradienthealth/dicom)
 * Innolitics [DICOM browser](https://dicom.innolitics.com/ciods)
-* [DICOM Specification](http://dicom.nema.org/medical/dicom/current/output/pdf/part05.pdf)
-* <div>Icons made by <a href="https://www.freepik.com/?__hstc=57440181.48e262e7f01bcb2b41259e2e5a8103b3.1557697512782.1557697512782.1557697512782.1&__hssc=57440181.4.1557697512783&__hsfp=2768524783" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+* [DICOM Specification](https://dicom.nema.org/medical/dicom/current/output/pdf/part05.pdf)
+* <div>Icons made by <a href="https://www.freepik.com/?__hstc=57440181.48e262e7f01bcb2b41259e2e5a8103b3.1557697512782.1557697512782.1557697512782.1&__hssc=57440181.4.1557697512783&__hsfp=2768524783" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>

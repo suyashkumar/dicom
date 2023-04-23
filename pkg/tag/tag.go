@@ -66,6 +66,19 @@ func (t Tag) String() string {
 	return fmt.Sprintf("(%04x,%04x)", t.Group, t.Element)
 }
 
+// Tags represents a set of Tag structs.
+type Tags []*Tag
+
+// Contains returns true if the passed in tag exists within the Tags.
+func (t Tags) Contains(item *Tag) bool {
+	for _, elem := range t {
+		if elem.Equals(*item) {
+			return true
+		}
+	}
+	return false
+}
+
 // Info stores detailed information about a Tag defined in the DICOM
 // standard.
 type Info struct {
@@ -128,7 +141,7 @@ func GetVRKind(tag Tag, vr string) VRKind {
 		return VRDate
 	case "AT":
 		return VRTagList
-	case "OW", "OB":
+	case "OW", "OB", "UN":
 		return VRBytes
 	case "LT", "UT":
 		return VRString
@@ -180,7 +193,7 @@ func MustFind(tag Tag) Info {
 // not part of the DICOM standard, or is retired from the standard, it returns
 // an error.
 //
-//   Example: FindTagByName("TransferSyntaxUID")
+//	Example: FindTagByName("TransferSyntaxUID")
 func FindByName(name string) (Info, error) {
 	maybeInitTagDict()
 	for _, ent := range tagDict {

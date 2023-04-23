@@ -436,7 +436,7 @@ func TestNewPersonNameFromDicom_Err(t *testing.T) {
 	expectedString := "error parsing PN value: no more than 5 segments with " +
 		"'[Last]^[First]^[Middle]^[Prefix]^[Suffix]' format are allowed: value group " +
 		"Alphabetic contains 6 segments. see 'PN' entry in official dicom spec: " +
-		"http://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2"
+		"https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2"
 
 	if err.Error() != expectedString {
 		t.Errorf("unexpected error text: %v", err.Error())

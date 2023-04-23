@@ -17,8 +17,8 @@ import (
 	"github.com/suyashkumar/dicom"
 )
 
-// TestParse is an end-to-end sanity check over DICOMs in testdata/. Currently it only checks that no error is returned
-// when parsing the files.
+// TestParse is an end-to-end sanity check over DICOMs in testdata/. Currently,
+// it only checks that no error is returned when parsing the files.
 func TestParse(t *testing.T) {
 	files, err := ioutil.ReadDir("./testdata")
 	if err != nil {
@@ -69,8 +69,141 @@ func TestNewParserSkipMetadataReadOnNewParserInit(t *testing.T) {
 	}
 }
 
+func TestParseFile_SkipPixelData(t *testing.T) {
+	t.Run("WithSkipPixelData", func(t *testing.T) {
+		runForEveryTestFile(t, func(t *testing.T, filename string) {
+			dataset, err := dicom.ParseFile(filename, nil, dicom.SkipPixelData())
+			if err != nil {
+				t.Errorf("Unexpected error parsing dataset: %v", dataset)
+			}
+			el, err := dataset.FindElementByTag(tag.PixelData)
+			if err != nil {
+				t.Errorf("Unexpected error when finding PixelData in Dataset: %v", err)
+			}
+			pixelData := dicom.MustGetPixelDataInfo(el.Value)
+			if !pixelData.IntentionallySkipped {
+				t.Errorf("Expected pixelData.IntentionallySkipped=true, got false")
+			}
+			if got := len(pixelData.Frames); got != 0 {
+				t.Errorf("unexpected frames length. got: %v, want: %v", got, 0)
+			}
+		})
+	})
+	t.Run("WithNOSkipPixelData", func(t *testing.T) {
+		runForEveryTestFile(t, func(t *testing.T, filename string) {
+			dataset, err := dicom.ParseFile(filename, nil)
+			if err != nil {
+				t.Errorf("Unexpected error parsing dataset: %v", dataset)
+			}
+			el, err := dataset.FindElementByTag(tag.PixelData)
+			if err != nil {
+				t.Errorf("Unexpected error when finding PixelData in Dataset: %v", err)
+			}
+			pixelData := dicom.MustGetPixelDataInfo(el.Value)
+			if pixelData.IntentionallySkipped {
+				t.Errorf("Expected pixelData.IntentionallySkipped=false when SkipPixelData option not present, got true")
+			}
+			if len(pixelData.Frames) == 0 {
+				t.Errorf("unexpected frames length when SkipPixelData=false. got: %v, want: >0", len(pixelData.Frames))
+			}
+		})
+	})
+}
+
+func TestParseFile_SkipProcessingPixelDataValue(t *testing.T) {
+	t.Run("WithSkipProcessingPixelDataValue", func(t *testing.T) {
+		runForEveryTestFile(t, func(t *testing.T, filename string) {
+			dataset, err := dicom.ParseFile(filename, nil, dicom.SkipProcessingPixelDataValue())
+			if err != nil {
+				t.Errorf("Unexpected error parsing dataset: %v", dataset)
+			}
+			el, err := dataset.FindElementByTag(tag.PixelData)
+			if err != nil {
+				t.Errorf("Unexpected error when finding PixelData in Dataset: %v", err)
+			}
+			pixelData := dicom.MustGetPixelDataInfo(el.Value)
+			if !pixelData.IntentionallyUnprocessed {
+				t.Errorf("Expected pixelData.IntentionallyUnprocessed=true, got false")
+			}
+			if got := len(pixelData.Frames); got != 0 {
+				t.Errorf("unexpected frames length. got: %v, want: %v", got, 0)
+			}
+		})
+	})
+	t.Run("WithNOSkipProcessingPixelDataValue", func(t *testing.T) {
+		runForEveryTestFile(t, func(t *testing.T, filename string) {
+			dataset, err := dicom.ParseFile(filename, nil)
+			if err != nil {
+				t.Errorf("Unexpected error parsing dataset: %v", dataset)
+			}
+			el, err := dataset.FindElementByTag(tag.PixelData)
+			if err != nil {
+				t.Errorf("Unexpected error when finding PixelData in Dataset: %v", err)
+			}
+			pixelData := dicom.MustGetPixelDataInfo(el.Value)
+			if pixelData.IntentionallyUnprocessed {
+				t.Errorf("Expected pixelData.IntentionallyUnprocessed=false when TestParseFile_SkipProcessingPixelDataValue option not present, got true")
+			}
+			if len(pixelData.Frames) == 0 {
+				t.Errorf("unexpected frames length when TestParseFile_SkipProcessingPixelDataValue=false. got: %v, want: >0", len(pixelData.Frames))
+			}
+		})
+	})
+}
+
 // BenchmarkParse runs sanity benchmarks over the sample files in testdata.
 func BenchmarkParse(b *testing.B) {
+	cases := []struct {
+		name string
+		opts []dicom.ParseOption
+	}{
+		{
+			name: "NoOptions",
+		},
+		{
+			name: "SkipPixelData",
+			opts: []dicom.ParseOption{dicom.SkipPixelData()},
+		},
+		{
+			name: "SkipProcessingPixelDataValue",
+			opts: []dicom.ParseOption{dicom.SkipProcessingPixelDataValue()},
+		},
+	}
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			files, err := ioutil.ReadDir("./testdata")
+			if err != nil {
+				b.Fatalf("unable to read testdata/: %v", err)
+			}
+			for _, f := range files {
+				if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
+					b.Run(f.Name(), func(b *testing.B) {
+
+						dcm, err := os.Open("./testdata/" + f.Name())
+						if err != nil {
+							b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
+						}
+						defer dcm.Close()
+
+						data, err := ioutil.ReadAll(dcm)
+						if err != nil {
+							b.Errorf("Unable to read file into memory for benchmark: %v", err)
+						}
+
+						b.ResetTimer()
+
+						for i := 0; i < b.N; i++ {
+							_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil, tc.opts...)
+						}
+
+					})
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkParser_NextAPI(b *testing.B) {
 	files, err := ioutil.ReadDir("./testdata")
 	if err != nil {
 		b.Fatalf("unable to read testdata/: %v", err)
@@ -78,6 +211,7 @@ func BenchmarkParse(b *testing.B) {
 	for _, f := range files {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
 			b.Run(f.Name(), func(b *testing.B) {
+
 				dcm, err := os.Open("./testdata/" + f.Name())
 				if err != nil {
 					b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
@@ -91,7 +225,12 @@ func BenchmarkParse(b *testing.B) {
 
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil)
+					r := bytes.NewReader(data)
+					p, _ := dicom.NewParser(r, int64(len(data)), nil)
+					var err error
+					for err == nil {
+						_, err = p.Next()
+					}
 				}
 			})
 		}
@@ -136,5 +275,20 @@ func Example_getImageFrames() {
 		f, _ := os.Create(fmt.Sprintf("image_%d.jpg", i))
 		_ = jpeg.Encode(f, img, &jpeg.Options{Quality: 100})
 		_ = f.Close()
+	}
+}
+
+func runForEveryTestFile(t *testing.T, testFunc func(t *testing.T, filename string)) {
+	files, err := ioutil.ReadDir("./testdata")
+	if err != nil {
+		t.Fatalf("unable to read testdata/: %v", err)
+	}
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
+			fullName := "./testdata/" + f.Name()
+			t.Run(fullName, func(t *testing.T) {
+				testFunc(t, fullName)
+			})
+		}
 	}
 }

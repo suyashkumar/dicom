@@ -30,15 +30,21 @@ release:
 	$(MAKE) test
 	GOOS=linux GOARCH=amd64 go build -ldflags="-X 'main.GitVersion=${VERSION}'" -o build/${BINARY}-linux-amd64 ./cmd/dicomutil;
 	GOOS=darwin GOARCH=amd64 go build -ldflags="-X 'main.GitVersion=${VERSION}'" -o build/${BINARY}-darwin-amd64 ./cmd/dicomutil;
+	GOOS=darwin GOARCH=arm64 go build -ldflags="-X 'main.GitVersion=${VERSION}'" -o build/${BINARY}-darwin-arm64 ./cmd/dicomutil;
 	GOOS=windows GOARCH=amd64 go build -ldflags="-X 'main.GitVersion=${VERSION}'" -o build/${BINARY}-windows-amd64.exe ./cmd/dicomutil;
 	cd build; \
 	tar -zcvf ${BINARY}-linux-amd64.tar.gz ${BINARY}-linux-amd64; \
 	tar -zcvf ${BINARY}-darwin-amd64.tar.gz ${BINARY}-darwin-amd64; \
+	tar -zcvf ${BINARY}-darwin-arm64.tar.gz ${BINARY}-darwin-arm64; \
 	zip -r ${BINARY}-windows-amd64.exe.zip ${BINARY}-windows-amd64.exe;
 
+.PHONY: bench
+bench:
+	go test -bench . -benchmem -benchtime=10x 
+
 bench-diff:
-	go test -bench . -count 5 > bench_current.txt
+	go test -bench . -benchmem -benchtime=10x -count 5 > bench_current.txt
 	git checkout main
-	go test -bench . -count 5 > bench_main.txt
+	go test -bench . -benchmem -benchtime=10x -count 5 > bench_main.txt
 	benchstat bench_main.txt bench_current.txt
 	git checkout -

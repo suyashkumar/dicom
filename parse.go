@@ -74,7 +74,7 @@ func parseInternal(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame,
 	for !p.reader.rawReader.IsLimitExhausted() {
 		_, err := p.Next()
 		if err != nil {
-			if err.Error() == "EOF" {
+			if errors.Is(err, io.EOF) {
 				// exiting on EOF
 				err = nil
 				break

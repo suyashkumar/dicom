@@ -36,7 +36,8 @@ import (
 )
 
 const (
-	magicWord = "DICM"
+	magicWord         = "DICM"
+	LimitReadUntilEOF = -9999
 )
 
 var (
@@ -60,7 +61,7 @@ func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ..
 }
 
 func ParseUntilEOF(in io.Reader, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
-	return parseInternal(in, -1, frameChan, opts...)
+	return parseInternal(in, LimitReadUntilEOF, frameChan, opts...)
 }
 
 // Parse parses the entire DICOM at the input io.Reader into a Dataset of DICOM Elements. Use this if you are

@@ -20,6 +20,8 @@ var (
 	ErrorInsufficientBytesLeft = errors.New("not enough bytes left until buffer limit to complete this operation")
 )
 
+// LimitReadUntilEOF is a special dicomio.Reader limit indicating that there is no hard limit and the
+// Reader should read until EOF. 
 const LimitReadUntilEOF = -9999
 
 // Reader provides common functionality for reading underlying DICOM data.

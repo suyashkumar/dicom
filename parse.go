@@ -36,8 +36,7 @@ import (
 )
 
 const (
-	magicWord         = "DICM"
-	LimitReadUntilEOF = -9999
+	magicWord = "DICM"
 )
 
 var (

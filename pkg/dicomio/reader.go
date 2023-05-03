@@ -99,7 +99,7 @@ func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) Reader {
 }
 
 func (r *reader) BytesLeftUntilLimit() int64 {
-	if r.limit < 0 {
+	if r.limit == LimitReadUntilEOF {
 		return math.MaxInt64
 	}
 	return r.limit - r.bytesRead

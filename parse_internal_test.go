@@ -24,26 +24,14 @@ func TestParseUntilEOFConformsToParse(t *testing.T) {
 			t.Run(f.Name(), func(t *testing.T) {
 				t.Parallel()
 				// Read dataset with ParseUntilEOF
-				dcm, err := os.Open("./testdata/" + f.Name())
-				if err != nil {
-					t.Errorf("Unable to open %s. Error: %v", f.Name(), err)
-				}
-				defer dcm.Close()
-
-				if err != nil {
-					t.Errorf("Unable to stat %s. Error: %v", f.Name(), err)
-				}
+				dcm := readTestdataFile(t, f.Name())
 				parse_eof_dataset, err := ParseUntilEOF(dcm, nil)
 				if err != nil {
 					t.Errorf("dicom.ParseUntilEOF(%s) unexpected error: %v", f.Name(), err)
 				}
 
 				// Read dataset with Parse
-				dcm2, err := os.Open("./testdata/" + f.Name())
-				if err != nil {
-					t.Errorf("Unable to open %s. Error: %v", f.Name(), err)
-				}
-				defer dcm2.Close()
+				dcm2 := readTestdataFile(t, f.Name())
 				info, err := dcm2.Stat()
 				if err != nil {
 					t.Errorf("Unable to stat %s. Error: %v", f.Name(), err)
@@ -54,10 +42,7 @@ func TestParseUntilEOFConformsToParse(t *testing.T) {
 				}
 
 				// Ensure dataset read from ParseUntilEOF and Parse are the same.
-				cmpOpts := []cmp.Option{
-					cmp.AllowUnexported(allValues...),
-				}
-				if diff := cmp.Diff(parse_dataset, parse_eof_dataset, cmpOpts...); diff != "" {
+				if diff := cmp.Diff(parse_dataset, parse_eof_dataset, cmp.AllowUnexported(allValues...)); diff != "" {
 					t.Errorf("dicom.Parse and dicom.ParseUntilEOF do not result in the same dataset. diff: %v", diff)
 				}
 			})
@@ -65,3 +50,11 @@ func TestParseUntilEOFConformsToParse(t *testing.T) {
 	}
 }
 
+func readTestdataFile(t *testing.T, name string) *os.File {
+	dcm, err := os.Open("./testdata/" + name)
+	if err != nil {
+		t.Errorf("Unable to open %s. Error: %v", name, err)
+	}
+	t.Cleanup(func() { dcm.Close() })
+	return dcm
+}

@@ -596,7 +596,7 @@ func TestReadPixelData_SkipPixelData(t *testing.T) {
 }
 
 // Returns a fake DICOM group 2 header with the FileMetaInformationGroupLength tag missing (0x0002,0x0000)
-func fakeHeader_NoFileMetaInformationGroupLength() (*bytes.Buffer, error) {
+func headerWithNoFileMetaInformationGroupLength() (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 
 	dcm_writer := NewWriter(&buf)
@@ -625,7 +625,7 @@ func fakeHeader_NoFileMetaInformationGroupLength() (*bytes.Buffer, error) {
 }
 
 // Returns a fake DICOM group 2 header with a FileMetaInformationGroupLength tag (0x0002,0x0000)
-func fakeHeader_WithFileMetaInformationGroupLength() (*bytes.Buffer, error) {
+func headerWithFileMetaInformationGroupLength() (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 
 	dcm_writer := NewWriter(&buf)
@@ -660,7 +660,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	opts := parseOptSet{allowErrorMetaElementGroupLength: true}
 
 	t.Run("NoFileMetaInformationGroupLength", func(t *testing.T) {
-		dcmheader_noinfogrplen, err := fakeHeader_NoFileMetaInformationGroupLength()
+		dcmheader_noinfogrplen, err := headerWithNoFileMetaInformationGroupLength()
 		if err != nil {
 			t.Errorf("unsuccesful generation of fake header data")
 		} else {
@@ -676,7 +676,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	})
 
 	t.Run("WithFileMetaInformationGroupLength", func(t *testing.T) {
-		dcmheader_infogrplen, err := fakeHeader_WithFileMetaInformationGroupLength()
+		dcmheader_infogrplen, err := headerWithFileMetaInformationGroupLength()
 		if err != nil {
 			t.Errorf("unsuccesful generation of fake header data with FileMetaInformationGroupLength")
 		} else {

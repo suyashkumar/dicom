@@ -162,11 +162,11 @@ func (r *reader) readHeader() ([]*Element, error) {
 	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
 	metaElementGroupLengthDefined := true
 	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
+		// MetaInformationGroupLength is not present or of the wrong value type.
 		if !r.opts.allowErrorMetaElementGroupLength {
 			return nil, ErrorMetaElementGroupLength
 		}
 		metaElementGroupLengthDefined = false
-		metaElems = append(metaElems, maybeMetaLen)
 	}
 
 	if metaElementGroupLengthDefined {
@@ -187,7 +187,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 			// log.Printf("Metadata Element: %s\n", elem)
 			metaElems = append(metaElems, elem)
 		}
-	} else if r.opts.allowErrorMetaElementGroupLength {
+	} else {
 		// We cannot use the limit functionality
 		debug.Log("Proceeding without metadata group length")
 		for {

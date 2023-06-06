@@ -229,9 +229,9 @@ func AllowMismatchPixelDataLength() ParseOption {
 	}
 }
 
-// AllowErrorMetaElementGroupLength allows parser to work around missing metaelement group length tag (0x0002,0x0000) by reading elements only
-// in group 2
-func AllowErrorMetaElementGroupLength() ParseOption {
+// AllowMissingMetaElementGroupLength allows parser to work around missing metaelement group length tag (0x0002,0x0000) by reading elements only
+// in group 2.
+func AllowMissingMetaElementGroupLength() ParseOption {
 	return func(set *parseOptSet) {
 		set.allowErrorMetaElementGroupLength = true
 	}

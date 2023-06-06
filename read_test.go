@@ -660,12 +660,12 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	opts := parseOptSet{allowErrorMetaElementGroupLength: true}
 
 	t.Run("NoFileMetaInformationGroupLength", func(t *testing.T) {
-		dcmheader_noinfogrplen, err := headerWithNoFileMetaInformationGroupLength()
+		dcmheaderNoInfoGrpLen, err := headerWithNoFileMetaInformationGroupLength()
 		if err != nil {
-			t.Errorf("unsuccesful generation of fake header data")
+			t.Fatalf("unsuccesful generation of fake header data")
 		} else {
 			r := &reader{
-				rawReader: dicomio.NewReader(bufio.NewReader(dcmheader_noinfogrplen), binary.LittleEndian, int64(dcmheader_noinfogrplen.Len())),
+				rawReader: dicomio.NewReader(bufio.NewReader(dcmheaderNoInfoGrpLen), binary.LittleEndian, int64(dcmheaderNoInfoGrpLen.Len())),
 				opts:      opts,
 			}
 			_, err = r.readHeader()
@@ -678,7 +678,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	t.Run("WithFileMetaInformationGroupLength", func(t *testing.T) {
 		dcmheader_infogrplen, err := headerWithFileMetaInformationGroupLength()
 		if err != nil {
-			t.Errorf("unsuccesful generation of fake header data with FileMetaInformationGroupLength")
+			t.Fatalf("unsuccesful generation of fake header data with FileMetaInformationGroupLength")
 		} else {
 			r := &reader{
 				rawReader: dicomio.NewReader(bufio.NewReader(dcmheader_infogrplen), binary.LittleEndian, int64(dcmheader_infogrplen.Len())),

@@ -50,6 +50,14 @@ func (r *reader) readTag() (*tag.Tag, error) {
 	if gerr == nil && eerr == nil {
 		return &tag.Tag{Group: group, Element: element}, nil
 	}
+	// If the error is an io.EOF, return the error directly instead of the compound error later.
+	// Once we target go1.20 we can use errors.Join: https://pkg.go.dev/errors#Join
+	if errors.Is(gerr, io.EOF) {
+		return nil, gerr
+	}
+	if errors.Is(eerr, io.EOF) {
+		return nil, eerr
+	}
 	return nil, fmt.Errorf("error reading tag: %v %v", gerr, eerr)
 }
 

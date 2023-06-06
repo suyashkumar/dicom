@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
 	"golang.org/x/text/encoding"
@@ -18,6 +19,10 @@ var (
 	// to complete the operation.
 	ErrorInsufficientBytesLeft = errors.New("not enough bytes left until buffer limit to complete this operation")
 )
+
+// LimitReadUntilEOF is a special dicomio.Reader limit indicating that there is no hard limit and the
+// Reader should read until EOF. 
+const LimitReadUntilEOF = -9999
 
 // Reader provides common functionality for reading underlying DICOM data.
 type Reader interface {
@@ -94,6 +99,9 @@ func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) Reader {
 }
 
 func (r *reader) BytesLeftUntilLimit() int64 {
+	if r.limit == LimitReadUntilEOF {
+		return math.MaxInt64
+	}
 	return r.limit - r.bytesRead
 }
 
@@ -197,7 +205,7 @@ func (r *reader) Skip(n int64) error {
 // PushLimit creates a limit n bytes from the current position
 func (r *reader) PushLimit(n int64) error {
 	newLimit := r.bytesRead + n
-	if newLimit > r.limit {
+	if newLimit > r.limit && r.limit != LimitReadUntilEOF {
 		return fmt.Errorf("new limit exceeds current limit of buffer, new limit: %d, limit: %d", newLimit, r.limit)
 	}
 
@@ -207,7 +215,7 @@ func (r *reader) PushLimit(n int64) error {
 	return nil
 }
 func (r *reader) PopLimit() {
-	if r.bytesRead < r.limit {
+	if r.bytesRead < r.limit && r.limit != LimitReadUntilEOF {
 		// didn't read all the way to the limit, so skip over what's left.
 		_ = r.Skip(r.limit - r.bytesRead)
 	}
@@ -218,7 +226,8 @@ func (r *reader) PopLimit() {
 }
 
 func (r *reader) IsLimitExhausted() bool {
-	return r.BytesLeftUntilLimit() <= 0
+	// if limit < 0 than we should read until EOF
+	return (r.BytesLeftUntilLimit() <= 0 && r.limit != LimitReadUntilEOF)
 }
 
 func (r *reader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {

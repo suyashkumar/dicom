@@ -45,6 +45,32 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParseUntilEOF(t *testing.T) {
+	files, err := ioutil.ReadDir("./testdata")
+	if err != nil {
+		t.Fatalf("unable to read testdata/: %v", err)
+	}
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
+			t.Run(f.Name(), func(t *testing.T) {
+				dcm, err := os.Open("./testdata/" + f.Name())
+				if err != nil {
+					t.Errorf("Unable to open %s. Error: %v", f.Name(), err)
+				}
+				defer dcm.Close()
+
+				if err != nil {
+					t.Errorf("Unable to stat %s. Error: %v", f.Name(), err)
+				}
+				_, err = dicom.ParseUntilEOF(dcm, nil)
+				if err != nil {
+					t.Errorf("dicom.Parse(%s) unexpected error: %v", f.Name(), err)
+				}
+			})
+		}
+	}
+}
+
 // TestNewParserSkipMetadataReadOnNewParserInit tests that NewParser with the SkipMetadataReadOnNewParserInit option
 // parses the specified dataset but not its header metadata.
 func TestNewParserSkipMetadataReadOnNewParserInit(t *testing.T) {

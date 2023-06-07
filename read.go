@@ -162,6 +162,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
 	metaElementGroupLengthDefined := true
 	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
+		// MetaInformationGroupLength is not present or of the wrong value type.
 		if !r.opts.allowErrorMetaElementGroupLength {
 			return nil, ErrorMetaElementGroupLength
 		}

@@ -163,7 +163,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 	metaElementGroupLengthDefined := true
 	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
 		// MetaInformationGroupLength is not present or of the wrong value type.
-		if !r.opts.allowErrorMetaElementGroupLength {
+		if !r.opts.allowMissingMetaElementGroupLength {
 			return nil, ErrorMetaElementGroupLength
 		}
 		metaElementGroupLengthDefined = false
@@ -198,7 +198,12 @@ func (r *reader) readHeader() ([]*Element, error) {
 			}
 			tg := tag.Tag{}
 			buff := bytes.NewBuffer(tag_bytes)
-			binary.Read(buff, binary.LittleEndian, &tg)
+			if err := binary.Read(buff, binary.LittleEndian, &tg.Group); err != nil {
+				return nil, err
+			}
+			if err := binary.Read(buff, binary.LittleEndian, &tg.Element); err != nil {
+				return nil, err
+			}
 			debug.Logf("header-tag: %v", tg)
 			// Only read group 2 data
 			if tg.Group != 0x0002 {

@@ -685,7 +685,7 @@ func headerWithFileMetaInformationGroupLength() (*headerData, error) {
 }
 
 func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
-	opts := parseOptSet{allowErrorMetaElementGroupLength: true}
+	opts := parseOptSet{allowMissingMetaElementGroupLength: true}
 
 	t.Run("NoFileMetaInformationGroupLength", func(t *testing.T) {
 		dcmheaderNoInfoGrpLen, err := headerWithNoFileMetaInformationGroupLength()
@@ -697,12 +697,12 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 				opts:      opts,
 			}
 			r.rawReader.SetTransferSyntax(binary.LittleEndian, true)
-			parsedElements, err := r.readHeader()
+			wantElements, err := r.readHeader()
 			if err != nil {
-				t.Errorf("unsuccessful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowErrorMetaElementGroupLength)
+				t.Errorf("unsuccessful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowMissingMetaElementGroupLength)
 			}
 			// Ensure dataset read from readHeader and the test header are the same except for the ValueLength field.
-			if diff := cmp.Diff(parsedElements, dcmheaderNoInfoGrpLen.Elements, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
+			if diff := cmp.Diff(wantElements, dcmheaderNoInfoGrpLen.Elements, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
 				t.Errorf("Elements parsed from test header do not match: %v", diff)
 			}
 		}
@@ -718,12 +718,12 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 				opts:      opts,
 			}
 			r.rawReader.SetTransferSyntax(binary.LittleEndian, true)
-			parsedElements, err := r.readHeader()
+			wantElements, err := r.readHeader()
 			if err != nil {
-				t.Errorf("unsuccesful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowErrorMetaElementGroupLength)
+				t.Errorf("unsuccesful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowMissingMetaElementGroupLength)
 			}
 			// Ensure dataset read from readHeader and the test header are the same except for the ValueLength field.
-			if diff := cmp.Diff(parsedElements, dcmHeaderInfoGrpLen.Elements, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
+			if diff := cmp.Diff(wantElements, dcmHeaderInfoGrpLen.Elements, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
 				t.Errorf("Elements parsed from test header do not match: %v", diff)
 			}
 		}

@@ -471,7 +471,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 		switch vr {
 		case vrraw.DateTime, vrraw.LongString, vrraw.LongText, vrraw.PersonName,
 			vrraw.ShortString, vrraw.ShortText, vrraw.UnlimitedText,
-			vrraw.DecimalString, vrraw.CodeString, vrraw.Time,
+			vrraw.DecimalString, vrraw.CodeString, vrraw.Time, vrraw.ApplicationEntity,
 			vrraw.IntegerString, vrraw.Unknown:
 			if err := w.WriteString(" "); err != nil { // https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_6.2
 				return err

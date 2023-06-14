@@ -50,6 +50,14 @@ func (r *reader) readTag() (*tag.Tag, error) {
 	if gerr == nil && eerr == nil {
 		return &tag.Tag{Group: group, Element: element}, nil
 	}
+	// If the error is an io.EOF, return the error directly instead of the compound error later.
+	// Once we target go1.20 we can use errors.Join: https://pkg.go.dev/errors#Join
+	if errors.Is(gerr, io.EOF) {
+		return nil, gerr
+	}
+	if errors.Is(eerr, io.EOF) {
+		return nil, eerr
+	}
 	return nil, fmt.Errorf("error reading tag: %v %v", gerr, eerr)
 }
 
@@ -192,21 +200,18 @@ func (r *reader) readHeader() ([]*Element, error) {
 		debug.Log("Proceeding without metadata group length")
 		for {
 			// Lets peek into the tag field until we get to end-of-header
-			tag_bytes, err := r.rawReader.Peek(4)
+			group_bytes, err := r.rawReader.Peek(2)
 			if err != nil {
 				return nil, ErrorMetaElementGroupLength
 			}
-			tg := tag.Tag{}
-			buff := bytes.NewBuffer(tag_bytes)
-			if err := binary.Read(buff, binary.LittleEndian, &tg.Group); err != nil {
+			var group uint16
+			buff := bytes.NewBuffer(group_bytes)
+			if err := binary.Read(buff, binary.LittleEndian, &group); err != nil {
 				return nil, err
 			}
-			if err := binary.Read(buff, binary.LittleEndian, &tg.Element); err != nil {
-				return nil, err
-			}
-			debug.Logf("header-tag: %v", tg)
+			debug.Logf("header-group: %v", group)
 			// Only read group 2 data
-			if tg.Group != 0x0002 {
+			if group != 0x0002 {
 				break
 			}
 			elem, err := r.readElement(nil, nil)

@@ -26,6 +26,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
 	"github.com/suyashkumar/dicom/pkg/debug"
@@ -117,8 +118,9 @@ type Parser struct {
 	dataset  Dataset
 	metadata Dataset
 	// file is optional, might be populated if reading from an underlying file
-	file         *os.File
-	frameChannel chan *frame.Frame
+	file            *os.File
+	frameChannel    chan *frame.Frame
+	stopAtPixelData bool
 }
 
 // NewParser returns a new Parser that points to the provided io.Reader, with bytesToRead bytes left to read. NewParser
@@ -133,7 +135,8 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 			rawReader: dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead),
 			opts:      optSet,
 		},
-		frameChannel: frameChannel,
+		frameChannel:    frameChannel,
+		stopAtPixelData: optSet.stopAtPixelDataStart,
 	}
 
 	elems := []*Element{}
@@ -182,7 +185,7 @@ func (p *Parser) Next() (*Element, error) {
 		}
 		return nil, ErrorEndOfDICOM
 	}
-	elem, err := p.reader.readElement(&p.dataset, p.frameChannel)
+	elem, err := p.reader.readElement(&p.dataset, p.frameChannel, p.stopAtPixelData)
 	if err != nil {
 		// TODO: tolerate some kinds of errors and continue parsing
 		return nil, err
@@ -206,6 +209,66 @@ func (p *Parser) Next() (*Element, error) {
 
 }
 
+// GetDataset returns just the set of metadata elements that have been parsed
+// so far.
+func (p *Parser) GetDataset() Dataset {
+	return p.dataset
+}
+
+func (p *Parser) GetPixelDataSize(optionalNumberOfFrames bool) (int64, error) {
+	parsedData := p.dataset
+	nof, err := parsedData.FindElementByTag(tag.NumberOfFrames)
+	var nFrames = 1
+	if err != nil {
+		if !optionalNumberOfFrames {
+			return -1, err
+		}
+	} else {
+		nFrames, err = strconv.Atoi(MustGetStrings(nof.Value)[0])
+		if err != nil {
+			return -1, err
+		}
+	}
+
+	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
+	rows, err := parsedData.FindElementByTag(tag.Rows)
+	if err != nil {
+		return -1, err
+	}
+
+	cols, err := parsedData.FindElementByTag(tag.Columns)
+	if err != nil {
+		return -1, err
+	}
+
+	b, err := parsedData.FindElementByTag(tag.BitsAllocated)
+	if err != nil {
+		return -1, err
+	}
+	bitsAllocated := MustGetInts(b.Value)[0]
+
+	s, err := parsedData.FindElementByTag(tag.SamplesPerPixel)
+	if err != nil {
+		return -1, err
+	}
+	samplesPerPixel := MustGetInts(s.Value)[0]
+
+	pixelsPerFrame := MustGetInts(rows.Value)[0] * MustGetInts(cols.Value)[0]
+
+	// Parse the pixels:
+	bytesAllocated := bitsAllocated / 8
+
+	frameSize := bytesAllocated * samplesPerPixel * pixelsPerFrame
+	var bytesTotal int64
+	bytesTotal = int64(frameSize) * int64(nFrames)
+
+	return bytesTotal, nil
+}
+
+func (p *Parser) GetPixelDataReader(bytesTotal int64) (io.Reader, error) {
+	return io.LimitReader(p.reader.rawReader, bytesTotal), nil
+}
+
 // GetMetadata returns just the set of metadata elements that have been parsed
 // so far.
 func (p *Parser) GetMetadata() Dataset {
@@ -226,6 +289,7 @@ type parseOptSet struct {
 	allowMismatchPixelDataLength    bool
 	skipPixelData                   bool
 	skipProcessingPixelDataValue    bool
+	stopAtPixelDataStart            bool
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
@@ -275,5 +339,11 @@ func SkipPixelData() ParseOption {
 func SkipProcessingPixelDataValue() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipProcessingPixelDataValue = true
+	}
+}
+
+func StopAtPixelData() ParseOption {
+	return func(set *parseOptSet) {
+		set.stopAtPixelDataStart = true
 	}
 }

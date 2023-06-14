@@ -162,7 +162,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 
 	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := r.readElement(nil, nil)
+	maybeMetaLen, err := r.readElement(nil, nil, r.opts.stopAtPixelDataStart)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 	}
 	defer r.rawReader.PopLimit()
 	for !r.rawReader.IsLimitExhausted() {
-		elem, err := r.readElement(nil, nil)
+		elem, err := r.readElement(nil, nil, r.opts.stopAtPixelDataStart)
 		if err != nil {
 			// TODO: see if we can skip over malformed elements somehow
 			return nil, err
@@ -474,7 +474,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 	seqElements := &Dataset{}
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElement, err := r.readElement(seqElements, nil)
+			subElement, err := r.readElement(seqElements, nil, false)
 			if err != nil {
 				// Stop reading due to error
 				log.Println("error reading subitem, ", err)
@@ -501,7 +501,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 			return nil, err
 		}
 		for !r.rawReader.IsLimitExhausted() {
-			subElement, err := r.readElement(seqElements, nil)
+			subElement, err := r.readElement(seqElements, nil, false)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, err
@@ -527,7 +527,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElem, err := r.readElement(&seqElements, nil)
+			subElem, err := r.readElement(&seqElements, nil, false)
 			if err != nil {
 				return nil, err
 			}
@@ -545,7 +545,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 		}
 
 		for !r.rawReader.IsLimitExhausted() {
-			subElem, err := r.readElement(&seqElements, nil)
+			subElem, err := r.readElement(&seqElements, nil, false)
 			if err != nil {
 				return nil, err
 			}
@@ -706,7 +706,7 @@ func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 // elements read so far, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.
-func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
+func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame, stopAtPixelDataValue bool) (*Element, error) {
 	t, err := r.readTag()
 	if err != nil {
 		return nil, err
@@ -731,6 +731,11 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 	}
 	debug.Logf("readElement: vl: %d", vl)
 
+	if stopAtPixelDataValue && *t == tag.PixelData {
+		return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: nil}, nil
+	}
+
+	//val, err := readValue(r, *t, vr, vl, readImplicit, d, fc)
 	val, err := r.readValue(*t, vr, vl, readImplicit, d, fc)
 	if err != nil {
 		log.Println("error reading value ", err)
@@ -738,7 +743,6 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 	}
 
 	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
-
 }
 
 // Read an Item object as raw bytes, useful when parsing encapsulated PixelData.

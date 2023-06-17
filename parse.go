@@ -222,10 +222,11 @@ type ParseOption func(*parseOptSet)
 
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
-	skipMetadataReadOnNewParserInit bool
-	allowMismatchPixelDataLength    bool
-	skipPixelData                   bool
-	skipProcessingPixelDataValue    bool
+	skipMetadataReadOnNewParserInit    bool
+	allowMismatchPixelDataLength       bool
+	skipPixelData                      bool
+	skipProcessingPixelDataValue       bool
+	allowMissingMetaElementGroupLength bool
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
@@ -240,6 +241,14 @@ func toParseOptSet(opts ...ParseOption) parseOptSet {
 func AllowMismatchPixelDataLength() ParseOption {
 	return func(set *parseOptSet) {
 		set.allowMismatchPixelDataLength = true
+	}
+}
+
+// AllowMissingMetaElementGroupLength allows parser to work around missing metaelement group length tag (0x0002,0x0000) by reading elements only
+// in group 2.
+func AllowMissingMetaElementGroupLength() ParseOption {
+	return func(set *parseOptSet) {
+		set.allowMissingMetaElementGroupLength = true
 	}
 }
 

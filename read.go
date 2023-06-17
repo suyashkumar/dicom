@@ -167,28 +167,60 @@ func (r *reader) readHeader() ([]*Element, error) {
 		return nil, err
 	}
 
-	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
-		return nil, ErrorMetaElementGroupLength
-	}
-
-	metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
-
 	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
-
-	// Read the metadata elements
-	err = r.rawReader.PushLimit(int64(metaLen))
-	if err != nil {
-		return nil, err
+	metaElementGroupLengthDefined := true
+	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
+		// MetaInformationGroupLength is not present or of the wrong value type.
+		if !r.opts.allowMissingMetaElementGroupLength {
+			return nil, ErrorMetaElementGroupLength
+		}
+		metaElementGroupLengthDefined = false
 	}
-	defer r.rawReader.PopLimit()
-	for !r.rawReader.IsLimitExhausted() {
-		elem, err := r.readElement(nil, nil)
+
+	if metaElementGroupLengthDefined {
+		metaLen := maybeMetaLen.Value.GetValue().([]int)[0]
+
+		// Read the metadata elements
+		err = r.rawReader.PushLimit(int64(metaLen))
 		if err != nil {
-			// TODO: see if we can skip over malformed elements somehow
 			return nil, err
 		}
-		// log.Printf("Metadata Element: %s\n", elem)
-		metaElems = append(metaElems, elem)
+		defer r.rawReader.PopLimit()
+		for !r.rawReader.IsLimitExhausted() {
+			elem, err := r.readElement(nil, nil)
+			if err != nil {
+				// TODO: see if we can skip over malformed elements somehow
+				return nil, err
+			}
+			// log.Printf("Metadata Element: %s\n", elem)
+			metaElems = append(metaElems, elem)
+		}
+	} else {
+		// We cannot use the limit functionality
+		debug.Log("Proceeding without metadata group length")
+		for {
+			// Lets peek into the tag field until we get to end-of-header
+			group_bytes, err := r.rawReader.Peek(2)
+			if err != nil {
+				return nil, ErrorMetaElementGroupLength
+			}
+			var group uint16
+			buff := bytes.NewBuffer(group_bytes)
+			if err := binary.Read(buff, binary.LittleEndian, &group); err != nil {
+				return nil, err
+			}
+			debug.Logf("header-group: %v", group)
+			// Only read group 2 data
+			if group != 0x0002 {
+				break
+			}
+			elem, err := r.readElement(nil, nil)
+			if err != nil {
+				// TODO: see if we can skip over malformed elements somehow
+				return nil, err
+			}
+			metaElems = append(metaElems, elem)
+		}
 	}
 	return metaElems, nil
 }

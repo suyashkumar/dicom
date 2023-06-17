@@ -175,6 +175,14 @@ func TestParseFile_SkipProcessingPixelDataValue(t *testing.T) {
 			}
 		})
 	})
+	t.Run("WithAllowErrorMetaElementGroupLength", func(t *testing.T) {
+		runForEveryTestFile(t, func(t *testing.T, filename string) {
+			dataset, err := dicom.ParseFile(filename, nil, dicom.AllowMissingMetaElementGroupLength())
+			if err != nil {
+				t.Errorf("Unexpected error parsing dataset: %v", dataset)
+			}
+		})
+	})
 }
 
 // BenchmarkParse runs sanity benchmarks over the sample files in testdata.

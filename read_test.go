@@ -595,6 +595,141 @@ func TestReadPixelData_SkipPixelData(t *testing.T) {
 	}
 }
 
+// Used to encode the data from the generated headers.
+type headerData struct {
+	// The byte encoded header data.
+	HeaderBytes *bytes.Buffer
+	// The decoded elements conforming the header.
+	Elements []*Element
+}
+
+// Write a collection of elements and return them as an encoded buffer of bytes.
+func writeElements(elements []*Element) ([]byte, error) {
+	buff := bytes.Buffer{}
+	dcmWriter := NewWriter(&buff)
+	dcmWriter.SetTransferSyntax(binary.LittleEndian, true)
+
+	for _, e := range elements {
+		err := dcmWriter.WriteElement(e)
+		if err != nil {
+			return nil, err
+		}
+	}
+	data := buff.Bytes()
+	return data, nil
+}
+
+// Returns a fake DICOM group 2 header with the FileMetaInformationGroupLength tag missing (0x0002,0x0000).
+func headerWithNoFileMetaInformationGroupLength() (*headerData, error) {
+	headerData := new(headerData)
+
+	elements := []*Element{
+		mustNewElement(tag.MediaStorageSOPClassUID, []string{"SecondaryCapture"}),
+		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.3.6.1.4.1.35190.4.1.20210608.607733549593"}),
+		mustNewElement(tag.TransferSyntaxUID, []string{"=RLELossless"}),
+		mustNewElement(tag.ImplementationClassUID, []string{"1.6.6.1.4.1.9590.100.1.0.100.4.0"}),
+		mustNewElement(tag.SOPInstanceUID, []string{"1.3.6.1.4.1.35190.4.1.20210608.607733549593"}),
+	}
+	data, err := writeElements(elements)
+	if err != nil {
+		return nil, err
+	}
+
+	// Construct valid DICOM header preamble.
+	magicWord := []byte("DICM")
+	preamble := make([]byte, 128)
+	preamble = append(preamble, magicWord...)
+	headerBytes := append(preamble, data...)
+	headerData.HeaderBytes = bytes.NewBuffer(headerBytes)
+	headerData.Elements = elements[0 : len(elements)-1]
+	return headerData, nil
+}
+
+// Returns a fake DICOM group 2 header with a FileMetaInformationGroupLength tag (0x0002,0x0000).
+func headerWithFileMetaInformationGroupLength() (*headerData, error) {
+	headerData := new(headerData)
+
+	sopInstanceUidElement := mustNewElement(tag.SOPInstanceUID, []string{"1.3.6.1.4.1.35190.4.1.20210608.607733549593"})
+	elements := []*Element{
+		mustNewElement(tag.FileMetaInformationVersion, []byte{0x00, 0x01}),
+		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.276.0.7230010.3.1.0.1"}),
+		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.3.6.1.4.1.35190.4.1.20210608.607733549593"}),
+		mustNewElement(tag.TransferSyntaxUID, []string{"=RLELossless"}),
+		mustNewElement(tag.ImplementationClassUID, []string{"1.2.276.0.7230010.3.0.3.6.7"}),
+		mustNewElement(tag.ImplementationVersionName, []string{"OFFIS_DCMTK_367"}),
+	}
+	dataHeader, err := writeElements(elements)
+	if err != nil {
+		return nil, err
+	}
+	fileMetaInfoElement := mustNewElement(tag.FileMetaInformationGroupLength, []int{len(dataHeader)})
+	dataFileMetaInfo, err := writeElements([]*Element{fileMetaInfoElement})
+	if err != nil {
+		return nil, err
+	}
+	dataSopInstanceUid, err := writeElements([]*Element{sopInstanceUidElement})
+	if err != nil {
+		return nil, err
+	}
+	data := append(dataFileMetaInfo, dataHeader...)
+	data = append(data, dataSopInstanceUid...)
+
+	// Construct valid DICOM header preamble.
+	magicWord := []byte("DICM")
+	preamble := make([]byte, 128)
+	preamble = append(preamble, magicWord...)
+	headerBytes := append(preamble, data...)
+	headerData.HeaderBytes = bytes.NewBuffer(headerBytes)
+	headerData.Elements = append([]*Element{fileMetaInfoElement}, elements...)
+	return headerData, nil
+}
+
+func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
+	opts := parseOptSet{allowMissingMetaElementGroupLength: true}
+
+	t.Run("NoFileMetaInformationGroupLength", func(t *testing.T) {
+		dcmheaderNoInfoGrpLen, err := headerWithNoFileMetaInformationGroupLength()
+		if err != nil {
+			t.Fatalf("unsuccesful generation of fake header data")
+		} else {
+			r := &reader{
+				rawReader: dicomio.NewReader(bufio.NewReader(dcmheaderNoInfoGrpLen.HeaderBytes), binary.LittleEndian, int64(dcmheaderNoInfoGrpLen.HeaderBytes.Len())),
+				opts:      opts,
+			}
+			r.rawReader.SetTransferSyntax(binary.LittleEndian, true)
+			wantElements, err := r.readHeader()
+			if err != nil {
+				t.Errorf("unsuccessful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowMissingMetaElementGroupLength)
+			}
+			// Ensure dataset read from readHeader and the test header are the same except for the ValueLength field.
+			if diff := cmp.Diff(wantElements, dcmheaderNoInfoGrpLen.Elements, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
+				t.Errorf("Elements parsed from test header do not match: %v", diff)
+			}
+		}
+	})
+
+	t.Run("WithFileMetaInformationGroupLength", func(t *testing.T) {
+		dcmHeaderInfoGrpLen, err := headerWithFileMetaInformationGroupLength()
+		if err != nil {
+			t.Fatalf("unsuccesful generation of fake header data with FileMetaInformationGroupLength")
+		} else {
+			r := &reader{
+				rawReader: dicomio.NewReader(bufio.NewReader(dcmHeaderInfoGrpLen.HeaderBytes), binary.LittleEndian, int64(dcmHeaderInfoGrpLen.HeaderBytes.Len())),
+				opts:      opts,
+			}
+			r.rawReader.SetTransferSyntax(binary.LittleEndian, true)
+			wantElements, err := r.readHeader()
+			if err != nil {
+				t.Errorf("unsuccesful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowMissingMetaElementGroupLength)
+			}
+			// Ensure dataset read from readHeader and the test header are the same except for the ValueLength field.
+			if diff := cmp.Diff(wantElements, dcmHeaderInfoGrpLen.Elements, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
+				t.Errorf("Elements parsed from test header do not match: %v", diff)
+			}
+		}
+	})
+}
+
 func TestReadPixelData_TrySkipProcessingPixelDataValue(t *testing.T) {
 	opts := parseOptSet{skipProcessingPixelDataValue: true}
 	valueBytes := []byte{1, 2, 3, 4, 5, 6}

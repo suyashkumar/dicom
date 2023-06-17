@@ -2,6 +2,7 @@ package dicom
 
 import (
 	"encoding/json"
+	"github.com/suyashkumar/dicom/pkg/frame"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -132,6 +133,213 @@ func TestNewValue(t *testing.T) {
 			}
 			if diff := cmp.Diff(v, tc.wantValue, cmp.AllowUnexported(allValues...)); diff != "" {
 				t.Errorf("NewValue(%v) unexpected value. diff: %v", tc.data, diff)
+			}
+		})
+	}
+}
+
+func TestValue_IsEmpty(t *testing.T) {
+	cases := []struct {
+		name            string
+		value           Value
+		expectedIsEmpty bool
+	}{
+		// STRINGS VALUE
+		{
+			name:            "strings_none_empty",
+			value:           &stringsValue{value: []string{"a", "b"}},
+			expectedIsEmpty: false,
+		},
+		{
+			name:            "strings_one_empty",
+			value:           &stringsValue{value: []string{"a", ""}},
+			expectedIsEmpty: false,
+		},
+		{
+			name:            "strings_all_empty",
+			value:           &stringsValue{value: []string{"", ""}},
+			expectedIsEmpty: true,
+		},
+		{
+			name:            "strings_single_empty",
+			value:           &stringsValue{value: []string{""}},
+			expectedIsEmpty: true,
+		},
+
+		// INTS VALUE
+		{
+			name:            "ints_none_empty",
+			value:           &intsValue{value: []int{1, 2}},
+			expectedIsEmpty: false,
+		},
+		{
+			name:            "ints_one_empty",
+			value:           &intsValue{value: []int{0, 2}},
+			expectedIsEmpty: false,
+		},
+		{
+			name:            "ints_all_empty",
+			value:           &intsValue{value: []int{0, 0}},
+			expectedIsEmpty: true,
+		},
+		{
+			name:            "ints_single_empty",
+			value:           &intsValue{value: []int{0}},
+			expectedIsEmpty: true,
+		},
+
+		// FLOATS VALUE
+		{
+			name:            "floats_none_empty",
+			value:           &floatsValue{value: []float64{1, 2}},
+			expectedIsEmpty: false,
+		},
+		{
+			name:            "floats_one_empty",
+			value:           &floatsValue{value: []float64{0, 2}},
+			expectedIsEmpty: false,
+		},
+		{
+			name:            "floats_all_empty",
+			value:           &floatsValue{value: []float64{0, 0}},
+			expectedIsEmpty: true,
+		},
+		{
+			name:            "floats_single_empty",
+			value:           &floatsValue{value: []float64{0}},
+			expectedIsEmpty: true,
+		},
+
+		// BYTES
+		{
+			name:            "bytes_not_empty",
+			value:           &bytesValue{value: []byte{0x0, 0x1}},
+			expectedIsEmpty: false,
+		},
+		{
+			name:            "bytes_empty",
+			value:           &bytesValue{value: []byte{}},
+			expectedIsEmpty: true,
+		},
+
+		// PIXEL DATA
+		{
+			name:            "PixelData_empty",
+			value:           &pixelDataValue{PixelDataInfo{IsEncapsulated: true}},
+			expectedIsEmpty: true,
+		},
+		{
+			name: "PixelData_not_empty",
+			value: &pixelDataValue{
+				PixelDataInfo{
+					Frames: []frame.Frame{
+						{},
+					},
+					IsEncapsulated: true,
+				},
+			},
+			expectedIsEmpty: false,
+		},
+
+		// SEQUENCES
+		{
+			name:            "sequence_empty",
+			expectedIsEmpty: true,
+			value:           &sequencesValue{value: []*SequenceItemValue{}},
+		},
+		{
+			name:            "sequence_empty_sub_elements",
+			expectedIsEmpty: true,
+			value: &sequencesValue{value: []*SequenceItemValue{
+				{
+					elements: []*Element{
+						{
+							Tag:                 tag.PatientName,
+							ValueRepresentation: tag.VRString,
+							Value: &stringsValue{
+								value: []string{""},
+							},
+						},
+					},
+				},
+			}},
+		},
+		{
+			name:            "sequence_multiple_empty_sub_elements",
+			expectedIsEmpty: true,
+			value: &sequencesValue{value: []*SequenceItemValue{
+				{
+					elements: []*Element{
+						{
+							Tag:                 tag.PatientName,
+							ValueRepresentation: tag.VRString,
+							Value: &stringsValue{
+								value: []string{""},
+							},
+						},
+						{
+							Tag:                 tag.SOPInstanceUID,
+							ValueRepresentation: tag.VRString,
+							Value: &stringsValue{
+								value: []string{""},
+							},
+						},
+					},
+				},
+			}},
+		},
+		{
+			name:            "sequence_not_empty",
+			expectedIsEmpty: false,
+			value: &sequencesValue{value: []*SequenceItemValue{
+				{
+					elements: []*Element{
+						{
+							Tag:                 tag.PatientName,
+							ValueRepresentation: tag.VRString,
+							Value: &stringsValue{
+								value: []string{"Bob"},
+							},
+						},
+					},
+				},
+			}},
+		},
+		{
+			name:            "sequence_one_empty_sub_elements",
+			expectedIsEmpty: false,
+			value: &sequencesValue{value: []*SequenceItemValue{
+				{
+					elements: []*Element{
+						{
+							Tag:                 tag.PatientName,
+							ValueRepresentation: tag.VRString,
+							Value: &stringsValue{
+								value: []string{"bob"},
+							},
+						},
+						{
+							Tag:                 tag.SOPInstanceUID,
+							ValueRepresentation: tag.VRString,
+							Value: &stringsValue{
+								value: []string{""},
+							},
+						},
+					},
+				},
+			}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			isEmpty := tc.value.IsZero()
+			if isEmpty != tc.expectedIsEmpty {
+				t.Errorf(
+					"Value.IsZero() returned %v, expected %v",
+					isEmpty,
+					tc.expectedIsEmpty,
+				)
 			}
 		})
 	}

@@ -55,8 +55,13 @@ func main() {
 		}
 
 		var ds *dicom.Dataset
+		var err error
 		if *extractImagesStream {
-			ds = parseWithStreaming(f, info.Size())
+			ds, err = parseWithStreaming(f, info.Size())
+			if err != nil {
+				log.Printf("error parsing data: %v", err)
+				return
+			}
 		} else {
 			var opts []dicom.ParseOption
 			if *allowPixelDataVLMismatch {
@@ -64,7 +69,8 @@ func main() {
 			}
 			data, err := dicom.Parse(f, info.Size(), nil, opts...)
 			if err != nil {
-				log.Fatalf("error parsing data: %v", err)
+				log.Printf("error parsing data: %v", err)
+				return
 			}
 			ds = &data
 		}
@@ -73,9 +79,9 @@ func main() {
 			log.Println("Printing DICOM dataset serialized as JSON to stdout")
 			j, err := json.MarshalIndent(ds, "", "  ")
 			if err != nil {
-				panic(err)
+				log.Printf("error marshaling dataset to json: %v", err)
+				return
 			}
-
 			fmt.Println(string(j))
 		} else {
 			log.Println("Printing DICOM dataset parsed elements to stdout:")
@@ -103,7 +109,7 @@ func main() {
 
 }
 
-func parseWithStreaming(in io.Reader, size int64) *dicom.Dataset {
+func parseWithStreaming(in io.Reader, size int64) (*dicom.Dataset, error) {
 	fc := make(chan *frame.Frame, FrameBufferSize)
 
 	// Go routine to process frames as they are sent to frameChannel
@@ -113,7 +119,7 @@ func parseWithStreaming(in io.Reader, size int64) *dicom.Dataset {
 
 	ds, err := dicom.Parse(in, size, fc)
 	if err != nil {
-		log.Fatalf("error parsing: %v", err)
+		return &ds, err
 	}
 	wg.Wait()
 

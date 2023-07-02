@@ -55,7 +55,6 @@ func main() {
 		}
 
 		var ds *dicom.Dataset
-		var err error
 		if *extractImagesStream {
 			ds, err = parseWithStreaming(f, info.Size())
 			if err != nil {
@@ -123,7 +122,7 @@ func parseWithStreaming(in io.Reader, size int64) (*dicom.Dataset, error) {
 	}
 	wg.Wait()
 
-	return &ds
+	return &ds, nil
 
 }
 

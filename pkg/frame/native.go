@@ -40,7 +40,12 @@ func (n *NativeFrame) GetImage() (image.Image, error) {
 	return i, nil
 }
 
+// Equals returns true if this frame equals the provided target frame, otherwise
+// false.
 func (n *NativeFrame) Equals(target *NativeFrame) bool {
+	if target == nil {
+		return n == target
+	}
 	if n.Rows != target.Rows ||
 		n.Cols != target.Cols ||
 		n.BitsPerSample != n.BitsPerSample {

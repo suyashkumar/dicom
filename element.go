@@ -25,7 +25,12 @@ type Element struct {
 	Value                  Value      `json:"value"`
 }
 
+// Equals returns true if this Element equals the provided target Element,
+// otherwise false.
 func (e *Element) Equals(target *Element) bool {
+	if target == nil {
+		return e == target
+	}
 	if !e.Tag.Equals(target.Tag) ||
 		e.RawValueRepresentation != target.RawValueRepresentation ||
 		e.ValueLength != target.ValueLength ||

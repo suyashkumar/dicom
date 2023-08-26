@@ -277,10 +277,13 @@ func SkipPixelData() ParseOption {
 // SkipProcessingPixelDataValue will attempt to skip processing the _value_
 // of any PixelData elements. Unlike SkipPixelData(), this means the PixelData
 // bytes will still be read into the Dataset, and can be written back out via
-// this library's write functionality. But, if possible, the value will be read
-// in as raw bytes with no further processing instead of being parsed. In the
-// future, we may be able to extend this functionality to support on-demand
-// processing of elements elsewhere in the library.
+// this library's write functionality. Specifically, if this option is set,
+// a PixelData element will be added to the dataset with the
+// PixelDataInfo.IntentionallyUnprocessed = true, and the raw bytes of the
+// entire PixelData element stored in PixelDataInfo.UnprocessedValueData.
+// 
+// In the future, we may be able to extend this functionality to support 
+// on-demand processing of elements elsewhere in the library.
 func SkipProcessingPixelDataValue() ParseOption {
 	return func(set *parseOptSet) {
 		set.skipProcessingPixelDataValue = true

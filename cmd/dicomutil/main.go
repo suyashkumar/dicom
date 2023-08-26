@@ -186,6 +186,6 @@ func generateImage(fr *frame.Frame, frameIndex int, frameSuffix string, wg *sync
 func writePixelDataElement(e *dicom.Element, suffix string) {
 	imageInfo := e.Value.GetValue().(dicom.PixelDataInfo)
 	for idx, f := range imageInfo.Frames {
-		generateImage(&f, idx, suffix, nil)
+		generateImage(f, idx, suffix, nil)
 	}
 }

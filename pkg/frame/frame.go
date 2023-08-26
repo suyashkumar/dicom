@@ -71,3 +71,21 @@ func (f *Frame) GetImage() (image.Image, error) {
 	}
 	return f.NativeData.GetImage()
 }
+
+// Equals returns true if this frame equals the provided target frame, otherwise
+// false.
+func (f *Frame) Equals(target *Frame) bool {
+	if target == nil || f == nil {
+		return f == target
+	}
+	if f.Encapsulated != target.Encapsulated {
+		return false
+	}
+	if f.Encapsulated && !f.EncapsulatedData.Equals(&target.EncapsulatedData) {
+		return false
+	}
+	if !f.Encapsulated && !f.NativeData.Equals(&target.NativeData) {
+		return false
+	}
+	return true
+}

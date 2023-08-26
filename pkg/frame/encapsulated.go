@@ -34,3 +34,12 @@ func (e *EncapsulatedFrame) GetImage() (image.Image, error) {
 	// there.
 	return jpeg.Decode(bytes.NewReader(e.Data))
 }
+
+// Equals returns true if this frame equals the provided target frame, otherwise
+// false.
+func (e *EncapsulatedFrame) Equals(target *EncapsulatedFrame) bool {
+	if !bytes.Equal(e.Data, target.Data) {
+		return false
+	}
+	return true
+}

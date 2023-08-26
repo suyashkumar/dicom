@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/suyashkumar/dicom/pkg/frame"
 
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
@@ -142,5 +143,284 @@ func TestNewValue_UnexpectedType(t *testing.T) {
 	_, err := NewValue(data)
 	if err != ErrorUnexpectedDataType {
 		t.Errorf("NewValue(%v) expected an error. got: %v, want: %v", data, err, ErrorUnexpectedDataType)
+	}
+}
+
+func TestElement_Equals(t *testing.T) {
+	// Some general sanity checks below, not every possible case is included.
+	cases := []struct {
+		name      string
+		a         *Element
+		b         *Element
+		wantEqual bool
+	}{
+		{
+			name:      "EqualNilElements",
+			a:         nil,
+			b:         nil,
+			wantEqual: true,
+		},
+		{
+			name:      "UnequalNilElement",
+			a:         nil,
+			b:         mustNewElement(tag.FloatingPointValue, []float64{1.23}),
+			wantEqual: false,
+		},
+		{
+			name:      "EqualFloats",
+			a:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40, 5.50}),
+			b:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40, 5.50}),
+			wantEqual: true,
+		},
+		{
+			name:      "UnequalLenFloats",
+			a:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40}),
+			b:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40, 5.50}),
+			wantEqual: false,
+		},
+		{
+			name:      "UnequalFloats",
+			a:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40, 10.1}),
+			b:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40, 5.50}),
+			wantEqual: false,
+		},
+		{
+			name:      "EqualInts",
+			a:         mustNewElement(tag.Rows, []int{1, 2, 3}),
+			b:         mustNewElement(tag.Rows, []int{1, 2, 3}),
+			wantEqual: true,
+		},
+		{
+			name:      "UnequalInts",
+			a:         mustNewElement(tag.Rows, []int{1, 2, 6}),
+			b:         mustNewElement(tag.Rows, []int{1, 2, 3}),
+			wantEqual: false,
+		},
+		{
+			name:      "UnequalLenInts",
+			a:         mustNewElement(tag.Rows, []int{1, 6}),
+			b:         mustNewElement(tag.Rows, []int{1, 2, 3}),
+			wantEqual: false,
+		},
+		{
+			name:      "EqualBytes",
+			a:         mustNewElement(tag.AirCounts, []byte{1, 2, 3}),
+			b:         mustNewElement(tag.AirCounts, []byte{1, 2, 3}),
+			wantEqual: true,
+		},
+		{
+			name:      "UnequalBytes",
+			a:         mustNewElement(tag.AirCounts, []byte{1, 2, 4}),
+			b:         mustNewElement(tag.AirCounts, []byte{1, 2, 3}),
+			wantEqual: false,
+		},
+		{
+			name:      "UnequalLenBytes",
+			a:         mustNewElement(tag.AirCounts, []byte{1, 2, 3}),
+			b:         mustNewElement(tag.AirCounts, []byte{1, 2}),
+			wantEqual: false,
+		},
+		{
+			name:      "EqualStrings",
+			a:         mustNewElement(tag.PatientName, []string{"John", "Smith"}),
+			b:         mustNewElement(tag.PatientName, []string{"John", "Smith"}),
+			wantEqual: true,
+		},
+		{
+			name:      "UnequalStrings",
+			a:         mustNewElement(tag.PatientName, []string{"John", "Doe"}),
+			b:         mustNewElement(tag.PatientName, []string{"John", "Smith"}),
+			wantEqual: false,
+		},
+		{
+			name:      "UnequalLenStrings",
+			a:         mustNewElement(tag.PatientName, []string{"John"}),
+			b:         mustNewElement(tag.PatientName, []string{"John", "Smith"}),
+			wantEqual: false,
+		},
+		{
+			name: "EqualNativePixelData",
+			a: mustNewElement(tag.PixelData, PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []*frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          2,
+							Cols:          2,
+							Data:          [][]int{{1}, {2}, {3}, {4}},
+						},
+					},
+				},
+			}),
+			b: mustNewElement(tag.PixelData, PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []*frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          2,
+							Cols:          2,
+							Data:          [][]int{{1}, {2}, {3}, {4}},
+						},
+					},
+				},
+			}),
+			wantEqual: true,
+		},
+		{
+			name: "UnequalNativePixelData",
+			a: mustNewElement(tag.PixelData, PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []*frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          2,
+							Cols:          2,
+							Data:          [][]int{{1}, {2}, {3}, {6}},
+						},
+					},
+				},
+			}),
+			b: mustNewElement(tag.PixelData, PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []*frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          2,
+							Cols:          2,
+							Data:          [][]int{{1}, {2}, {3}, {4}},
+						},
+					},
+				},
+			}),
+			wantEqual: false,
+		},
+		{
+			name: "EqualSequences",
+			a: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				// Item 1.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						Value:                  &stringsValue{value: []string{"Bob", "Jones"}},
+					},
+				},
+				// Item 2.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						Value:                  &stringsValue{value: []string{"Bob", "Jones"}},
+					},
+					{
+						Tag:                    tag.Rows,
+						ValueRepresentation:    tag.VRUInt16List,
+						RawValueRepresentation: "US",
+						Value:                  &intsValue{value: []int{100}},
+					},
+				},
+			}),
+			b: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				// Item 1.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						Value:                  &stringsValue{value: []string{"Bob", "Jones"}},
+					},
+				},
+				// Item 2.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						Value:                  &stringsValue{value: []string{"Bob", "Jones"}},
+					},
+					{
+						Tag:                    tag.Rows,
+						ValueRepresentation:    tag.VRUInt16List,
+						RawValueRepresentation: "US",
+						Value:                  &intsValue{value: []int{100}},
+					},
+				},
+			}),
+			wantEqual: true,
+		},
+		{
+			name: "UnequalSequences",
+			a: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				// Item 1.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						//	Smith instead of Jones below causes inequality.
+						Value: &stringsValue{value: []string{"Bob", "Smith"}},
+					},
+				},
+				// Item 2.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						Value:                  &stringsValue{value: []string{"Bob", "Jones"}},
+					},
+					{
+						Tag:                    tag.Rows,
+						ValueRepresentation:    tag.VRUInt16List,
+						RawValueRepresentation: "US",
+						Value:                  &intsValue{value: []int{100}},
+					},
+				},
+			}),
+			b: makeSequenceElement(tag.AddOtherSequence, [][]*Element{
+				// Item 1.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						Value:                  &stringsValue{value: []string{"Bob", "Jones"}},
+					},
+				},
+				// Item 2.
+				{
+					{
+						Tag:                    tag.PatientName,
+						ValueRepresentation:    tag.VRStringList,
+						RawValueRepresentation: "PN",
+						Value:                  &stringsValue{value: []string{"Bob", "Jones"}},
+					},
+					{
+						Tag:                    tag.Rows,
+						ValueRepresentation:    tag.VRUInt16List,
+						RawValueRepresentation: "US",
+						Value:                  &intsValue{value: []int{100}},
+					},
+				},
+			}),
+			wantEqual: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.a.Equals(tc.b) != tc.wantEqual {
+				t.Errorf("Element.Equals(%v, %v) != %v", tc.a, tc.b, tc.wantEqual)
+			}
+		})
 	}
 }

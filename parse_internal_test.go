@@ -5,8 +5,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 // TestParseUntilEOFConformsToParse runs both the dicom.ParseUntilEOF and the dicom.Parse APIs against each
@@ -42,9 +40,10 @@ func TestParseUntilEOFConformsToParse(t *testing.T) {
 				}
 
 				// Ensure dataset read from ParseUntilEOF and Parse are the same.
-				if diff := cmp.Diff(parse_dataset, parse_eof_dataset, cmp.AllowUnexported(allValues...)); diff != "" {
-					t.Errorf("dicom.Parse and dicom.ParseUntilEOF do not result in the same dataset. diff: %v", diff)
+				if !parse_dataset.Equals(&parse_eof_dataset) {
+					t.Errorf("dicom.Parse and dicom.ParseUntilEOF do not result in the same dataset.\nParse Dataset: %v\n\n\nParse EOF Dataset: %v", parse_dataset, parse_eof_dataset)
 				}
+
 			})
 		}
 	}

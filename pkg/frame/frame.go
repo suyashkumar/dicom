@@ -75,7 +75,7 @@ func (f *Frame) GetImage() (image.Image, error) {
 // Equals returns true if this frame equals the provided target frame, otherwise
 // false.
 func (f *Frame) Equals(target *Frame) bool {
-	if target == nil {
+	if target == nil || f == nil {
 		return f == target
 	}
 	if f.Encapsulated != target.Encapsulated {

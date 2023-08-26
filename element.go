@@ -28,7 +28,7 @@ type Element struct {
 // Equals returns true if this Element equals the provided target Element,
 // otherwise false.
 func (e *Element) Equals(target *Element) bool {
-	if target == nil {
+	if target == nil || e == nil {
 		return e == target
 	}
 	if !e.Tag.Equals(target.Tag) ||

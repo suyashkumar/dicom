@@ -155,6 +155,18 @@ func TestElement_Equals(t *testing.T) {
 		wantEqual bool
 	}{
 		{
+			name:      "EqualNilElements",
+			a:         nil,
+			b:         nil,
+			wantEqual: true,
+		},
+		{
+			name:      "UnequalNilElement",
+			a:         nil,
+			b:         mustNewElement(tag.FloatingPointValue, []float64{1.23}),
+			wantEqual: false,
+		},
+		{
 			name:      "EqualFloats",
 			a:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40, 5.50}),
 			b:         mustNewElement(tag.FloatingPointValue, []float64{1.23, 4.40, 5.50}),

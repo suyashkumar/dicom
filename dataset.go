@@ -193,7 +193,7 @@ func (d *Dataset) String() string {
 // Equals returns true if this Dataset equals the provided target Dataset,
 // otherwise false.
 func (d *Dataset) Equals(target *Dataset) bool {
-	if target == nil {
+	if target == nil || d == nil {
 		return d == target
 	}
 	for idx, e := range d.Elements {

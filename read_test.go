@@ -229,7 +229,7 @@ func TestReadNativeFrames(t *testing.T) {
 			data: []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{
@@ -255,7 +255,7 @@ func TestReadNativeFrames(t *testing.T) {
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{
@@ -299,7 +299,7 @@ func TestReadNativeFrames(t *testing.T) {
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{
@@ -360,7 +360,7 @@ func TestReadNativeFrames(t *testing.T) {
 			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
 				ParseErr: ErrorMismatchPixelDataLength,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						EncapsulatedData: frame.EncapsulatedFrame{
 							Data: []byte{1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 2, 0},
@@ -408,7 +408,7 @@ func TestReadNativeFrames(t *testing.T) {
 			dataBytes: []byte{11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 0}, // there is a 28th byte to make total value length even, as required by DICOM spec
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{
@@ -453,7 +453,7 @@ func TestReadNativeFrames(t *testing.T) {
 			dataBytes: []byte{1, 2, 3, 1, 2, 3, 1, 2, 3, 0}, // 10th byte to make total value length even
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{
@@ -761,7 +761,7 @@ func makeEncapsulatedSequence(t *testing.T) []byte {
 	buf := &bytes.Buffer{}
 	w := dicomio.NewWriter(buf, binary.LittleEndian, true)
 
-	writePixelData(w, tag.PixelData, &pixelDataValue{PixelDataInfo{IsEncapsulated: true, Frames: []frame.Frame{
+	writePixelData(w, tag.PixelData, &pixelDataValue{PixelDataInfo{IsEncapsulated: true, Frames: []*frame.Frame{
 		{
 			Encapsulated: true,
 			EncapsulatedData: frame.EncapsulatedFrame{
@@ -795,7 +795,7 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 			data: []byte{0b00010111, 0b10010111},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{
@@ -822,7 +822,7 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 			data: []byte{0b00010111, 0b10010111},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
-				Frames: []frame.Frame{
+				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{

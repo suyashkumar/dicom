@@ -190,6 +190,15 @@ func (d *Dataset) String() string {
 	return b.String()
 }
 
+func (d *Dataset) Equals(target *Dataset) bool {
+	for idx, e := range d.Elements {
+		if !e.Equals(target.Elements[idx]) {
+			return false
+		}
+	}
+	return true
+}
+
 type elementWithLevel struct {
 	e *Element
 	// l represents the nesting level of the Element

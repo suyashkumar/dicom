@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,19 @@ type Element struct {
 	RawValueRepresentation string     `json:"rawVR"`
 	ValueLength            uint32     `json:"valueLength"`
 	Value                  Value      `json:"value"`
+}
+
+func (e *Element) Equals(target *Element) bool {
+	if !e.Tag.Equals(target.Tag) ||
+		e.RawValueRepresentation != target.RawValueRepresentation ||
+		e.ValueLength != target.ValueLength ||
+		e.ValueRepresentation != target.ValueRepresentation {
+		return false
+	}
+	if !e.Value.Equals(target.Value) {
+		return false
+	}
+	return true
 }
 
 func (e *Element) String() string {
@@ -75,6 +89,8 @@ type Value interface {
 	GetValue() interface{} // TODO: rename to Get to read cleaner
 	String() string
 	MarshalJSON() ([]byte, error)
+	// Equals returns true if this value equals the input Value.
+	Equals(Value) bool
 }
 
 // NewValue creates a new DICOM value for the supplied data. Likely most useful
@@ -204,6 +220,16 @@ func (b *bytesValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(b.value)
 }
 
+func (b *bytesValue) Equals(target Value) bool {
+	if target.ValueType() != Bytes {
+		return false
+	}
+	if !bytes.Equal(b.value, target.GetValue().([]byte)) {
+		return false
+	}
+	return true
+}
+
 // stringsValue represents a value of []string.
 type stringsValue struct {
 	value []string
@@ -219,19 +245,51 @@ func (s *stringsValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
 
+func (s *stringsValue) Equals(target Value) bool {
+	if target.ValueType() != Strings {
+		return false
+	}
+	targetVal := target.GetValue().([]string)
+	if len(s.value) != len(targetVal) {
+		return false
+	}
+	for idx, val := range s.value {
+		if val != targetVal[idx] {
+			return false
+		}
+	}
+	return true
+}
+
 // intsValue represents a value of []int.
 type intsValue struct {
 	value []int
 }
 
-func (s *intsValue) isElementValue()       {}
-func (s *intsValue) ValueType() ValueType  { return Ints }
-func (s *intsValue) GetValue() interface{} { return s.value }
-func (s *intsValue) String() string {
-	return fmt.Sprintf("%v", s.value)
+func (i *intsValue) isElementValue()       {}
+func (i *intsValue) ValueType() ValueType  { return Ints }
+func (i *intsValue) GetValue() interface{} { return i.value }
+func (i *intsValue) String() string {
+	return fmt.Sprintf("%v", i.value)
 }
-func (s *intsValue) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.value)
+func (i *intsValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(i.value)
+}
+
+func (i *intsValue) Equals(target Value) bool {
+	if target.ValueType() != Ints {
+		return false
+	}
+	targetVal := target.GetValue().([]int)
+	if len(i.value) != len(targetVal) {
+		return false
+	}
+	for idx, val := range i.value {
+		if val != targetVal[idx] {
+			return false
+		}
+	}
+	return true
 }
 
 // floatsValue represents a value of []float64.
@@ -239,14 +297,29 @@ type floatsValue struct {
 	value []float64
 }
 
-func (s *floatsValue) isElementValue()       {}
-func (s *floatsValue) ValueType() ValueType  { return Floats }
-func (s *floatsValue) GetValue() interface{} { return s.value }
-func (s *floatsValue) String() string {
-	return fmt.Sprintf("%v", s.value)
+func (f *floatsValue) isElementValue()       {}
+func (f *floatsValue) ValueType() ValueType  { return Floats }
+func (f *floatsValue) GetValue() interface{} { return f.value }
+func (f *floatsValue) String() string {
+	return fmt.Sprintf("%v", f.value)
 }
-func (s *floatsValue) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.value)
+func (f *floatsValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(f.value)
+}
+func (f *floatsValue) Equals(target Value) bool {
+	if target.ValueType() != Floats {
+		return false
+	}
+	targetVal := target.GetValue().([]float64)
+	if len(f.value) != len(targetVal) {
+		return false
+	}
+	for idx, val := range f.value {
+		if val != targetVal[idx] {
+			return false
+		}
+	}
+	return true
 }
 
 // SequenceItemValue is a Value that represents a single Sequence Item. Learn
@@ -278,6 +351,22 @@ func (s *SequenceItemValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.elements)
 }
 
+func (s *SequenceItemValue) Equals(target Value) bool {
+	if target.ValueType() != SequenceItem {
+		return false
+	}
+	targetVal := target.GetValue().([]*Element)
+	if len(s.elements) != len(targetVal) {
+		return false
+	}
+	for idx, val := range s.elements {
+		if !val.Equals(targetVal[idx]) {
+			return false
+		}
+	}
+	return true
+}
+
 // sequencesValue represents a set of items in a DICOM sequence.
 type sequencesValue struct {
 	value []*SequenceItemValue
@@ -293,6 +382,21 @@ func (s *sequencesValue) String() string {
 func (s *sequencesValue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.value)
 }
+func (s *sequencesValue) Equals(target Value) bool {
+	if target.ValueType() != Sequences {
+		return false
+	}
+	targetVal := target.GetValue().([]*SequenceItemValue)
+	if len(s.value) != len(targetVal) {
+		return false
+	}
+	for idx, val := range s.value {
+		if !val.Equals(targetVal[idx]) {
+			return false
+		}
+	}
+	return true
+}
 
 // PixelDataInfo is a representation of DICOM PixelData.
 type PixelDataInfo struct {
@@ -304,7 +408,7 @@ type PixelDataInfo struct {
 
 	// Frames hold the processed PixelData frames (either Native or Encapsulated
 	// PixelData).
-	Frames []frame.Frame
+	Frames []*frame.Frame
 
 	// ParseErr indicates if there was an error when reading this Frame from the DICOM.
 	// If this is set, this means fallback behavior was triggered to blindly write the PixelData bytes to an encapsulated frame.
@@ -329,24 +433,47 @@ type pixelDataValue struct {
 	PixelDataInfo
 }
 
-func (e *pixelDataValue) isElementValue()       {}
-func (e *pixelDataValue) ValueType() ValueType  { return PixelData }
-func (e *pixelDataValue) GetValue() interface{} { return e.PixelDataInfo }
-func (e *pixelDataValue) String() string {
-	if len(e.Frames) == 0 {
+func (p *pixelDataValue) isElementValue()       {}
+func (p *pixelDataValue) ValueType() ValueType  { return PixelData }
+func (p *pixelDataValue) GetValue() interface{} { return p.PixelDataInfo }
+func (p *pixelDataValue) String() string {
+	if len(p.Frames) == 0 {
 		return "empty pixel data"
 	}
-	if e.IsEncapsulated {
-		return fmt.Sprintf("encapsulated FramesLength=%d Frame[0] size=%d", len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+	if p.IsEncapsulated {
+		return fmt.Sprintf("encapsulated FramesLength=%d Frame[0] size=%d", len(p.Frames), len(p.Frames[0].EncapsulatedData.Data))
 	}
-	if e.ParseErr != nil {
-		return fmt.Sprintf("parseErr err=%s FramesLength=%d Frame[0] size=%d", e.ParseErr.Error(), len(e.Frames), len(e.Frames[0].EncapsulatedData.Data))
+	if p.ParseErr != nil {
+		return fmt.Sprintf("parseErr err=%s FramesLength=%d Frame[0] size=%d", p.ParseErr.Error(), len(p.Frames), len(p.Frames[0].EncapsulatedData.Data))
 	}
-	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(e.Frames), e.Frames[0].NativeData.Rows, e.Frames[0].NativeData.Cols)
+	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(p.Frames), p.Frames[0].NativeData.Rows, p.Frames[0].NativeData.Cols)
 }
 
-func (e *pixelDataValue) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.PixelDataInfo)
+func (p *pixelDataValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.PixelDataInfo)
+}
+func (p *pixelDataValue) Equals(target Value) bool {
+	if target.ValueType() != PixelData {
+		return false
+	}
+	targetVal := target.GetValue().(PixelDataInfo)
+	if p.IntentionallySkipped != targetVal.IntentionallySkipped ||
+		p.IntentionallyUnprocessed != targetVal.IntentionallyUnprocessed ||
+		p.ParseErr != targetVal.ParseErr ||
+		p.IsEncapsulated != targetVal.IsEncapsulated ||
+		!bytes.Equal(p.UnprocessedValueData, targetVal.UnprocessedValueData) {
+		return false
+	}
+	targetFrameVal := target.GetValue().(PixelDataInfo).Frames
+	if len(p.Frames) != len(targetFrameVal) {
+		return false
+	}
+	for idx, val := range p.Frames {
+		if !val.Equals(targetFrameVal[idx]) {
+			return false
+		}
+	}
+	return true
 }
 
 // MustGetInts attempts to get an Ints value out of the provided value, and will

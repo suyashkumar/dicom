@@ -59,7 +59,7 @@ func (e *Element) String() string {
 
 // Value represents a DICOM value. The underlying data that a Value stores can be determined by inspecting its
 // ValueType. DICOM values typically can be one of many types (ints, strings, bytes, sequences of other elements, etc),
-// so this Value interface attempts to represent this as canoically as possible in Golang (since generics do not exist
+// so this Value interface attempts to represent this as canonically as possible in Golang (since generics do not exist
 // yet).
 //
 // Value is JSON serializable out of the box (implements json.Marshaler).

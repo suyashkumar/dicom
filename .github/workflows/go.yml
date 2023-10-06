@@ -13,20 +13,22 @@ jobs:
         go-version: 1.18
       id: go
 
-    - name: Check out code 
+    - name: Check out code
       uses: actions/checkout@v1
 
     - name: Get dependencies
       run: |
+            sudo apt-get update
+            sudo apt-get install -y pkg-config swig libcharls-dev libdcmtk-dev libopenjp2-7-dev
             go mod download
 
 
     - name: Build
       run: |
             make build-fast
-   
+
     - name: Test
       run: |
             make test
-       
+
 

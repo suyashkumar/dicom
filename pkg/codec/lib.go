@@ -2,5 +2,7 @@
 // Copyright (c) 2023 Segmed Inc.
 package codec
 
-// #cgo pkg-config: libopenjp2 dcmtk charls
+// #cgo pkg-config: libopenjp2 charls
+// #cgo darwin pkg-config: dcmtk
+// #cgo linux LDFLAGS: -ldcmjpeg
 import "C"

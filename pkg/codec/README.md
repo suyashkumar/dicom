@@ -30,10 +30,10 @@ import (
 )
 
 func main() {
-	dataset, err := dicom.ParseFile("testdata/1.dcm", nil)
-	pixelDataElem, err := dataset.FindElementByTag(tag.PixelData)
-	pixelData := dicom.MustGetPixelDataInfo(pixelDataElem.Value)
-	encapsulatedFrame, err := pixelData.Frames[0].GetEncapsulatedFrame()
+    dataset, err := dicom.ParseFile("testdata/1.dcm", nil)
+    pixelDataElem, err := dataset.FindElementByTag(tag.PixelData)
+    pixelData := dicom.MustGetPixelDataInfo(pixelDataElem.Value)
+    encapsulatedFrame, err := pixelData.Frames[0].GetEncapsulatedFrame()
     image, err = encapsulatedFrame.GetImage()
     ...
 }

@@ -28,5 +28,5 @@ be mentioned in one of them for brevity.
     dcmdump --write-pixel ../pkg/codec/testdata/ 3_jpeg.dcm
     ```
 
-#### Files a1_mono.jls and a1_mono.ppm
+#### Files a1_mono.j2c and a1_mono.ppm
 These files were sourced from [openjpeg-data](https://github.com/uclouvain/openjpeg-data)

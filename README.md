@@ -2,10 +2,10 @@
   <img src="https://suyashkumar.com/assets/img/magnetic-resonance.png" width="125px"/>
   <h3 align="center">dicom</h3>
   <p align="center">High Performance Golang DICOM Medical Image Parser<p>
-  <p align="center"> 
-    <a href="https://github.com/suyashkumar/dicom/actions"><img src="https://github.com/suyashkumar/dicom/workflows/build/badge.svg" /></a> 
+  <p align="center">
+    <a href="https://github.com/suyashkumar/dicom/actions"><img src="https://github.com/suyashkumar/dicom/workflows/build/badge.svg" /></a>
     <a href="https://godoc.org/github.com/suyashkumar/dicom"><img src="https://godoc.org/github.com/suyashkumar/dicom?status.svg" alt="" /></a>
-    <a href="https://goreportcard.com/report/github.com/suyashkumar/dicom"><img src="https://goreportcard.com/badge/github.com/suyashkumar/dicom" alt=""></a> 
+    <a href="https://goreportcard.com/report/github.com/suyashkumar/dicom"><img src="https://goreportcard.com/badge/github.com/suyashkumar/dicom" alt=""></a>
   </p>
 </p>
 
@@ -24,9 +24,15 @@ Some notable features:
 - [x] Enhanced testing and benchmarking support
 - [x] Modern, canonical Go.
 
+### Compressed *Pixel Data*
+#### JPEG, JPEG-LS and JPEG 2000
+Converting JPEG compressed *Pixel Data* to an uncompressed *Native Data* requires installing one or more additional C/C++ libraries. For information on which libraries are required, see the [DICOM Codecs for pixel data](https://github.com/suyashkumar/dicom/blob/main/pkg/codec/README.md).
+
+Compressing data into one of the JPEG formats is not currently supported.
+
 ## Usage
 To use this in your golang project, import `github.com/suyashkumar/dicom`. This repository supports Go modules, and regularly tags releases using semantic versioning. Typical usage is straightforward:
-```go 
+```go
 
 dataset, _ := dicom.ParseFile("testdata/1.dcm", nil) // See also: dicom.Parse which has a generic io.Reader API.
 
@@ -54,7 +60,7 @@ wget -qO- "https://getbin.io/suyashkumar/dicom" | tar xvz
 ```
 dicomutil -path myfile.dcm
 ```
-Note: for some DICOMs (with native pixel data) no automatic intensity scaling is applied yet (this is coming). You can apply this in your image viewer if needed (in Preview on mac, go to Tools->Adjust Color). 
+Note: for some DICOMs (with native pixel data) no automatic intensity scaling is applied yet (this is coming). You can apply this in your image viewer if needed (in Preview on mac, go to Tools->Adjust Color).
 
 
 ### Build manually
@@ -62,7 +68,7 @@ To build manually, ensure you have `make` and `go` installed. Clone (or `go get`
 ```sh
 make
 ```
-Which will build the dicomutil binary and include it in a `build/` folder in your current working directory. 
+Which will build the dicomutil binary and include it in a `build/` folder in your current working directory.
 
 You can also built it using Go directly:
 
@@ -71,21 +77,21 @@ go build -o dicomutil ./cmd/dicomutil
 ```
 
 ## History
-Here's a little more history on this repository for those who are interested! 
+Here's a little more history on this repository for those who are interested!
 
 ### v0
 The v0 [suyashkumar/dicom](https://github.com/suyashkumar/dicom) started off as a hard fork of [go-dicom](https://github.com/gillesdemey/go-dicom) which was not being maintained actively anymore (with the [original author being supportive of my fork](https://www.reddit.com/r/golang/comments/bnu47l/high_performance_dicom_medical_image_parser_in/en9hp6h?utm_source=share&utm_medium=web2x&context=3)--thank you!). I worked on adding several new capabilities, bug fixes, and general maintainability refactors (like multiframe support, streaming parsing, updated APIs, low-level parsing bug fixes, and more).
 
-That represents the __v0__ history of the repository. 
+That represents the __v0__ history of the repository.
 
 ### v1
 
-For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happened at the [`s/1.0-rewrite`](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite) branch. 
+For __v1__ I rewrote and redesigned the core library essentially from scratch, and added several new features and bug fixes that only live in __v1__. The architecture and APIs are completely different, as is some of the underlying parser logic (to be more efficient and correct). Most of the core rewrite work happened at the [`s/1.0-rewrite`](https://github.com/suyashkumar/dicom/tree/s/1.0-rewrite) branch.
 
 
 ## Acknowledgements
 
-* <img src="https://user-images.githubusercontent.com/6299853/90325771-b23f2e80-df34-11ea-9d18-5c33b69c2746.png" width="110px" align="left"/> [Segmed](https://www.segmed.ai/) for their help with validation and other contributions to the library. 
+* <img src="https://user-images.githubusercontent.com/6299853/90325771-b23f2e80-df34-11ea-9d18-5c33b69c2746.png" width="110px" align="left"/> [Segmed](https://www.segmed.ai/) for their help with validation and other contributions to the library.
 * Original [go-dicom](https://github.com/gillesdemey/go-dicom)
 * Grailbio [go-dicom](https://github.com/grailbio/go-dicom) -- commits from their fork were applied to ours
 * GradientHealth for supporting work I did on this while there [gradienthealth/dicom](https://github.com/gradienthealth/dicom)

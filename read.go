@@ -225,6 +225,57 @@ func (r *reader) readHeader() ([]*Element, error) {
 	return metaElems, nil
 }
 
+func newEncapsulatedFrame(d *Dataset, data []byte) (*frame.Frame, error) {
+	e := frame.EncapsulatedFrame{
+		Data: data,
+	}
+	// Parse information from previously parsed attributes that are needed to parse EncapsulatedData Frames:
+	rows, err := d.FindElementByTag(tag.Rows)
+	if err == nil {
+		e.Rows = MustGetInts(rows.Value)[0]
+	}
+
+	cols, err := d.FindElementByTag(tag.Columns)
+	if err == nil {
+		e.Cols = MustGetInts(cols.Value)[0]
+	}
+
+	bitsAllocated, err := d.FindElementByTag(tag.BitsAllocated)
+	if err == nil {
+		e.BitsAllocated = MustGetInts(bitsAllocated.Value)[0]
+	}
+
+	pixelRepresentation, err := d.FindElementByTag(tag.PixelRepresentation)
+	if err == nil {
+		e.PixelRepresentation = MustGetInts(pixelRepresentation.Value)[0]
+	}
+
+	photometricInterpretation, err := d.FindElementByTag(tag.PhotometricInterpretation)
+	if err == nil {
+		e.PhotometricInterpretation = MustGetStrings(photometricInterpretation.Value)[0]
+	}
+
+	planarConfiguration, err := d.FindElementByTag(tag.PlanarConfiguration)
+	if err == nil {
+		e.PlanarConfiguration = MustGetInts(planarConfiguration.Value)[0]
+	}
+
+	samplesPerPixel, err := d.FindElementByTag(tag.SamplesPerPixel)
+	if err == nil {
+		e.SamplesPerPixel = MustGetInts(samplesPerPixel.Value)[0]
+	}
+
+	transferSyntax, err := d.FindElementByTag(tag.TransferSyntaxUID)
+	if err == nil {
+		e.TransferSyntax = MustGetStrings(transferSyntax.Value)[0]
+	}
+	f := frame.Frame{
+		Encapsulated:     true,
+		EncapsulatedData: e,
+	}
+	return &f, nil
+}
+
 func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (Value,
 	error) {
 	if vl == tag.VLUndefinedLength {
@@ -247,18 +298,16 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 				break
 			}
 
-			f := frame.Frame{
-				Encapsulated: true,
-				EncapsulatedData: frame.EncapsulatedFrame{
-					Data: data,
-				},
+			f, err := newEncapsulatedFrame(d, data)
+			if err != nil {
+				break
 			}
 
 			if fc != nil {
-				fc <- &f
+				fc <- f
 			}
 
-			image.Frames = append(image.Frames, &f)
+			image.Frames = append(image.Frames, f)
 		}
 		image.IntentionallySkipped = r.opts.skipPixelData
 		return &pixelDataValue{PixelDataInfo: image}, nil
@@ -340,25 +389,24 @@ func fillBufferSingleBitAllocated(pixelData []int, d dicomio.Reader, bo binary.B
 	return nil
 }
 
-func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, parseErr error) (*PixelDataInfo, error) {
+func makeErrorPixelData(d *Dataset, reader io.Reader, vl uint32, fc chan<- *frame.Frame, parseErr error) (*PixelDataInfo, error) {
 	data := make([]byte, vl)
 	_, err := io.ReadFull(reader, data)
 	if err != nil {
 		return nil, fmt.Errorf("makeErrorPixelData: read pixelData: %w", err)
 	}
 
-	f := frame.Frame{
-		EncapsulatedData: frame.EncapsulatedFrame{
-			Data: data,
-		},
+	f, err := newEncapsulatedFrame(d, data)
+	if err != nil {
+		return nil, err
 	}
 
 	if fc != nil {
-		fc <- &f
+		fc <- f
 	}
 	image := PixelDataInfo{
 		ParseErr: parseErr,
-		Frames:   []*frame.Frame{&f},
+		Frames:   []*frame.Frame{f},
 	}
 	return &image, nil
 }
@@ -425,7 +473,7 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 			if !r.opts.allowMismatchPixelDataLength {
 				return nil, 0, fmt.Errorf("expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
 			}
-			image, err := makeErrorPixelData(r.rawReader, vl, fc, ErrorMismatchPixelDataLength)
+			image, err := makeErrorPixelData(parsedData, r.rawReader, vl, fc, ErrorMismatchPixelDataLength)
 			if err != nil {
 				return nil, 0, err
 			}

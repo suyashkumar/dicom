@@ -362,8 +362,13 @@ func TestReadNativeFrames(t *testing.T) {
 				ParseErr: ErrorMismatchPixelDataLength,
 				Frames: []*frame.Frame{
 					{
+						Encapsulated: true,
 						EncapsulatedData: frame.EncapsulatedFrame{
-							Data: []byte{1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 2, 0},
+							Rows:            2,
+							Cols:            2,
+							BitsAllocated:   32,
+							SamplesPerPixel: 2,
+							Data:            []byte{1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 1, 0, 2, 0, 3, 0, 2, 0, 2, 0},
 						},
 					},
 				},

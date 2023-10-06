@@ -48,7 +48,8 @@ func (f *Frame) IsEncapsulated() bool { return f.Encapsulated }
 // is not a NativeFrame, ErrorFrameTypeNotPresent will be returned.
 func (f *Frame) GetNativeFrame() (*NativeFrame, error) {
 	if f.Encapsulated {
-		return f.EncapsulatedData.GetNativeFrame()
+		nf, err := f.EncapsulatedData.GetNativeFrame()
+		return &nf, err
 	}
 	return f.NativeData.GetNativeFrame()
 }

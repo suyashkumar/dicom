@@ -433,12 +433,20 @@ func TestWrite(t *testing.T) {
 					IsEncapsulated: true,
 					Frames: []*frame.Frame{
 						{
-							Encapsulated:     true,
-							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
+							Encapsulated: true,
+							EncapsulatedData: frame.EncapsulatedFrame{
+								Data:           []byte{1, 2, 3, 4},
+								TransferSyntax: uid.ImplicitVRLittleEndian,
+								BitsAllocated:  8,
+							},
 						},
 						{
-							Encapsulated:     true,
-							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 8}},
+							Encapsulated: true,
+							EncapsulatedData: frame.EncapsulatedFrame{
+								Data:           []byte{1, 2, 3, 8},
+								TransferSyntax: uid.ImplicitVRLittleEndian,
+								BitsAllocated:  8,
+							},
 						},
 					},
 				})),

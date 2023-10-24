@@ -71,6 +71,46 @@ func TestParseUntilEOF(t *testing.T) {
 	}
 }
 
+func TestParseFile_WithTagSpecificCharacterSetToEncodingNameConverter(t *testing.T) {
+	aDicomFileHavingNonStandardSpecificCharacterSet := "./testdata/6.dcm"
+	t.Run("WithCustomConverterParseSucceed", func(t *testing.T) {
+		converter := func(origin string) string {
+			substitutions := map[string]string{
+				"ISO_2022_IR_6": "ISO 2022 IR 6",
+			}
+			if sub, ok := substitutions[origin]; ok {
+				return sub
+			}
+			return origin
+		}
+		dataset, err := dicom.ParseFile(
+			aDicomFileHavingNonStandardSpecificCharacterSet,
+			nil,
+			dicom.WithTagSpecificCharacterSetToEncodingNameConverter(converter))
+		if err != nil {
+			t.Errorf("parsing dataset: %v", err)
+		}
+		charsetElem, err := dataset.FindElementByTag(tag.SpecificCharacterSet)
+		if err != nil {
+			t.Errorf("find element after parsing: %v", err)
+		}
+		charset := dicom.MustGetStrings(charsetElem.Value)[0]
+		if charset != "ISO 2022 IR 6" {
+			t.Errorf("unexpected charset after parsing: %v", charset)
+		}
+	})
+	t.Run("WithNoCustomerConverterParseFail", func(t *testing.T) {
+		expectedErrMsg := "ParseSpecificCharacterSet: Unknown character set"
+		_, err := dicom.ParseFile(aDicomFileHavingNonStandardSpecificCharacterSet, nil)
+		if err == nil {
+			t.Errorf("expect error %s but got empty one", expectedErrMsg)
+		}
+		if !strings.Contains(err.Error(), expectedErrMsg) {
+			t.Errorf("unexpected parsing error: %v", err)
+		}
+	})
+}
+
 // TestNewParserSkipMetadataReadOnNewParserInit tests that NewParser with the SkipMetadataReadOnNewParserInit option
 // parses the specified dataset but not its header metadata.
 func TestNewParserSkipMetadataReadOnNewParserInit(t *testing.T) {

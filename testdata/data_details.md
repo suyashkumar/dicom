@@ -32,6 +32,9 @@ be mentioned in one of them for brevity.
   * Modality: CT
   * Multiple frames
   * Native pixel data
+* [6.dcm](6.dcm)
+  * SpecificCharacterSet: ISO_2022_IR_6
+  * Other items similar to 3.dcm
 ### Relevant Citations
 #### For files 1.dcm, 2.dcm:
 ##### Data Citation:

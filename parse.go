@@ -192,6 +192,9 @@ func (p *Parser) Next() (*Element, error) {
 
 	if elem.Tag == tag.SpecificCharacterSet {
 		encodingNames := MustGetStrings(elem.Value)
+		for i := range encodingNames {
+			encodingNames[i] = p.reader.opts.tagSpecificCharacterSetToEncodingNameConverter(encodingNames[i])
+		}
 		cs, err := charset.ParseSpecificCharacterSet(encodingNames)
 		if err != nil {
 			// unable to parse character set, hard error
@@ -222,19 +225,30 @@ type ParseOption func(*parseOptSet)
 
 // parseOptSet represents the flattened option set after all ParseOptions have been applied.
 type parseOptSet struct {
-	skipMetadataReadOnNewParserInit    bool
-	allowMismatchPixelDataLength       bool
-	skipPixelData                      bool
-	skipProcessingPixelDataValue       bool
-	allowMissingMetaElementGroupLength bool
+	skipMetadataReadOnNewParserInit                bool
+	allowMismatchPixelDataLength                   bool
+	skipPixelData                                  bool
+	skipProcessingPixelDataValue                   bool
+	allowMissingMetaElementGroupLength             bool
+	tagSpecificCharacterSetToEncodingNameConverter func(string) string
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
-	optSet := parseOptSet{}
+	optSet := parseOptSet{
+		tagSpecificCharacterSetToEncodingNameConverter: func(s string) string { return s },
+	}
 	for _, opt := range opts {
 		opt(&optSet)
 	}
 	return optSet
+}
+
+// WithTagSpecificCharacterSetToEncodingNameConverter allows parser to map
+// non-standard character sets with standard ones when assessing encoding names
+func WithTagSpecificCharacterSetToEncodingNameConverter(handler func(string) string) ParseOption {
+	return func(set *parseOptSet) {
+		set.tagSpecificCharacterSetToEncodingNameConverter = handler
+	}
 }
 
 // AllowMismatchPixelDataLength allows parser to ignore an error when the length calculated from elements do not match with value length.
@@ -281,8 +295,8 @@ func SkipPixelData() ParseOption {
 // a PixelData element will be added to the dataset with the
 // PixelDataInfo.IntentionallyUnprocessed = true, and the raw bytes of the
 // entire PixelData element stored in PixelDataInfo.UnprocessedValueData.
-// 
-// In the future, we may be able to extend this functionality to support 
+//
+// In the future, we may be able to extend this functionality to support
 // on-demand processing of elements elsewhere in the library.
 func SkipProcessingPixelDataValue() ParseOption {
 	return func(set *parseOptSet) {

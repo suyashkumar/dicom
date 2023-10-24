@@ -32,7 +32,7 @@ be mentioned in one of them for brevity.
   * Modality: CT
   * Multiple frames
   * Native pixel data
-* [6.dcm](6.dcm)
+* [malformed/1.dcm](malformed/1.dcm)
   * SpecificCharacterSet: ISO_2022_IR_6
   * Other items similar to 3.dcm
 ### Relevant Citations

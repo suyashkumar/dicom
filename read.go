@@ -373,8 +373,7 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	// TODO(https://github.com/suyashkumar/dicom/issues/294): Add support for
 	// signed Native PixelData.
 	pixelDataIsSigned := false
-	pxRep, err := parsedData.FindElementByTag(tag.PixelRepresentation)
-	if err == nil {
+	if pxRep, err := parsedData.FindElementByTag(tag.PixelRepresentation); err == nil {
 		pxRepValue := MustGetInts(pxRep.Value)
 		if len(pxRepValue) > 0 && pxRepValue[0] != 0 {
 			pixelDataIsSigned = true

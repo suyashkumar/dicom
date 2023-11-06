@@ -284,6 +284,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{8}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 				mustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []*frame.Frame{
@@ -314,6 +315,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 				mustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []*frame.Frame{
@@ -342,6 +344,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 				mustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []*frame.Frame{
@@ -370,6 +373,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.NumberOfFrames, []string{"2"}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 				mustNewElement(tag.PixelData, PixelDataInfo{
 					IsEncapsulated: false,
 					Frames: []*frame.Frame{

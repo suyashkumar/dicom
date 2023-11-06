@@ -210,7 +210,7 @@ func TestReadNativeFrames(t *testing.T) {
 	cases := []struct {
 		Name              string
 		existingData      Dataset
-		data              []uint16
+		data              []int16
 		dataBytes         []byte
 		expectedPixelData *PixelDataInfo
 		expectedError     error
@@ -225,8 +225,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			data: []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -251,8 +252,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"3"}),
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
+			data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -295,8 +297,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"2"}),
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
+			data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -330,8 +333,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"2"}),
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
+			data:              []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
 			expectedPixelData: nil,
 			expectedError:     ErrorMismatchPixelDataLength,
 		},
@@ -343,8 +347,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			data:              []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: nil,
 			expectedError:     ErrorMismatchPixelDataLength,
 		},
@@ -356,8 +361,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
 				ParseErr: ErrorMismatchPixelDataLength,
 				Frames: []*frame.Frame{
@@ -378,8 +384,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			data:              []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorElementNotFound,
 		},
@@ -391,8 +398,9 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{24}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			data:              []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorUnsupportedBitsAllocated,
 		},
@@ -404,6 +412,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"3"}),
 				mustNewElement(tag.BitsAllocated, []int{8}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
 			dataBytes: []byte{11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 0}, // there is a 28th byte to make total value length even, as required by DICOM spec
 			expectedPixelData: &PixelDataInfo{
@@ -449,6 +458,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"3"}),
 				mustNewElement(tag.BitsAllocated, []int{8}),
 				mustNewElement(tag.SamplesPerPixel, []int{3}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
 			dataBytes: []byte{1, 2, 3, 1, 2, 3, 1, 2, 3, 0}, // 10th byte to make total value length even
 			expectedPixelData: &PixelDataInfo{
@@ -493,11 +503,52 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"2"}),
 				mustNewElement(tag.BitsAllocated, []int{8}),
 				mustNewElement(tag.SamplesPerPixel, []int{3}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
 			dataBytes:         []byte{1, 2, 3, 1, 2, 3},
 			expectedPixelData: nil,
 			pixelVLOverride:   7,
 			expectedError:     ErrorExpectedEvenLength,
+		},
+		{
+			Name: "Signed Pixel Representation with No Negative Values: No Error",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{5}),
+				mustNewElement(tag.Columns, []int{5}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{1}),
+			}},
+			data: []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []*frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 16,
+							Rows:          5,
+							Cols:          5,
+							Data:          [][]int{{1}, {2}, {3}, {4}, {5}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "Signed Pixel Representation with Negative Values: Returns Error",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{5}),
+				mustNewElement(tag.Columns, []int{5}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{1}),
+			}},
+			data:              []int16{-1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			expectedPixelData: nil,
+			expectedError:     ErrorSignedNativePixelDataUnsupported,
 		},
 	}
 
@@ -791,6 +842,7 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{1}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
 			data: []byte{0b00010111, 0b10010111},
 			expectedPixelData: &PixelDataInfo{
@@ -818,6 +870,7 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{1}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
 			data: []byte{0b00010111, 0b10010111},
 			expectedPixelData: &PixelDataInfo{

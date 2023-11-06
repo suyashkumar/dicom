@@ -512,7 +512,47 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError:     ErrorExpectedEvenLength,
 		},
 		{
-			Name: "Signed Pixel Representation with No Negative Values: No Error",
+			Name: "Signed Pixel Representation with No Negative Values, uint8: No Error",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{1}),
+			}},
+			dataBytes: []byte{1, 2, 3, 0},
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []*frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: frame.NativeFrame{
+							BitsPerSample: 8,
+							Rows:          2,
+							Cols:          2,
+							Data:          [][]int{{1}, {2}, {3}, {0}},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "Signed Pixel Representation with Negative Values, uint8: Returns Error",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelRepresentation, []int{1}),
+			}},
+			dataBytes:         []byte{0b10000001, 2, 3, 0},
+			expectedPixelData: nil,
+			expectedError:     ErrorSignedNativePixelDataUnsupported,
+		},
+		{
+			Name: "Signed Pixel Representation with No Negative Values, uint16: No Error",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{5}),
 				mustNewElement(tag.Columns, []int{5}),
@@ -538,7 +578,7 @@ func TestReadNativeFrames(t *testing.T) {
 			},
 		},
 		{
-			Name: "Signed Pixel Representation with Negative Values: Returns Error",
+			Name: "Signed Pixel Representation with Negative Values, uint16: Returns Error",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{5}),
 				mustNewElement(tag.Columns, []int{5}),

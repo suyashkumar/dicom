@@ -556,25 +556,17 @@ func TestReadNativeFrames(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
-			dcmdata := bytes.Buffer{}
+			var dcmdata *bytes.Buffer
 			var expectedBytes int
 
 			if len(tc.data) == 0 {
 				// writing byte-by-byte
 				expectedBytes = len(tc.dataBytes)
-				for _, item := range tc.dataBytes {
-					if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
-						t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
-					}
-				}
+				dcmdata = writeIntsToBuffer(t, tc.dataBytes)
 			} else {
 				// writing 2 bytes (uint16) at a time
 				expectedBytes = len(tc.data) * 2
-				for _, item := range tc.data {
-					if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
-						t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
-					}
-				}
+				dcmdata = writeIntsToBuffer(t, tc.data)
 			}
 
 			var vl uint32
@@ -585,7 +577,7 @@ func TestReadNativeFrames(t *testing.T) {
 			}
 
 			r := &reader{
-				rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
+				rawReader: dicomio.NewReader(bufio.NewReader(dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
 				opts:      tc.parseOptSet,
 			}
 
@@ -631,25 +623,8 @@ func TestReadNativeFrames_MaxUInt8PixelValue(t *testing.T) {
 		},
 	}
 
-	dcmdata := bytes.Buffer{}
-	for _, item := range pixelData {
-		if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
-			t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
-		}
-	}
-
-	r := &reader{
-		rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
-	}
-
-	parsedPixelData, _, err := r.readNativeFrames(&existingDS, nil, uint32(dcmdata.Len()))
-	if err != nil {
-		t.Errorf("TestReadNativeFrames(): did not get expected error. got: %v, want: %v", err, nil)
-	}
-
-	if diff := cmp.Diff(want, parsedPixelData, cmpopts.EquateErrors()); diff != "" {
-		t.Errorf("TestReadNativeFrames(): unexpected diff: %v", diff)
-	}
+	dcmdata := writeIntsToBuffer(t, pixelData)
+	testReadNativeFramesBody(t, dcmdata, &existingDS, want)
 }
 
 func TestReadNativeFrames_MaxUInt16PixelValue(t *testing.T) {
@@ -678,26 +653,8 @@ func TestReadNativeFrames_MaxUInt16PixelValue(t *testing.T) {
 			},
 		},
 	}
-
-	dcmdata := bytes.Buffer{}
-	for _, item := range pixelData {
-		if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
-			t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
-		}
-	}
-
-	r := &reader{
-		rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
-	}
-
-	parsedPixelData, _, err := r.readNativeFrames(&existingDS, nil, uint32(dcmdata.Len()))
-	if err != nil {
-		t.Errorf("TestReadNativeFrames(): did not get expected error. got: %v, want: %v", err, nil)
-	}
-
-	if diff := cmp.Diff(want, parsedPixelData, cmpopts.EquateErrors()); diff != "" {
-		t.Errorf("TestReadNativeFrames(): unexpected diff: %v", diff)
-	}
+	dcmdata := writeIntsToBuffer(t, pixelData)
+	testReadNativeFramesBody(t, dcmdata, &existingDS, want)
 }
 
 func TestReadNativeFrames_MaxUInt32PixelValue(t *testing.T) {
@@ -727,25 +684,32 @@ func TestReadNativeFrames_MaxUInt32PixelValue(t *testing.T) {
 		},
 	}
 
-	dcmdata := bytes.Buffer{}
-	for _, item := range pixelData {
-		if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
-			t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
-		}
-	}
+	dcmdata := writeIntsToBuffer(t, pixelData)
+	testReadNativeFramesBody(t, dcmdata, &existingDS, want)
+}
 
-	r := &reader{
-		rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
-	}
+func testReadNativeFramesBody(t *testing.T, dcmdata *bytes.Buffer, existingDS *Dataset, wantPixelData *PixelDataInfo) {
+	r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(dcmdata), binary.LittleEndian, int64(dcmdata.Len()))}
 
-	parsedPixelData, _, err := r.readNativeFrames(&existingDS, nil, uint32(dcmdata.Len()))
+	parsedPixelData, _, err := r.readNativeFrames(existingDS, nil, uint32(dcmdata.Len()))
 	if err != nil {
 		t.Errorf("TestReadNativeFrames(): did not get expected error. got: %v, want: %v", err, nil)
 	}
 
-	if diff := cmp.Diff(want, parsedPixelData, cmpopts.EquateErrors()); diff != "" {
+	if diff := cmp.Diff(wantPixelData, parsedPixelData, cmpopts.EquateErrors()); diff != "" {
 		t.Errorf("TestReadNativeFrames(): unexpected diff: %v", diff)
 	}
+}
+
+func writeIntsToBuffer[T any](t *testing.T, ints []T) *bytes.Buffer {
+	t.Helper()
+	dcmdata := &bytes.Buffer{}
+	for _, item := range ints {
+		if err := binary.Write(dcmdata, binary.LittleEndian, item); err != nil {
+			t.Errorf("unable to setup test buffer")
+		}
+	}
+	return dcmdata
 }
 
 func TestReadPixelData_SkipPixelData(t *testing.T) {

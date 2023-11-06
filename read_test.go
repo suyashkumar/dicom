@@ -637,6 +637,8 @@ func TestReadNativeFrames(t *testing.T) {
 	}
 }
 
+// TODO(suyashkumar): revisit these tests and better structure/consolidate with
+// above tests.
 func TestReadNativeFrames_MaxUInt8PixelValue(t *testing.T) {
 	// This tests that reading the maximum uint8 pixel value still works, when
 	// PixelRepresentation is 0, mostly as a regression test.

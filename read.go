@@ -855,7 +855,8 @@ func (r *reader) moreToRead() bool {
 	return !r.rawReader.IsLimitExhausted()
 }
 
-// isNegativeIn2sComplement returns true if the most significant bit is 1.
+// isNegativeIn2sComplement returns true if the most significant bit is 1 of the
+// input unsigned integer. Panics if the input is not a Go unsigned integer.
 func isNegativeIn2sComplement(input any) bool {
 	switch v := input.(type) {
 	case uint8:
@@ -864,6 +865,8 @@ func isNegativeIn2sComplement(input any) bool {
 		return (1 << 15 & v) > 0
 	case uint32:
 		return (1 << 31 & v) > 0
+	case uint64:
+		return (1 << 63 & v) > 0
 	}
-	return false
+	panic("isNegativeIn2sComplement expects some form of Go unsigned integer")
 }

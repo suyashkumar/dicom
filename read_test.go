@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"math"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -600,6 +601,54 @@ func TestReadNativeFrames(t *testing.T) {
 				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.data, diff)
 			}
 		})
+	}
+}
+
+func TestReadNativeFrames_MaxUInt16PixelValue(t *testing.T) {
+	// This tests that reading the maximum uint16 pixel value still works, when
+	// PixelRepresentation is 0, mostly as a regression test.
+	existingDS := Dataset{Elements: []*Element{
+		mustNewElement(tag.Rows, []int{5}),
+		mustNewElement(tag.Columns, []int{5}),
+		mustNewElement(tag.NumberOfFrames, []string{"1"}),
+		mustNewElement(tag.BitsAllocated, []int{16}),
+		mustNewElement(tag.SamplesPerPixel, []int{1}),
+		mustNewElement(tag.PixelRepresentation, []int{0}),
+	}}
+	pixelData := []uint16{math.MaxUint16, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	want := &PixelDataInfo{
+		IsEncapsulated: false,
+		Frames: []*frame.Frame{
+			{
+				Encapsulated: false,
+				NativeData: frame.NativeFrame{
+					BitsPerSample: 16,
+					Rows:          5,
+					Cols:          5,
+					Data:          [][]int{{math.MaxUint16}, {2}, {3}, {4}, {5}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}},
+				},
+			},
+		},
+	}
+
+	dcmdata := bytes.Buffer{}
+	for _, item := range pixelData {
+		if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
+			t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
+		}
+	}
+
+	r := &reader{
+		rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
+	}
+
+	parsedPixelData, _, err := r.readNativeFrames(&existingDS, nil, uint32(dcmdata.Len()))
+	if err != nil {
+		t.Errorf("TestReadNativeFrames(): did not get expected error. got: %v, want: %v", err, nil)
+	}
+
+	if diff := cmp.Diff(want, parsedPixelData, cmpopts.EquateErrors()); diff != "" {
+		t.Errorf("TestReadNativeFrames(): unexpected diff: %v", diff)
 	}
 }
 

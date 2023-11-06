@@ -211,8 +211,8 @@ func TestReadNativeFrames(t *testing.T) {
 	cases := []struct {
 		Name              string
 		existingData      Dataset
-		data              []int16
-		dataBytes         []byte
+		int16Data         []int16
+		uint8Data         []byte
 		expectedPixelData *PixelDataInfo
 		expectedError     error
 		pixelVLOverride   uint32
@@ -228,7 +228,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			int16Data: []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -255,7 +255,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
+			int16Data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -300,7 +300,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
+			int16Data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -336,7 +336,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
+			int16Data:         []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
 			expectedPixelData: nil,
 			expectedError:     ErrorMismatchPixelDataLength,
 		},
@@ -350,7 +350,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			int16Data:         []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: nil,
 			expectedError:     ErrorMismatchPixelDataLength,
 		},
@@ -364,7 +364,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			int16Data: []int16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
 				ParseErr: ErrorMismatchPixelDataLength,
 				Frames: []*frame.Frame{
@@ -387,7 +387,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			int16Data:         []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorElementNotFound,
 		},
@@ -401,12 +401,12 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			data:              []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			int16Data:         []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorUnsupportedBitsAllocated,
 		},
 		{
-			Name: "3x3, 3 frames, 1 samples/pixel, data bytes with padded 0",
+			Name: "3x3, 3 frames, 1 samples/pixel, int16Data bytes with padded 0",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{3}),
 				mustNewElement(tag.Columns, []int{3}),
@@ -415,7 +415,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			dataBytes: []byte{11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 0}, // there is a 28th byte to make total value length even, as required by DICOM spec
+			uint8Data: []byte{11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 11, 12, 13, 21, 22, 23, 31, 32, 33, 0}, // there is a 28th byte to make total value length even, as required by DICOM spec
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -452,7 +452,7 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			Name: "1x1, 3 frames, 3 samples/pixel, data bytes with padded 0",
+			Name: "1x1, 3 frames, 3 samples/pixel, int16Data bytes with padded 0",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{1}),
 				mustNewElement(tag.Columns, []int{1}),
@@ -461,7 +461,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{3}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			dataBytes: []byte{1, 2, 3, 1, 2, 3, 1, 2, 3, 0}, // 10th byte to make total value length even
+			uint8Data: []byte{1, 2, 3, 1, 2, 3, 1, 2, 3, 0}, // 10th byte to make total value length even
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -506,7 +506,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{3}),
 				mustNewElement(tag.PixelRepresentation, []int{0}),
 			}},
-			dataBytes:         []byte{1, 2, 3, 1, 2, 3},
+			uint8Data:         []byte{1, 2, 3, 1, 2, 3},
 			expectedPixelData: nil,
 			pixelVLOverride:   7,
 			expectedError:     ErrorExpectedEvenLength,
@@ -521,7 +521,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{1}),
 			}},
-			dataBytes: []byte{1, 2, 3, 0},
+			uint8Data: []byte{1, 2, 3, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -547,21 +547,21 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{1}),
 			}},
-			dataBytes:         []byte{0b10000001, 2, 3, 0},
+			uint8Data:         []byte{0b10000001, 2, 3, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorSignedNativePixelDataUnsupported,
 		},
 		{
 			Name: "Signed Pixel Representation with No Negative Values, uint16: No Error",
 			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{5}),
-				mustNewElement(tag.Columns, []int{5}),
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{1}),
 			}},
-			data: []int16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			int16Data: []int16{1, 2, 3, 4},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
@@ -569,9 +569,9 @@ func TestReadNativeFrames(t *testing.T) {
 						Encapsulated: false,
 						NativeData: frame.NativeFrame{
 							BitsPerSample: 16,
-							Rows:          5,
-							Cols:          5,
-							Data:          [][]int{{1}, {2}, {3}, {4}, {5}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}},
+							Rows:          2,
+							Cols:          2,
+							Data:          [][]int{{1}, {2}, {3}, {4}},
 						},
 					},
 				},
@@ -580,14 +580,14 @@ func TestReadNativeFrames(t *testing.T) {
 		{
 			Name: "Signed Pixel Representation with Negative Values, uint16: Returns Error",
 			existingData: Dataset{Elements: []*Element{
-				mustNewElement(tag.Rows, []int{5}),
-				mustNewElement(tag.Columns, []int{5}),
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
 				mustNewElement(tag.NumberOfFrames, []string{"1"}),
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 				mustNewElement(tag.PixelRepresentation, []int{1}),
 			}},
-			data:              []int16{-1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			int16Data:         []int16{-1, 2, 3, 4},
 			expectedPixelData: nil,
 			expectedError:     ErrorSignedNativePixelDataUnsupported,
 		},
@@ -599,14 +599,15 @@ func TestReadNativeFrames(t *testing.T) {
 			var dcmdata *bytes.Buffer
 			var expectedBytes int
 
-			if len(tc.data) == 0 {
+			if len(tc.uint8Data) > 0 {
 				// writing byte-by-byte
-				expectedBytes = len(tc.dataBytes)
-				dcmdata = writeIntsToBuffer(t, tc.dataBytes)
-			} else {
+				expectedBytes = len(tc.uint8Data)
+				dcmdata = writeIntsToBuffer(t, tc.uint8Data)
+			}
+			if len(tc.int16Data) > 0 {
 				// writing 2 bytes (uint16) at a time
-				expectedBytes = len(tc.data) * 2
-				dcmdata = writeIntsToBuffer(t, tc.data)
+				expectedBytes = len(tc.int16Data) * 2
+				dcmdata = writeIntsToBuffer(t, tc.int16Data)
 			}
 
 			var vl uint32
@@ -623,14 +624,14 @@ func TestReadNativeFrames(t *testing.T) {
 
 			pixelData, bytesRead, err := r.readNativeFrames(&tc.existingData, nil, vl)
 			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
+				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.int16Data, err, tc.expectedError)
 			}
 			if err == nil && bytesRead != expectedBytes {
-				t.Errorf("TestReadNativeFrames(%v): did not read expected number of bytes. got: %d, want: %d", tc.data, bytesRead, expectedBytes)
+				t.Errorf("TestReadNativeFrames(%v): did not read expected number of bytes. got: %d, want: %d", tc.int16Data, bytesRead, expectedBytes)
 			}
 
 			if diff := cmp.Diff(tc.expectedPixelData, pixelData, cmpopts.EquateErrors()); diff != "" {
-				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.data, diff)
+				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.int16Data, diff)
 			}
 		})
 	}
@@ -795,9 +796,9 @@ func TestReadPixelData_SkipPixelData(t *testing.T) {
 	}
 }
 
-// Used to encode the data from the generated headers.
+// Used to encode the int16Data from the generated headers.
 type headerData struct {
-	// The byte encoded header data.
+	// The byte encoded header int16Data.
 	HeaderBytes *bytes.Buffer
 	// The decoded elements conforming the header.
 	Elements []*Element
@@ -890,7 +891,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	t.Run("NoFileMetaInformationGroupLength", func(t *testing.T) {
 		dcmheaderNoInfoGrpLen, err := headerWithNoFileMetaInformationGroupLength()
 		if err != nil {
-			t.Fatalf("unsuccesful generation of fake header data")
+			t.Fatalf("unsuccesful generation of fake header int16Data")
 		} else {
 			r := &reader{
 				rawReader: dicomio.NewReader(bufio.NewReader(dcmheaderNoInfoGrpLen.HeaderBytes), binary.LittleEndian, int64(dcmheaderNoInfoGrpLen.HeaderBytes.Len())),
@@ -911,7 +912,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	t.Run("WithFileMetaInformationGroupLength", func(t *testing.T) {
 		dcmHeaderInfoGrpLen, err := headerWithFileMetaInformationGroupLength()
 		if err != nil {
-			t.Fatalf("unsuccesful generation of fake header data with FileMetaInformationGroupLength")
+			t.Fatalf("unsuccesful generation of fake header int16Data with FileMetaInformationGroupLength")
 		} else {
 			r := &reader{
 				rawReader: dicomio.NewReader(bufio.NewReader(dcmHeaderInfoGrpLen.HeaderBytes), binary.LittleEndian, int64(dcmHeaderInfoGrpLen.HeaderBytes.Len())),
@@ -1062,7 +1063,7 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(tc.expectedPixelData, pixelData); diff != "" {
-				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v\ndata:%v", tc.data, diff, pixelData)
+				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v\nint16Data:%v", tc.data, diff, pixelData)
 			}
 		})
 	}

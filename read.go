@@ -31,7 +31,7 @@ var (
 	ErrorUnsupportedBitsAllocated         = errors.New("unsupported BitsAllocated")
 	errorUnableToParseFloat               = errors.New("unable to parse float type")
 	ErrorExpectedEvenLength               = errors.New("field length is not even, in violation of DICOM spec")
-	ErrorSignedNativePixelDataUnsupported = errors.New("the Pixel Representation tag indicates signed native pixel data is present, but this is not yet supported.")
+	ErrorSignedNativePixelDataUnsupported = errors.New("the Pixel Representation tag indicates signed native pixel data is present, _and_ negative Pixel Data values were found, but this is not yet supported")
 )
 
 // reader is responsible for mid-level dicom parsing capabilities, like
@@ -298,19 +298,6 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 
 }
 
-// isNegativeIn2sComplement returns true if the most significant bit is 1.
-func isNegativeIn2sComplement(input any) bool {
-	switch v := input.(type) {
-	case uint8:
-		return (1 << 7 & v) > 0
-	case uint16:
-		return (1 << 15 & v) > 0
-	case uint32:
-		return (1 << 31 & v) > 0
-	}
-	return false
-}
-
 func getNthBit(data byte, n int) int {
 	debug.Logf("mask: %0b", 1<<n)
 	if (1 << n & uint8(data)) > 0 {
@@ -388,8 +375,6 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	pixelDataIsSigned := false
 	pxRep, err := parsedData.FindElementByTag(tag.PixelRepresentation)
 	if err == nil {
-		// If found successfully, ensure it is 0, which indicates unsigned
-		// pixel values, which is the only thing we currently support.
 		pxRepValue := MustGetInts(pxRep.Value)
 		if len(pxRepValue) > 0 && pxRepValue[0] != 0 {
 			pixelDataIsSigned = true
@@ -868,4 +853,17 @@ func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 // moreToRead returns true if there is more to read from the underlying dicom.
 func (r *reader) moreToRead() bool {
 	return !r.rawReader.IsLimitExhausted()
+}
+
+// isNegativeIn2sComplement returns true if the most significant bit is 1.
+func isNegativeIn2sComplement(input any) bool {
+	switch v := input.(type) {
+	case uint8:
+		return (1 << 7 & v) > 0
+	case uint16:
+		return (1 << 15 & v) > 0
+	case uint32:
+		return (1 << 31 & v) > 0
+	}
+	return false
 }

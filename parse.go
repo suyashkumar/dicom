@@ -25,7 +25,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 	"os"
+	"regexp"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
 	"github.com/suyashkumar/dicom/pkg/debug"
@@ -195,7 +197,13 @@ func (p *Parser) Next() (*Element, error) {
 		for i := range encodingNames {
 			encodingNames[i] = p.reader.opts.tagSpecificCharacterSetToEncodingNameConverter(encodingNames[i])
 		}
-		cs, err := charset.ParseSpecificCharacterSet(encodingNames)
+		cs, err := charset.ParseSpecificCharacterSet(encodingNames, false)
+		if err != nil {
+			for i := range encodingNames {
+				encodingNames[i] = FixCommonSpellingErrorInSpecificCharacterSet(encodingNames[i])
+			}
+			cs, err = charset.ParseSpecificCharacterSet(encodingNames, true)
+		}
 		if err != nil {
 			// unable to parse character set, hard error
 			// TODO: add option continue, even if unable to parse
@@ -207,6 +215,22 @@ func (p *Parser) Next() (*Element, error) {
 	p.dataset.Elements = append(p.dataset.Elements, elem)
 	return elem, nil
 
+}
+
+// FixCommonSpellingErrorInSpecificCharacterSet references _python_encoding_for_corrected_encoding in https://github.com/pydicom/pydicom/
+func FixCommonSpellingErrorInSpecificCharacterSet(specificCharacterSet string) string {
+	defaultSpecificCharacterSet := "" // corresponds to iso-8859-1 in htmlEncodingNames in pkg/charset
+	fixed := defaultSpecificCharacterSet
+	if match := regexp.MustCompile(`^ISO.IR`).MatchString(specificCharacterSet); match {
+		fixed = "ISO_IR" + specificCharacterSet[6:]
+	} else if match := regexp.MustCompile(`^ISO.2022.IR.`).MatchString(specificCharacterSet); match {
+		fixed = "ISO 2022 IR " + specificCharacterSet[12:]
+	}
+	if fixed != specificCharacterSet {
+		errLogger := log.New(os.Stderr, "", 0) // avoid altering the output for future use
+		errLogger.Printf("Incorrect value for Specific Character Set '%s' - assuming %s", specificCharacterSet, fixed)
+	}
+	return fixed
 }
 
 // GetMetadata returns just the set of metadata elements that have been parsed

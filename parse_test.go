@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/suyashkumar/dicom/pkg/tag"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
@@ -76,7 +77,7 @@ func TestParseFile_WithTagSpecificCharacterSetToEncodingNameConverter(t *testing
 	t.Run("WithCustomConverterParseSucceed", func(t *testing.T) {
 		converter := func(origin string) string {
 			substitutions := map[string]string{
-				"ISO_2022_IR_6": "ISO 2022 IR 6",
+				"ISO_2022_IR_6": "ISO_IR 13",
 			}
 			if sub, ok := substitutions[origin]; ok {
 				return sub
@@ -95,20 +96,50 @@ func TestParseFile_WithTagSpecificCharacterSetToEncodingNameConverter(t *testing
 			t.Fatalf("find element after parsing: %v", err)
 		}
 		charset := dicom.MustGetStrings(charsetElem.Value)[0]
+		if charset != "ISO_IR 13" {
+			t.Fatalf("unexpected charset after parsing: %v", charset)
+		}
+	})
+	t.Run("WithNoCustomerConverterParseSucceedBecauseOfFixingCommonSpelling", func(t *testing.T) {
+		dataset, err := dicom.ParseFile(aDicomFileHavingNonStandardSpecificCharacterSet, nil)
+		if err != nil {
+			t.Fatalf("parsing dataset: %v", err)
+		}
+		charsetElem, err := dataset.FindElementByTag(tag.SpecificCharacterSet)
+		if err != nil {
+			t.Fatalf("find element after parsing: %v", err)
+		}
+		charset := dicom.MustGetStrings(charsetElem.Value)[0]
 		if charset != "ISO 2022 IR 6" {
 			t.Fatalf("unexpected charset after parsing: %v", charset)
 		}
 	})
-	t.Run("WithNoCustomerConverterParseFail", func(t *testing.T) {
-		expectedErrMsg := "ParseSpecificCharacterSet: Unknown character set"
-		_, err := dicom.ParseFile(aDicomFileHavingNonStandardSpecificCharacterSet, nil)
-		if err == nil {
-			t.Fatalf("expect error %s but got empty one", expectedErrMsg)
+}
+
+func TestFixCommonSpellingErrorInSpecificCharacterSet(t *testing.T) {
+	type test struct {
+		input      string
+		wantOutput string
+	}
+	for _, te := range []test{
+		{
+			input:      "ISO_2022_IR_6",
+			wantOutput: "ISO 2022 IR 6",
+		},
+		{
+			input:      "ISO IR 13",
+			wantOutput: "ISO_IR 13",
+		},
+		{
+			input:      "",
+			wantOutput: "",
+		},
+	} {
+		gotOutput := dicom.FixCommonSpellingErrorInSpecificCharacterSet(te.input)
+		if diff := cmp.Diff(gotOutput, te.wantOutput, cmp.AllowUnexported(test{})); diff != "" {
+			t.Errorf("fixCommonSpellingErrorInSpecificCharacterSet(%s) unexpected value. diff: %s", te.input, diff)
 		}
-		if !strings.Contains(err.Error(), expectedErrMsg) {
-			t.Fatalf("unexpected parsing error: %v", err)
-		}
-	})
+	}
 }
 
 // TestNewParserSkipMetadataReadOnNewParserInit tests that NewParser with the SkipMetadataReadOnNewParserInit option

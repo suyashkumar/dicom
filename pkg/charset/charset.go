@@ -78,21 +78,23 @@ var htmlEncodingNames = map[string]string{
 // "ISO-IR 100" to encoding.Decoder(s). It will return nil, nil for the default (7bit
 // ASCII) encoding. Cf. P3.2
 // D.6.2. https://dicom.nema.org/medical/dicom/2016d/output/chtml/part02/sect_D.6.2.html
-func ParseSpecificCharacterSet(encodingNames []string) (CodingSystem, error) {
+func ParseSpecificCharacterSet(encodingNames []string, useDefaultIfNameIsInvalid bool) (CodingSystem, error) {
 	var decoders []*encoding.Decoder
 	for _, name := range encodingNames {
 		var c *encoding.Decoder
-		if htmlName, ok := htmlEncodingNames[name]; !ok {
-			// TODO(saito) Support more encodings.
-			return CodingSystem{}, fmt.Errorf("ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", name)
-		} else {
-			if htmlName != "" {
-				d, err := htmlindex.Get(htmlName)
-				if err != nil {
-					panic(fmt.Sprintf("Encoding name %s (for %s) not found", name, htmlName))
-				}
-				c = d.NewDecoder()
+		htmlName, ok := htmlEncodingNames[name]
+		if !ok {
+			if !useDefaultIfNameIsInvalid {
+				return CodingSystem{}, fmt.Errorf("ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", name)
 			}
+			htmlName, ok = htmlEncodingNames[""]
+		}
+		if htmlName != "" {
+			d, err := htmlindex.Get(htmlName)
+			if err != nil {
+				panic(fmt.Sprintf("Encoding name %s (for %s) not found", name, htmlName))
+			}
+			c = d.NewDecoder()
 		}
 		decoders = append(decoders, c)
 	}

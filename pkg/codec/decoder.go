@@ -56,87 +56,121 @@ func GetNativePixelData(e frame.EncapsulatedFrame) ([]byte, error) {
 
 // GetStdImage returns the converted image in Go standard format
 func GetStdImage(e frame.EncapsulatedFrame) (image.Image, error) {
-	buf := bytes.NewBuffer(e.Data)
-	r := dicomio.NewReader(bufio.NewReader(buf), binary.LittleEndian, int64(len(e.Data)))
 	var (
-		upLeft          = image.Point{0, 0}
-		lowRight        = image.Point{e.Cols, e.Rows}
-		img8            = image.NewRGBA(image.Rectangle{upLeft, lowRight})
-		img16           = image.NewRGBA64(image.Rectangle{upLeft, lowRight})
-		samplesPerPixel int
-		values8         [3]uint8 // red, green, blue
-		values16        [3]uint16
-		cols            = e.Cols
-		a               = 0xffff
-		i               = 0
+		upLeft      = image.Point{0, 0}
+		lowRight    = image.Point{e.Cols, e.Rows}
+		img8        = image.NewRGBA(image.Rectangle{upLeft, lowRight})
+		img16       = image.NewRGBA64(image.Rectangle{upLeft, lowRight})
+		cols        = e.Cols
+		a           = 0xffff
+		pixelValues = make([]int, e.SamplesPerPixel)
 	)
-	if e.BitsAllocated == 8 {
-		for !r.IsLimitExhausted() {
-			i++
-			v, err := r.ReadUInt8()
-			if err != nil {
-				return nil, fmt.Errorf("read uint8 failed: %w", err)
-			}
-			values8[samplesPerPixel%3] = v
-			samplesPerPixel++
-			if samplesPerPixel < e.SamplesPerPixel {
-				continue
-			}
-			var clr color.Color
-			switch samplesPerPixel {
-			case 1:
-				clr = color.Gray{Y: values8[0]}
-			case 3:
-				r, g, b := values8[0], values8[1], values8[2]
-				clr = color.RGBA{r, g, b, uint8(a)}
-			}
-			img8.Set(i%cols, i/cols, clr)
-			samplesPerPixel = 0
-		}
-		return img8, nil
+	decodedBytes, err := GetNativePixelData(e)
+	if err != nil {
+		return nil, fmt.Errorf("decode pixeldata: %w", err)
 	}
-	for !r.IsLimitExhausted() {
-		i++
-		v, err := r.ReadUInt16()
-		if err != nil {
-			return nil, fmt.Errorf("read uint16 failed: %w", err)
-		}
-		values16[samplesPerPixel%3] = v
-		samplesPerPixel++
-		if samplesPerPixel < e.SamplesPerPixel {
-			continue
-		}
+	buf := bytes.NewBuffer(decodedBytes)
+	r := dicomio.NewReader(bufio.NewReader(buf), binary.LittleEndian, int64(buf.Len()))
+	oneByte := e.BitsAllocated == 8
+	for i := 0; i < e.Cols*e.Rows; i++ {
 		var clr color.Color
-		switch samplesPerPixel {
-		case 1:
-			clr = color.Gray16{Y: values16[0]}
-		case 3:
-			r, g, b := values16[0], values16[1], values16[2]
-			clr = color.RGBA64{r, g, b, uint16(a)}
+		err := readPixelValues(e, *r, pixelValues)
+		if err != nil {
+			return nil, fmt.Errorf("read pixel values: %w", err)
 		}
-		img16.Set(i%cols, i/cols, clr)
-		samplesPerPixel = 0
+		switch e.SamplesPerPixel {
+		case 1:
+			r := pixelValues[0]
+			if oneByte {
+				clr = color.Gray{Y: uint8(r)}
+			} else {
+				clr = color.Gray16{Y: uint16(r)}
+			}
+		case 3:
+			r, g, b := pixelValues[0], pixelValues[1], pixelValues[2]
+			if oneByte {
+				clr = color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
+			} else {
+				clr = color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
+			}
+		case 4:
+			r, g, b, a := pixelValues[0], pixelValues[1], pixelValues[2], pixelValues[3]
+			if oneByte {
+				clr = color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
+			} else {
+				clr = color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
+			}
+		}
+		if oneByte {
+			img8.Set(i%cols, i/cols, clr)
+		} else {
+			img16.Set(i%cols, i/cols, clr)
+		}
+	}
+	if oneByte {
+		return img8, nil
 	}
 	return img16, nil
 }
 
+func readPixelValues(e frame.EncapsulatedFrame, r dicomio.Reader, pixelValues []int) error {
+	for sample := 0; sample < e.SamplesPerPixel; sample++ {
+		if r.IsLimitExhausted() {
+			break
+		}
+		switch e.BitsAllocated {
+		case 8:
+			v, err := r.ReadUInt8()
+			if err != nil {
+				return fmt.Errorf("read uint8 failed: %w", err)
+			}
+			pixelValues[sample] = int(v)
+		case 16:
+			v, err := r.ReadUInt16()
+			if err != nil {
+				return fmt.Errorf("read uint16 failed: %w", err)
+			}
+			pixelValues[sample] = int(v)
+		case 32:
+			v, err := r.ReadUInt32()
+			if err != nil {
+				return fmt.Errorf("read uint32 failed: %w", err)
+			}
+			pixelValues[sample] = int(v)
+		default:
+			return fmt.Errorf("bitsAllocated not supported: %d", e.BitsAllocated)
+		}
+	}
+	return nil
+}
+
 // Decode reads a JPEG image from EncapsulatedFrame and returns it as an NativeFrame.
 func Decode(e frame.EncapsulatedFrame) (frame.NativeFrame, error) {
-	img, err := GetStdImage(e)
+	var nativeData = make([][]int, e.Cols*e.Rows)
+	decodedBytes, err := GetNativePixelData(e)
 	if err != nil {
-		return frame.NativeFrame{}, fmt.Errorf("get Go's std image: %w", err)
+		return frame.NativeFrame{}, fmt.Errorf("decode pixeldata: %w", err)
 	}
-	var nativeData [][]int
+	buf := bytes.NewBuffer(decodedBytes)
+	r := dicomio.NewReader(bufio.NewReader(buf), binary.LittleEndian, int64(buf.Len()))
+	var (
+		pixelValues = make([]int, e.SamplesPerPixel)
+	)
 	for i := 0; i < e.Cols*e.Rows; i++ {
-		clr := img.At(i%e.Cols, i/e.Cols)
-		r, g, b, a := clr.RGBA()
+		err := readPixelValues(e, *r, pixelValues)
+		if err != nil {
+			return frame.NativeFrame{}, fmt.Errorf("read pixel values: %w", err)
+		}
 		switch e.SamplesPerPixel {
 		case 1:
-			nativeData = append(nativeData, []int{int(r)})
+			r := pixelValues[0]
+			nativeData[i] = []int{int(r)}
 		case 3:
-			nativeData = append(nativeData, []int{int(r), int(g), int(b)})
+			r, g, b := pixelValues[0], pixelValues[1], pixelValues[2]
+			nativeData[i] = []int{int(r), int(g), int(b)}
 		case 4:
-			nativeData = append(nativeData, []int{int(r), int(g), int(b), int(a)})
+			r, g, b, a := pixelValues[0], pixelValues[1], pixelValues[2], pixelValues[3]
+			nativeData[i] = []int{int(r), int(g), int(b), int(a)}
 		}
 	}
 	nf := frame.NativeFrame{

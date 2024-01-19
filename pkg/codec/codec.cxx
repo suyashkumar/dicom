@@ -173,13 +173,12 @@ unsigned char * J2K_Decode(unsigned char * dataSrc, size_t length, int width, in
     void *vOutBits = NULL;
     OPJ_INT32 * ptr;
     int adjustR, bitsAllocated;
+    adjustR = 0;
     bitsAllocated = image->comps[0].prec;
     if (bitsAllocated == 8) {
         BYTE v;
         BYTE *newdata = new BYTE[image->x1*image->y1*image->numcomps];
         for (unsigned int c=0; c<image->numcomps; c++) {
-            adjustR =
-                (image->comps[c].sgnd ? 1 << (bitsAllocated - 1) : 0);
             ptr = (OPJ_INT32 *)image->comps[c].data;
             for (unsigned int i = 0; i< image->x1*image->y1; i++){
                 v = (BYTE) (*ptr + adjustR);
@@ -192,8 +191,6 @@ unsigned char * J2K_Decode(unsigned char * dataSrc, size_t length, int width, in
         OPJ_UINT16 v;
         OPJ_UINT16 *newdata = new OPJ_UINT16[image->x1*image->y1*image->numcomps];
         for (unsigned int c=0; c<image->numcomps; c++) {
-            adjustR =
-                (image->comps[c].sgnd ? 1 << (bitsAllocated - 1) : 0);
             ptr = (OPJ_INT32 *)image->comps[c].data;
             for (unsigned int i = 0; i< image->x1*image->y1; i++){
                 v = (OPJ_UINT16) (*ptr + adjustR);

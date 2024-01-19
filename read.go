@@ -239,7 +239,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 	return metaElems, nil
 }
 
-func newEncapsulatedFrame(d *Dataset, data []byte) (*frame.Frame, error) {
+func NewEncapsulatedFrame(d *Dataset, data []byte) (*frame.Frame, error) {
 	e := frame.EncapsulatedFrame{
 		Data: data,
 	}
@@ -312,7 +312,7 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 				break
 			}
 
-			f, err := newEncapsulatedFrame(d, data)
+			f, err := NewEncapsulatedFrame(d, data)
 			if err != nil {
 				break
 			}
@@ -410,7 +410,7 @@ func makeErrorPixelData(d *Dataset, reader io.Reader, vl uint32, fc chan<- *fram
 		return nil, fmt.Errorf("makeErrorPixelData: read pixelData: %w", err)
 	}
 
-	f, err := newEncapsulatedFrame(d, data)
+	f, err := NewEncapsulatedFrame(d, data)
 	if err != nil {
 		return nil, err
 	}

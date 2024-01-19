@@ -105,7 +105,6 @@ func assertJPEGDecompressing(t *testing.T, tc testify) {
 		t.Fatal("failed to decode image")
 	}
 
-	fr.Data = uncompressedBytes
 	img, err := GetStdImage(fr)
 	if err != nil {
 		t.Fatal(err)

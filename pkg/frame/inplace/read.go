@@ -7,14 +7,14 @@ package inplace
 func ReadUnprocessedValueData(info *PixelDataMetadata, unprocessedValueData []byte, frameIndex int) ([][]int, error) {
 	pixelsPerFrame := info.Rows * info.Cols
 	bytesAllocated := info.BitsAllocated / 8
-	offset := bytesAllocated * info.SamplesPerPixel * frameIndex * pixelsPerFrame
+	offset := frameIndex * pixelsPerFrame * info.SamplesPerPixel * bytesAllocated
 	samplesPerPixel := info.SamplesPerPixel
 
 	re := make([][]int, pixelsPerFrame)
 	for i := 0; i < pixelsPerFrame; i++ {
 		re[i] = make([]int, samplesPerPixel)
 		for j := 0; j < samplesPerPixel; j++ {
-			pointOffset := offset + info.SamplesPerPixel*bytesAllocated*i + j*samplesPerPixel
+			pointOffset := offset + i*info.SamplesPerPixel*bytesAllocated + j*bytesAllocated
 			switch bytesAllocated {
 			case 1:
 				re[i][j] = int(unprocessedValueData[pointOffset])

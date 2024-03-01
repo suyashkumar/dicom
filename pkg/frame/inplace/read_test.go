@@ -2,6 +2,7 @@ package inplace
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
 
@@ -79,7 +80,7 @@ func TestReadReadUnprocessedValueData(t *testing.T) {
 									BitsPerSample: 16,
 									Rows:          2,
 									Cols:          2,
-									Data:          [][]int{{1}, {2}, {3}, {2}},
+									Data:          [][]int{{4}, {5}, {6}, {7}},
 								},
 							},
 							{
@@ -144,49 +145,46 @@ func TestReadReadUnprocessedValueData(t *testing.T) {
 				},
 			},
 		},
-		/*
-			TODO: This test is failed due to dicomio.writeTag does not support even length yet.
-		*/
-		//{
-		//	Name: "1x1, 3 frames, 3 samples/pixel, data bytes with padded 0",
-		//	existingData: dicom.Dataset{
-		//		Elements: []*dicom.Element{
-		//			mustNewElement(t, tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
-		//			mustNewElement(t, tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-		//			mustNewElement(t, tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
-		//			mustNewElement(t, tag.Rows, []int{1}),
-		//			mustNewElement(t, tag.Columns, []int{1}),
-		//			mustNewElement(t, tag.NumberOfFrames, []string{"3"}),
-		//			mustNewElement(t, tag.BitsAllocated, []int{8}),
-		//			mustNewElement(t, tag.SamplesPerPixel, []int{3}),
-		//
-		//			mustNewElement(t, tag.PixelData, dicom.PixelDataInfo{
-		//				IsEncapsulated: false,
-		//				Frames: []*frame.Frame{
-		//					{
-		//						Encapsulated: false,
-		//						NativeData: frame.NativeFrame{
-		//							BitsPerSample: 8, Rows: 1, Cols: 1,
-		//							Data: [][]int{{1, 2, 3}},
-		//						},
-		//					}, {
-		//						Encapsulated: false,
-		//						NativeData: frame.NativeFrame{
-		//							BitsPerSample: 8, Rows: 1, Cols: 1,
-		//							Data: [][]int{{1, 2, 3}},
-		//						},
-		//					}, {
-		//						Encapsulated: false,
-		//						NativeData: frame.NativeFrame{
-		//							BitsPerSample: 8, Rows: 1, Cols: 1,
-		//							Data: [][]int{{1, 2, 3}},
-		//						},
-		//					},
-		//				},
-		//			}),
-		//		},
-		//	},
-		//},
+		{
+			Name: "1x1, 3 frames, 3 samples/pixel, data bytes with padded 0",
+			existingData: dicom.Dataset{
+				Elements: []*dicom.Element{
+					mustNewElement(t, tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+					mustNewElement(t, tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+					mustNewElement(t, tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+					mustNewElement(t, tag.Rows, []int{1}),
+					mustNewElement(t, tag.Columns, []int{1}),
+					mustNewElement(t, tag.NumberOfFrames, []string{"3"}),
+					mustNewElement(t, tag.BitsAllocated, []int{8}),
+					mustNewElement(t, tag.SamplesPerPixel, []int{3}),
+
+					mustNewElement(t, tag.PixelData, dicom.PixelDataInfo{
+						IsEncapsulated: false,
+						Frames: []*frame.Frame{
+							{
+								Encapsulated: false,
+								NativeData: frame.NativeFrame{
+									BitsPerSample: 8, Rows: 1, Cols: 1,
+									Data: [][]int{{1, 2, 3}},
+								},
+							}, {
+								Encapsulated: false,
+								NativeData: frame.NativeFrame{
+									BitsPerSample: 8, Rows: 1, Cols: 1,
+									Data: [][]int{{4, 5, 6}},
+								},
+							}, {
+								Encapsulated: false,
+								NativeData: frame.NativeFrame{
+									BitsPerSample: 8, Rows: 1, Cols: 1,
+									Data: [][]int{{7, 8, 9}},
+								},
+							},
+						},
+					}),
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -210,14 +208,16 @@ func TestReadReadUnprocessedValueData(t *testing.T) {
 			originPixelElement, err := tc.existingData.FindElementByTag(tag.PixelData)
 			require.NoError(t, err)
 			originPixelDataInfo := dicom.MustGetPixelDataInfo(originPixelElement.Value)
+			fmt.Println(pixelDataInfo.UnprocessedValueData)
 
 			for i := 0; i < metadata.Frames; i++ {
 				originData := originPixelDataInfo.Frames[i].NativeData.Data
 				inplaceData, err := ReadUnprocessedValueData(metadata, pixelDataInfo.UnprocessedValueData, i)
 				require.NoError(t, err)
-				require.Equal(t, originData, inplaceData, "missing match value", i)
+				fmt.Println(originData)
+				fmt.Println(inplaceData)
+				assert.Equal(t, originData, inplaceData, "missing match value", i)
 			}
-
 		})
 	}
 }

@@ -15,15 +15,15 @@ func WriteUnprocessedValueData(info *PixelDataMetadata, unprocessedValueData []b
 	buf.Grow(bytesAllocated)
 	switch bytesAllocated {
 	case 1:
-		if err := binary.Write(buf, binary.LittleEndian, uint8(newValue)); err != nil {
+		if err := binary.Write(buf, info.Bo, uint8(newValue)); err != nil {
 			return err
 		}
 	case 2:
-		if err := binary.Write(buf, binary.LittleEndian, uint16(newValue)); err != nil {
+		if err := binary.Write(buf, info.Bo, uint16(newValue)); err != nil {
 			return err
 		}
 	case 4:
-		if err := binary.Write(buf, binary.LittleEndian, uint32(newValue)); err != nil {
+		if err := binary.Write(buf, info.Bo, uint32(newValue)); err != nil {
 			return err
 		}
 	}

@@ -107,6 +107,7 @@ func GetPixelDataMetadata(ds *dicom.Dataset) (*PixelDataMetadata, error) {
 // IsSafeForUnprocessedValueDataHandling check if we can support in-place read-write
 // from Pixeldata.UnprocessedValueData
 func IsSafeForUnprocessedValueDataHandling(info *PixelDataMetadata, unprocessedValueData []byte) error {
+	// TODO: support for BitsAllocated == 1
 	switch info.BitsAllocated {
 	case 8, 16, 32:
 	default: // bitsAllocated = 1 and other cases
@@ -115,6 +116,10 @@ func IsSafeForUnprocessedValueDataHandling(info *PixelDataMetadata, unprocessedV
 	pixelsPerFrame := info.Rows * info.Cols
 	bytesAllocated := info.BitsAllocated / 8
 	expectedBytes := bytesAllocated * info.SamplesPerPixel * info.Frames * pixelsPerFrame
+	// odd number of bytes.
+	if expectedBytes%2 == 1 {
+		expectedBytes += 1
+	}
 	if len(unprocessedValueData) != expectedBytes {
 		return errors.New("mismatch data size")
 	}

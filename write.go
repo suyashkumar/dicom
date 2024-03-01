@@ -64,7 +64,7 @@ func (w *Writer) writeDataset(ds Dataset) error {
 		return err
 	}
 
-	endian, implicit, err := ds.transferSyntax()
+	endian, implicit, err := ds.TransferSyntax()
 	if (err != nil && err != ErrorElementNotFound) || (err == ErrorElementNotFound && !w.optSet.defaultMissingTransferSyntax) {
 		return err
 	}
@@ -119,7 +119,7 @@ func SkipValueTypeVerification() WriteOption {
 }
 
 // DefaultMissingTransferSyntax returns a WriteOption indicating that a missing
-// transferSyntax should not raise an error, and instead the default
+// TransferSyntax should not raise an error, and instead the default
 // LittleEndian Implicit transfer syntax should be used and written out as a
 // Metadata element in the Dataset.
 func DefaultMissingTransferSyntax() WriteOption {

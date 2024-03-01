@@ -348,7 +348,6 @@ func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, par
 	}
 
 	f := frame.Frame{
-		NativeData:
 		EncapsulatedData: frame.EncapsulatedFrame{
 			Data: data,
 		},

@@ -1,6 +1,7 @@
 package inplace
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"strconv"
@@ -46,6 +47,7 @@ type PixelDataMetadata struct {
 	Frames          int
 	SamplesPerPixel int
 	BitsAllocated   int
+	Bo              binary.ByteOrder
 }
 
 // GetPixelDataMetadata returns the pixel data metadata.
@@ -95,12 +97,16 @@ func GetPixelDataMetadata(ds *dicom.Dataset) (*PixelDataMetadata, error) {
 	if re.BitsAllocated, err = GetIntFromValue(bitsAllocated.Value); err != nil {
 		return nil, fmt.Errorf("convert BitsAllocated element to int: %w", err)
 	}
+	re.Bo, _, err = ds.TransferSyntax()
+	if err != nil {
+		return nil, fmt.Errorf("get byteOrder: %w", err)
+	}
 	return re, nil
 }
 
-// SanityCheckUnprocessedValueDataHandling check if we can support in-place read-write
+// IsSafeForUnprocessedValueDataHandling check if we can support in-place read-write
 // from Pixeldata.UnprocessedValueData
-func SanityCheckUnprocessedValueDataHandling(info PixelDataMetadata, unprocessedValueData []byte) error {
+func IsSafeForUnprocessedValueDataHandling(info *PixelDataMetadata, unprocessedValueData []byte) error {
 	switch info.BitsAllocated {
 	case 8, 16, 32:
 	default: // bitsAllocated = 1 and other cases
@@ -114,4 +120,3 @@ func SanityCheckUnprocessedValueDataHandling(info PixelDataMetadata, unprocessed
 	}
 	return nil
 }
-

@@ -7,7 +7,7 @@ import (
 
 // WriteUnprocessedValueData write the value of Dicom image directly to
 // byte array of PixelData.UnprocessedValueData
-func WriteUnprocessedValueData(info PixelDataMetadata, unprocessedValueData []byte,
+func WriteUnprocessedValueData(info *PixelDataMetadata, unprocessedValueData []byte,
 	rowIndex, colIndex int, frameIndex int, sampleIndex int, newValue int) error {
 	pixelsPerFrame := info.Rows * info.Cols
 	bytesAllocated := info.BitsAllocated / 8

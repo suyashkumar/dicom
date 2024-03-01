@@ -119,7 +119,7 @@ func SkipValueTypeVerification() WriteOption {
 }
 
 // DefaultMissingTransferSyntax returns a WriteOption indicating that a missing
-// TransferSyntax should not raise an error, and instead the default
+// transferSyntax should not raise an error, and instead the default
 // LittleEndian Implicit transfer syntax should be used and written out as a
 // Metadata element in the Dataset.
 func DefaultMissingTransferSyntax() WriteOption {

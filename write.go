@@ -580,21 +580,22 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 
 		buf := &bytes.Buffer{}
 		buf.Grow(length)
+		bo, _ := w.GetTransferSyntax()
 		for frame := 0; frame < numFrames; frame++ {
 			for pixel := 0; pixel < numPixels; pixel++ {
 				for value := 0; value < numValues; value++ {
 					pixelValue := image.Frames[frame].NativeData.Data[pixel][value]
 					switch image.Frames[frame].NativeData.BitsPerSample {
 					case 8:
-						if err := binary.Write(buf, binary.LittleEndian, uint8(pixelValue)); err != nil {
+						if err := binary.Write(buf, bo, uint8(pixelValue)); err != nil {
 							return err
 						}
 					case 16:
-						if err := binary.Write(buf, binary.LittleEndian, uint16(pixelValue)); err != nil {
+						if err := binary.Write(buf, bo, uint16(pixelValue)); err != nil {
 							return err
 						}
 					case 32:
-						if err := binary.Write(buf, binary.LittleEndian, uint32(pixelValue)); err != nil {
+						if err := binary.Write(buf, bo, uint32(pixelValue)); err != nil {
 							return err
 						}
 					default:
@@ -603,7 +604,12 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 				}
 			}
 		}
-		if err := w.WriteBytes(buf.Bytes()); err != nil {
+		// if the byte length is even, append 1 padding byte
+		rawData := buf.Bytes()
+		if len(rawData)%2 != 0 {
+			rawData = append(rawData, 0)
+		}
+		if err := w.WriteBytes(rawData); err != nil {
 			return err
 		}
 	}

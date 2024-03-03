@@ -605,11 +605,12 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 			}
 		}
 		// if the byte length is even, append 1 padding byte
-		rawData := buf.Bytes()
-		if len(rawData)%2 != 0 {
-			rawData = append(rawData, 0)
+		if buf.Len()%2 != 0 {
+			if err := buf.WriteByte(0); err != nil {
+				return err
+			}
 		}
-		if err := w.WriteBytes(rawData); err != nil {
+		if err := w.WriteBytes(buf.Bytes()); err != nil {
 			return err
 		}
 	}

@@ -480,7 +480,7 @@ func TestWrite(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "even_PixelData",
+			name: "native_PixelData_odd_bytes",
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
@@ -568,7 +568,7 @@ func TestWrite(t *testing.T) {
 				t.Fatalf("Write(%v): unexpected error. got: %v, want: %v", tc.dataset, err, tc.expectedError)
 			}
 			file.Close()
-
+			// If we expect an error, we do not need to continue to check the value of the written data, so we continue to the next test case.
 			if tc.expectedError != nil {
 				return
 			}

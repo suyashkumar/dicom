@@ -443,6 +443,71 @@ func TestWrite(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "native_PixelData_2samples_2frames_BigEndian",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ExplicitVRBigEndian}),
+				mustNewElement(tag.Rows, []int{2}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.BitsAllocated, []int{32}),
+				mustNewElement(tag.NumberOfFrames, []string{"2"}),
+				mustNewElement(tag.SamplesPerPixel, []int{2}),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: false,
+					Frames: []*frame.Frame{
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 32,
+								Rows:          2,
+								Cols:          2,
+								Data:          [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+							},
+						},
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 32,
+								Rows:          2,
+								Cols:          2,
+								Data:          [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+							},
+						},
+					},
+				}),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "native_PixelData_odd_bytes",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.Rows, []int{1}),
+				mustNewElement(tag.Columns, []int{3}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+				mustNewElement(tag.PixelData, PixelDataInfo{
+					IsEncapsulated: false,
+					Frames: []*frame.Frame{
+						{
+							Encapsulated: false,
+							NativeData: frame.NativeFrame{
+								BitsPerSample: 8,
+								Rows:          1,
+								Cols:          3,
+								Data:          [][]int{{1}, {2}, {3}},
+							},
+						},
+					},
+				}),
+			}},
+			expectedError: nil,
+		},
+		{
 			name: "PixelData with IntentionallyUnprocessed=true",
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
@@ -500,43 +565,44 @@ func TestWrite(t *testing.T) {
 				t.Fatalf("Unexpected error when creating tempfile: %v", err)
 			}
 			if err = Write(file, tc.dataset, tc.opts...); err != tc.expectedError {
-				t.Errorf("Write(%v): unexpected error. got: %v, want: %v", tc.dataset, err, tc.expectedError)
+				t.Fatalf("Write(%v): unexpected error. got: %v, want: %v", tc.dataset, err, tc.expectedError)
 			}
 			file.Close()
-
+			// If we expect an error, we do not need to continue to check the value of the written data, so we continue to the next test case.
+			if tc.expectedError != nil {
+				return
+			}
 			// Read the data back in and check for equality to the tc.dataset:
-			if tc.expectedError == nil {
-				f, err := os.Open(file.Name())
-				if err != nil {
-					t.Fatalf("Unexpected error opening file %s: %v", file.Name(), err)
-				}
-				info, err := f.Stat()
-				if err != nil {
-					t.Fatalf("Unexpected error state file: %s: %v", file.Name(), err)
-				}
+			f, err := os.Open(file.Name())
+			if err != nil {
+				t.Fatalf("Unexpected error opening file %s: %v", file.Name(), err)
+			}
+			info, err := f.Stat()
+			if err != nil {
+				t.Fatalf("Unexpected error state file: %s: %v", file.Name(), err)
+			}
 
-				readDS, err := Parse(f, info.Size(), nil, tc.parseOpts...)
-				if err != nil {
-					t.Errorf("Parse of written file, unexpected error: %v", err)
-				}
+			readDS, err := Parse(f, info.Size(), nil, tc.parseOpts...)
+			if err != nil {
+				t.Errorf("Parse of written file, unexpected error: %v", err)
+			}
 
-				wantElems := append(tc.dataset.Elements, tc.extraElems...)
+			wantElems := append(tc.dataset.Elements, tc.extraElems...)
 
-				cmpOpts := []cmp.Option{
-					cmp.AllowUnexported(allValues...),
-					cmpopts.IgnoreFields(Element{}, "ValueLength"),
-					cmpopts.IgnoreSliceElements(func(e *Element) bool { return e.Tag == tag.FileMetaInformationGroupLength }),
-					cmpopts.SortSlices(func(x, y *Element) bool { return x.Tag.Compare(y.Tag) == 1 }),
-				}
-				cmpOpts = append(cmpOpts, tc.cmpOpts...)
+			cmpOpts := []cmp.Option{
+				cmp.AllowUnexported(allValues...),
+				cmpopts.IgnoreFields(Element{}, "ValueLength"),
+				cmpopts.IgnoreSliceElements(func(e *Element) bool { return e.Tag == tag.FileMetaInformationGroupLength }),
+				cmpopts.SortSlices(func(x, y *Element) bool { return x.Tag.Compare(y.Tag) == 1 }),
+			}
+			cmpOpts = append(cmpOpts, tc.cmpOpts...)
 
-				if diff := cmp.Diff(
-					wantElems,
-					readDS.Elements,
-					cmpOpts...,
-				); diff != "" {
-					t.Errorf("Reading back written dataset led to unexpected diff from source data: %s", diff)
-				}
+			if diff := cmp.Diff(
+				wantElems,
+				readDS.Elements,
+				cmpOpts...,
+			); diff != "" {
+				t.Errorf("Reading back written dataset led to unexpected diff from source data: %s", diff)
 			}
 		})
 	}

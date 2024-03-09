@@ -604,7 +604,8 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 				}
 			}
 		}
-		// if the byte length is even, append 1 padding byte
+		// If the byte length is not even, append 1 padding byte to make it even.
+		// https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_8.1.1
 		if buf.Len()%2 != 0 {
 			if err := buf.WriteByte(0); err != nil {
 				return err

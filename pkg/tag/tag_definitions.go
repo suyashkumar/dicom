@@ -1775,6 +1775,7 @@ var RepositoryUniqueID = Tag{0x0040, 0xE030}
 var HomeCommunityID = Tag{0x0040, 0xE031}
 var DocumentTitle = Tag{0x0042, 0x0010}
 var EncapsulatedDocument = Tag{0x0042, 0x0011}
+var EncapsulatedDocumentLength = Tag{0x0042, 0x0015}
 var MIMETypeOfEncapsulatedDocument = Tag{0x0042, 0x0012}
 var SourceInstanceSequence = Tag{0x0042, 0x0013}
 var ListOfMIMETypes = Tag{0x0042, 0x0014}
@@ -5140,6 +5141,7 @@ func maybeInitTagDict() {
 	tagDict[Tag{0x0040, 0xE031}] = Info{Tag{0x0040, 0xE031}, "UI", "HomeCommunityID", "1"}
 	tagDict[Tag{0x0042, 0x0010}] = Info{Tag{0x0042, 0x0010}, "ST", "DocumentTitle", "1"}
 	tagDict[Tag{0x0042, 0x0011}] = Info{Tag{0x0042, 0x0011}, "OB", "EncapsulatedDocument", "1"}
+	tagDict[Tag{0x0042, 0x0015}] = Info{Tag{0x0042, 0x0015}, "UL", "EncapsulatedDocumentLength", "1"}
 	tagDict[Tag{0x0042, 0x0012}] = Info{Tag{0x0042, 0x0012}, "LO", "MIMETypeOfEncapsulatedDocument", "1"}
 	tagDict[Tag{0x0042, 0x0013}] = Info{Tag{0x0042, 0x0013}, "SQ", "SourceInstanceSequence", "1"}
 	tagDict[Tag{0x0042, 0x0014}] = Info{Tag{0x0042, 0x0014}, "LO", "ListOfMIMETypes", "1-n"}

@@ -1,6 +1,11 @@
 BINARY = dicomutil
 VERSION = `git describe --tags --always`
 
+.PHONY: codegen
+codegen:
+	- go generate -x ./...
+	- gofmt -s -w ./pkg/tag
+
 .PHONY: build
 build:
 	go mod download

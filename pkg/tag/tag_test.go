@@ -2,17 +2,18 @@ package tag
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestFind(t *testing.T) {
+	assert := assert.New(t)
+
 	elem, err := Find(Tag{32736, 16})
-	if err != nil {
-		t.Error(err)
-	}
-	if elem.Name != "PixelData" || elem.VR != "OW" {
-		t.Errorf("Wrong element name: %s", elem.Name)
-	}
+	assert.NoError(err, "find tag 32736,16")
+	assert.Equal("PixelData", elem.Name, "PixelData name")
+	assert.Equal("OW", elem.VR, "PixelData VR")
+
 	elem, err = Find(Tag{0, 0x1002})
 	if err != nil {
 		t.Error(err)

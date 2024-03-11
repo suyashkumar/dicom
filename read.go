@@ -256,9 +256,9 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 
 			if fc != nil {
 				fc <- &f
+			} else {
+				image.Frames = append(image.Frames, &f)
 			}
-
-			image.Frames = append(image.Frames, &f)
 		}
 		image.IntentionallySkipped = r.opts.skipPixelData
 		return &pixelDataValue{PixelDataInfo: image}, nil
@@ -482,9 +482,10 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 				currentFrame.NativeData.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
 			}
 		}
-		image.Frames[frameIdx] = &currentFrame
 		if fc != nil {
 			fc <- &currentFrame // write the current frame to the frame channel
+		} else {
+			image.Frames[frameIdx] = &currentFrame
 		}
 	}
 	if skipFinalPaddingByte {

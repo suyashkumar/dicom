@@ -31,11 +31,11 @@ def list_tags() -> List[Tag]:
         if vr == "XS":
             # Its generally safe to treat XS as unsigned.  See
             # https://github.com/dgobbi/vtk-dicom/issues/38 for
-	    # some discussions.
+            # some discussions.
             vr = "US"
         elif vr == "OX":
-	    # TODO(saito) I'm less sure about the OX rule. Where is
-	    # this crap defined in the standard??
+            # TODO(saito) I'm less sure about the OX rule. Where is
+            # this crap defined in the standard??
             vr = "OW"
 
         tag = Tag(group=m.group(1),

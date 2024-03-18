@@ -30,12 +30,23 @@ func (n *NativeFrame) GetEncapsulatedFrame() (*EncapsulatedFrame, error) {
 }
 
 // GetImage returns an image.Image representation the frame, using default
-// processing. This default processing is basic at the moment, and does not
-// autoscale pixel values or use window width or level info.
+// processing.
 func (n *NativeFrame) GetImage() (image.Image, error) {
-	i := image.NewGray16(image.Rect(0, 0, n.Cols, n.Rows))
+	// Determine the min and max pixel values
+	minVal, maxVal := findMinMax(n)
+
+	// Calculate the window width and level
+	windowWidth := maxVal - minVal
+	windowLevel := (maxVal + minVal) / 2
+
+	i := image.NewGray(image.Rect(0, 0, n.Cols, n.Rows))
 	for j := 0; j < len(n.Data); j++ {
-		i.SetGray16(j%n.Cols, j/n.Cols, color.Gray16{Y: uint16(n.Data[j][0])}) // for now, assume we're not overflowing uint16, assume gray image
+		// Apply window width and level adjustment to pixel value
+		adjustedPixel := applyWindowLevel(n.Data[j][0], windowWidth, windowLevel)
+
+		// Map the adjusted pixel value to grayscale
+		grayValue := uint8(adjustedPixel)
+		i.SetGray(j%n.Cols, j/n.Cols, color.Gray{Y: grayValue})
 	}
 	return i, nil
 }
@@ -48,7 +59,7 @@ func (n *NativeFrame) Equals(target *NativeFrame) bool {
 	}
 	if n.Rows != target.Rows ||
 		n.Cols != target.Cols ||
-		n.BitsPerSample != n.BitsPerSample {
+		n.BitsPerSample != target.BitsPerSample {
 		return false
 	}
 	for pixIdx, pix := range n.Data {
@@ -59,4 +70,40 @@ func (n *NativeFrame) Equals(target *NativeFrame) bool {
 		}
 	}
 	return true
+}
+
+// Finds the minimum and maximum pixel values
+func findMinMax(frame *NativeFrame) (min, max int) {
+	min = frame.Data[0][0]
+	max = frame.Data[0][0]
+	for _, dataRow := range frame.Data {
+		val := dataRow[0]
+		if val < min {
+			min = val
+		}
+		if val > max {
+			max = val
+		}
+	}
+	return min, max
+}
+
+// applying the pixel values to the image
+func applyWindowLevel(pixelValue, windowWidth, windowLevel int) int {
+	// Calculate the lower and upper bounds of the window
+	lowerBound := windowLevel - windowWidth/2
+	upperBound := windowLevel + windowWidth/2
+
+	// Clip pixel value to the window bounds
+	if pixelValue < lowerBound {
+		pixelValue = lowerBound
+	}
+	if pixelValue > upperBound {
+		pixelValue = upperBound
+	}
+
+	// Scale the pixel value to 8-bit range (0-255)
+	scaledValue := 255 * (pixelValue - lowerBound) / windowWidth
+
+	return scaledValue
 }

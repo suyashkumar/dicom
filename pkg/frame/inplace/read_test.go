@@ -2,7 +2,6 @@ package inplace
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"testing"
 
@@ -208,14 +207,11 @@ func TestReadReadUnprocessedValueData(t *testing.T) {
 			originPixelElement, err := tc.existingData.FindElementByTag(tag.PixelData)
 			require.NoError(t, err)
 			originPixelDataInfo := dicom.MustGetPixelDataInfo(originPixelElement.Value)
-			fmt.Println(pixelDataInfo.UnprocessedValueData)
 
 			for i := 0; i < metadata.Frames; i++ {
 				originData := originPixelDataInfo.Frames[i].NativeData.Data
 				inplaceData, err := ReadUnprocessedValueData(metadata, pixelDataInfo.UnprocessedValueData, i)
 				require.NoError(t, err)
-				fmt.Println(originData)
-				fmt.Println(inplaceData)
 				assert.Equal(t, originData, inplaceData, "missing match value", i)
 			}
 		})

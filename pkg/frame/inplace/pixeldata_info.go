@@ -42,12 +42,13 @@ func GetStringFromValue(v dicom.Value) (string, error) {
 
 // PixelDataMetadata is the metadata for tag.PixelData
 type PixelDataMetadata struct {
-	Rows            int
-	Cols            int
-	Frames          int
-	SamplesPerPixel int
-	BitsAllocated   int
-	Bo              binary.ByteOrder
+	Rows                int
+	Cols                int
+	Frames              int
+	SamplesPerPixel     int
+	BitsAllocated       int
+	PlanarConfiguration int
+	Bo                  binary.ByteOrder
 }
 
 // GetPixelDataMetadata returns the pixel data metadata.
@@ -101,12 +102,27 @@ func GetPixelDataMetadata(ds *dicom.Dataset) (*PixelDataMetadata, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get byteOrder: %w", err)
 	}
+
+	planarConfElement, err := ds.FindElementByTag(tag.PlanarConfiguration)
+	if err != nil {
+		re.PlanarConfiguration = 0
+	} else {
+		if re.PlanarConfiguration, err = GetIntFromValue(planarConfElement.Value); err != nil {
+			return nil, fmt.Errorf("convert Rows element to int: %w", err)
+		}
+	}
+
 	return re, nil
 }
 
 // IsSafeForUnprocessedValueDataHandling check if we can support in-place read-write
 // from Pixeldata.UnprocessedValueData
+// This avoids the case that we can not handle it, yet.
 func IsSafeForUnprocessedValueDataHandling(info *PixelDataMetadata, unprocessedValueData []byte) error {
+	// https://dicom.innolitics.com/ciods/enhanced-mr-image/enhanced-mr-image/00280006
+	if info.PlanarConfiguration == 1 {
+		return fmt.Errorf("unsupported PlanarConfiguration: %d", info.PlanarConfiguration)
+	}
 	// TODO: support for BitsAllocated == 1
 	switch info.BitsAllocated {
 	case 8, 16, 32:

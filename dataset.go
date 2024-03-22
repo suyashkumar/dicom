@@ -36,7 +36,7 @@ func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
 	return nil, ErrorElementNotFound
 }
 
-func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {
+func (d *Dataset) TransferSyntax() (binary.ByteOrder, bool, error) {
 	elem, err := d.FindElementByTag(tag.TransferSyntaxUID)
 	if err != nil {
 		return nil, false, err

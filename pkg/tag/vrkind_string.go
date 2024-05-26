@@ -2,7 +2,27 @@
 
 package tag
 
-import "fmt"
+import "strconv"
+
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[VRStringList-0]
+	_ = x[VRBytes-1]
+	_ = x[VRString-2]
+	_ = x[VRUInt16List-3]
+	_ = x[VRUInt32List-4]
+	_ = x[VRInt16List-5]
+	_ = x[VRInt32List-6]
+	_ = x[VRFloat32List-7]
+	_ = x[VRFloat64List-8]
+	_ = x[VRSequence-9]
+	_ = x[VRItem-10]
+	_ = x[VRTagList-11]
+	_ = x[VRDate-12]
+	_ = x[VRPixelData-13]
+}
 
 const _VRKind_name = "VRStringListVRBytesVRStringVRUInt16ListVRUInt32ListVRInt16ListVRInt32ListVRFloat32ListVRFloat64ListVRSequenceVRItemVRTagListVRDateVRPixelData"
 
@@ -10,7 +30,7 @@ var _VRKind_index = [...]uint8{0, 12, 19, 27, 39, 51, 62, 73, 86, 99, 109, 115, 
 
 func (i VRKind) String() string {
 	if i < 0 || i >= VRKind(len(_VRKind_index)-1) {
-		return fmt.Sprintf("VRKind(%d)", i)
+		return "VRKind(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 	return _VRKind_name[_VRKind_index[i]:_VRKind_index[i+1]]
 }

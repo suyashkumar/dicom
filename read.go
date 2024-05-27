@@ -28,9 +28,10 @@ var (
 	// ErrorUnsupportedBitsAllocated indicates that the BitsAllocated in the
 	// NativeFrame PixelData is unsupported. In this situation, the rest of the
 	// dataset returned is still valid.
-	ErrorUnsupportedBitsAllocated = errors.New("unsupported BitsAllocated")
-	errorUnableToParseFloat       = errors.New("unable to parse float type")
-	ErrorExpectedEvenLength       = errors.New("field length is not even, in violation of DICOM spec")
+	ErrorUnsupportedBitsAllocated         = errors.New("unsupported BitsAllocated")
+	errorUnableToParseFloat               = errors.New("unable to parse float type")
+	ErrorExpectedEvenLength               = errors.New("field length is not even, in violation of DICOM spec")
+	ErrorSignedNativePixelDataUnsupported = errors.New("the Pixel Representation tag indicates signed native pixel data is present, _and_ negative Pixel Data values were found, but this is not yet supported")
 )
 
 // reader is responsible for mid-level dicom parsing capabilities, like
@@ -368,6 +369,17 @@ func makeErrorPixelData(reader io.Reader, vl uint32, fc chan<- *frame.Frame, par
 func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, vl uint32) (pixelData *PixelDataInfo,
 	bytesToRead int, err error) {
 	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
+
+	// TODO(https://github.com/suyashkumar/dicom/issues/294): Add support for
+	// signed Native PixelData.
+	pixelDataIsSigned := false
+	if pxRep, err := parsedData.FindElementByTag(tag.PixelRepresentation); err == nil {
+		pxRepValue := MustGetInts(pxRep.Value)
+		if len(pxRepValue) > 0 && pxRepValue[0] != 0 {
+			pixelDataIsSigned = true
+		}
+	}
+
 	rows, err := parsedData.FindElementByTag(tag.Rows)
 	if err != nil {
 		return nil, 0, err
@@ -469,12 +481,24 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 						return nil, bytesToRead,
 							fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
 					}
+					insertIdx := (pixel * samplesPerPixel) + value
 					if bitsAllocated == 8 {
-						buf[(pixel*samplesPerPixel)+value] = int(pixelBuf[0])
+						buf[insertIdx] = int(pixelBuf[0])
+						if pixelDataIsSigned && isNegativeIn2sComplement(pixelBuf[0]) {
+							return nil, bytesToRead, ErrorSignedNativePixelDataUnsupported
+						}
 					} else if bitsAllocated == 16 {
-						buf[(pixel*samplesPerPixel)+value] = int(bo.Uint16(pixelBuf))
+						val := bo.Uint16(pixelBuf)
+						buf[insertIdx] = int(val)
+						if pixelDataIsSigned && isNegativeIn2sComplement(val) {
+							return nil, bytesToRead, ErrorSignedNativePixelDataUnsupported
+						}
 					} else if bitsAllocated == 32 {
-						buf[(pixel*samplesPerPixel)+value] = int(bo.Uint32(pixelBuf))
+						val := bo.Uint32(pixelBuf)
+						buf[insertIdx] = int(val)
+						if pixelDataIsSigned && isNegativeIn2sComplement(val) {
+							return nil, bytesToRead, ErrorSignedNativePixelDataUnsupported
+						}
 					} else {
 						return nil, bytesToRead, fmt.Errorf("bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 					}
@@ -828,4 +852,20 @@ func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 // moreToRead returns true if there is more to read from the underlying dicom.
 func (r *reader) moreToRead() bool {
 	return !r.rawReader.IsLimitExhausted()
+}
+
+// isNegativeIn2sComplement returns true if the most significant bit is 1 of the
+// input unsigned integer. Panics if the input is not a Go unsigned integer.
+func isNegativeIn2sComplement(input any) bool {
+	switch v := input.(type) {
+	case uint8:
+		return (1 << 7 & v) > 0
+	case uint16:
+		return (1 << 15 & v) > 0
+	case uint32:
+		return (1 << 31 & v) > 0
+	case uint64:
+		return (1 << 63 & v) > 0
+	}
+	panic("isNegativeIn2sComplement expects some form of Go unsigned integer")
 }

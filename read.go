@@ -43,8 +43,9 @@ type reader struct {
 	opts      parseOptSet
 	// datasetCtx is the top-level context Dataset holding only elements that
 	// may be needed to parse future elements (e.g. like tag.Rows). See
-	// datasetContextElementPassList for elements that will be automatically
+	// requiredContextElements for elements that will be automatically
 	// included in this context.
+	// TODO(suyashkumar): should this be initialized to the Metadata elements?
 	datasetCtx *Dataset
 }
 
@@ -177,7 +178,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 
 	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := r.readElementWithContext(nil, nil)
+	maybeMetaLen, err := r.readElementWithContext(r.datasetCtx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +203,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 		}
 		defer r.rawReader.PopLimit()
 		for !r.rawReader.IsLimitExhausted() {
-			elem, err := r.readElementWithContext(nil, nil)
+			elem, err := r.readElementWithContext(r.datasetCtx, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
 				return nil, err
@@ -229,7 +230,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 			if group != 0x0002 {
 				break
 			}
-			elem, err := r.readElementWithContext(nil, nil)
+			elem, err := r.readElementWithContext(r.datasetCtx, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
 				return nil, err
@@ -853,10 +854,11 @@ func (r *reader) moreToRead() bool {
 	return !r.rawReader.IsLimitExhausted()
 }
 
-// datasetContextElementPassList holds the set of DICOM Element Tags that should
+// requiredContextElements holds the set of DICOM Element Tags that should
 // be included in the context Dataset. These are elements that may be needed to
 // read downstream elements in the future.
-var datasetContextElementPassList = tag.Tags{
+// addToContextIfNeeded also always adds all Metadata group 2 elements.
+var requiredContextElements = tag.Tags{
 	&tag.Rows,
 	&tag.Columns,
 	&tag.NumberOfFrames,
@@ -864,8 +866,15 @@ var datasetContextElementPassList = tag.Tags{
 	&tag.SamplesPerPixel,
 }
 
+// addToContextIfNeeded adds the element to the provided dataset context if
+// the tag is in requiredContextElements or if the tag has a group of 2
+// (meaning it is a metadata element). In the future we can probably filter this
+// down further.
 func addToContextIfNeeded(datasetCtx *Dataset, e *Element) {
-	if datasetContextElementPassList.Contains(&e.Tag) {
+	if datasetCtx == nil || e == nil {
+		return
+	}
+	if e.Tag.Group == 0x0002 || requiredContextElements.Contains(&e.Tag) {
 		datasetCtx.Elements = append(datasetCtx.Elements, e)
 	}
 }

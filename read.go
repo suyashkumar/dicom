@@ -177,7 +177,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 
 	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := r.readElementInternal(nil, nil)
+	maybeMetaLen, err := r.readElementWithContext(nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 		}
 		defer r.rawReader.PopLimit()
 		for !r.rawReader.IsLimitExhausted() {
-			elem, err := r.readElementInternal(nil, nil)
+			elem, err := r.readElementWithContext(nil, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
 				return nil, err
@@ -229,7 +229,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 			if group != 0x0002 {
 				break
 			}
-			elem, err := r.readElementInternal(nil, nil)
+			elem, err := r.readElementWithContext(nil, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
 				return nil, err
@@ -521,7 +521,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 	seqElements := &Dataset{}
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElement, err := r.readElementInternal(seqElements, nil)
+			subElement, err := r.readElementWithContext(seqElements, nil)
 			if err != nil {
 				// Stop reading due to error
 				log.Println("error reading subitem, ", err)
@@ -548,7 +548,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 			return nil, err
 		}
 		for !r.rawReader.IsLimitExhausted() {
-			subElement, err := r.readElementInternal(seqElements, nil)
+			subElement, err := r.readElementWithContext(seqElements, nil)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, err
@@ -574,7 +574,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElem, err := r.readElementInternal(&seqElements, nil)
+			subElem, err := r.readElementWithContext(&seqElements, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -592,7 +592,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 		}
 
 		for !r.rawReader.IsLimitExhausted() {
-			subElem, err := r.readElementInternal(&seqElements, nil)
+			subElem, err := r.readElementWithContext(&seqElements, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -752,20 +752,20 @@ func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 // be called to read elements. If the next element is a sequence element,
 // it may result in reading a collection of Elements.
 func (r *reader) ReadElement(fc chan<- *frame.Frame) (*Element, error) {
-	return r.readElementInternal(r.datasetCtx, fc)
+	return r.readElementWithContext(r.datasetCtx, fc)
 }
 
-// readElementInternal reads the next element. If the next element is a sequence element,
+// readElementWithContext reads the next element. If the next element is a sequence element,
 // it may result in reading a collection of Elements. It takes a pointer to the Dataset of
 // context elements, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.
-func (r *reader) readElementInternal(datasetCtx *Dataset, fc chan<- *frame.Frame) (*Element, error) {
+func (r *reader) readElementWithContext(datasetCtx *Dataset, fc chan<- *frame.Frame) (*Element, error) {
 	t, err := r.readTag()
 	if err != nil {
 		return nil, err
 	}
-	debug.Logf("readElementInternal: tag: %s", t.String())
+	debug.Logf("readElementWithContext: tag: %s", t.String())
 
 	readImplicit := r.rawReader.IsImplicit()
 	if *t == tag.Item {
@@ -777,13 +777,13 @@ func (r *reader) readElementInternal(datasetCtx *Dataset, fc chan<- *frame.Frame
 	if err != nil {
 		return nil, err
 	}
-	debug.Logf("readElementInternal: vr: %s", vr)
+	debug.Logf("readElementWithContext: vr: %s", vr)
 
 	vl, err := r.readVL(readImplicit, *t, vr)
 	if err != nil {
 		return nil, err
 	}
-	debug.Logf("readElementInternal: vl: %datasetCtx", vl)
+	debug.Logf("readElementWithContext: vl: %datasetCtx", vl)
 
 	val, err := r.readValue(*t, vr, vl, readImplicit, datasetCtx, fc)
 	if err != nil {

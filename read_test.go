@@ -232,11 +232,11 @@ func TestReadNativeFrames(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          5,
-							Cols:          5,
-							Data:          [][]int{{1}, {2}, {3}, {4}, {5}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 16,
+							InternalRows:          5,
+							InternalCols:          5,
+							Data:                  [][]int{{1}, {2}, {3}, {4}, {5}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}},
 						},
 					},
 				},
@@ -258,29 +258,29 @@ func TestReadNativeFrames(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {2}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 16,
+							InternalRows:          2,
+							InternalCols:          2,
+							Data:                  [][]int{{1}, {2}, {3}, {2}},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {2}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 16,
+							InternalRows:          2,
+							InternalCols:          2,
+							Data:                  [][]int{{1}, {2}, {3}, {2}},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {0}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 16,
+							InternalRows:          2,
+							InternalCols:          2,
+							Data:                  [][]int{{1}, {2}, {3}, {0}},
 						},
 					},
 				},
@@ -302,20 +302,20 @@ func TestReadNativeFrames(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1, 2}, {3, 2}, {1, 2}, {3, 2}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 16,
+							InternalRows:          2,
+							InternalCols:          2,
+							Data:                  [][]int{{1, 2}, {3, 2}, {1, 2}, {3, 2}},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1, 2}, {3, 2}, {1, 2}, {3, 5}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 16,
+							InternalRows:          2,
+							InternalCols:          2,
+							Data:                  [][]int{{1, 2}, {3, 2}, {1, 2}, {3, 5}},
 						},
 					},
 				},
@@ -411,30 +411,30 @@ func TestReadNativeFrames(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          3,
-							Cols:          3,
-							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 8,
+							InternalRows:          3,
+							InternalCols:          3,
+							Data:                  [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
 						},
 					},
 
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          3,
-							Cols:          3,
-							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 8,
+							InternalRows:          3,
+							InternalCols:          3,
+							Data:                  [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          3,
-							Cols:          3,
-							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 8,
+							InternalRows:          3,
+							InternalCols:          3,
+							Data:                  [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
 						},
 					},
 				},
@@ -456,29 +456,29 @@ func TestReadNativeFrames(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          1,
-							Cols:          1,
-							Data:          [][]int{{1, 2, 3}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 8,
+							InternalRows:          1,
+							InternalCols:          1,
+							Data:                  [][]int{{1, 2, 3}},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          1,
-							Cols:          1,
-							Data:          [][]int{{1, 2, 3}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 8,
+							InternalRows:          1,
+							InternalCols:          1,
+							Data:                  [][]int{{1, 2, 3}},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          1,
-							Cols:          1,
-							Data:          [][]int{{1, 2, 3}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 8,
+							InternalRows:          1,
+							InternalCols:          1,
+							Data:                  [][]int{{1, 2, 3}},
 						},
 					},
 				},
@@ -798,11 +798,11 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 1,
-							Rows:          4,
-							Cols:          4,
-							Data:          [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 1,
+							InternalRows:          4,
+							InternalCols:          4,
+							Data:                  [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
 						},
 					},
 				},
@@ -825,11 +825,11 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 1,
-							Rows:          4,
-							Cols:          4,
-							Data:          [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample: 1,
+							InternalRows:          4,
+							InternalCols:          4,
+							Data:                  [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
 						},
 					},
 				},

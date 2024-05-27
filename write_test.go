@@ -289,11 +289,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 8,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1}, {2}, {3}, {4}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 8,
+								InternalRows:          2,
+								InternalCols:          2,
+								Data:                  [][]int{{1}, {2}, {3}, {4}},
 							},
 						},
 					},
@@ -319,11 +319,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 16,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1}, {2}, {3}, {4}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 16,
+								InternalRows:          2,
+								InternalCols:          2,
+								Data:                  [][]int{{1}, {2}, {3}, {4}},
 							},
 						},
 					},
@@ -347,11 +347,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1}, {2}, {3}, {4}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 32,
+								InternalRows:          2,
+								InternalCols:          2,
+								Data:                  [][]int{{1}, {2}, {3}, {4}},
 							},
 						},
 					},
@@ -375,20 +375,20 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 32,
+								InternalRows:          2,
+								InternalCols:          2,
+								Data:                  [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
 							},
 						},
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 32,
+								InternalRows:          2,
+								InternalCols:          2,
+								Data:                  [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
 							},
 						},
 					},
@@ -458,20 +458,20 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 32,
+								InternalRows:          2,
+								InternalCols:          2,
+								Data:                  [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
 							},
 						},
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 32,
+								InternalRows:          2,
+								InternalCols:          2,
+								Data:                  [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
 							},
 						},
 					},
@@ -495,11 +495,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 8,
-								Rows:          1,
-								Cols:          3,
-								Data:          [][]int{{1}, {2}, {3}},
+							NativeData: &frame.NativeFrame[int]{
+								InternalBitsPerSample: 8,
+								InternalRows:          1,
+								InternalCols:          3,
+								Data:                  [][]int{{1}, {2}, {3}},
 							},
 						},
 					},

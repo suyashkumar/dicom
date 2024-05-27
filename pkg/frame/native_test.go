@@ -16,33 +16,33 @@ type point struct {
 func TestNativeFrame_GetImage(t *testing.T) {
 	cases := []struct {
 		Name        string
-		NativeFrame frame.NativeFrame
+		NativeFrame frame.NativeFrame[int]
 		SetPoints   []point
 	}{
 		{
 			Name: "Square",
-			NativeFrame: frame.NativeFrame{
-				Rows: 2,
-				Cols: 2,
-				Data: [][]int{{0}, {0}, {1}, {0}},
+			NativeFrame: frame.NativeFrame[int]{
+				InternalRows: 2,
+				InternalCols: 2,
+				Data:         [][]int{{0}, {0}, {1}, {0}},
 			},
 			SetPoints: []point{{0, 1}},
 		},
 		{
 			Name: "Rectangle",
-			NativeFrame: frame.NativeFrame{
-				Rows: 3,
-				Cols: 2,
-				Data: [][]int{{0}, {0}, {0}, {0}, {1}, {0}},
+			NativeFrame: frame.NativeFrame[int]{
+				InternalRows: 3,
+				InternalCols: 2,
+				Data:         [][]int{{0}, {0}, {0}, {0}, {1}, {0}},
 			},
 			SetPoints: []point{{0, 2}},
 		},
 		{
 			Name: "Rectangle - multiple points",
-			NativeFrame: frame.NativeFrame{
-				Rows: 5,
-				Cols: 3,
-				Data: [][]int{{0}, {0}, {0}, {0}, {1}, {1}, {0}, {0}, {0}, {0}, {1}, {0}, {0}, {0}, {0}},
+			NativeFrame: frame.NativeFrame[int]{
+				InternalRows: 5,
+				InternalCols: 3,
+				Data:         [][]int{{0}, {0}, {0}, {0}, {1}, {1}, {0}, {0}, {0}, {0}, {1}, {0}, {0}, {0}, {0}},
 			},
 			SetPoints: []point{{1, 1}, {2, 1}, {1, 3}},
 		},

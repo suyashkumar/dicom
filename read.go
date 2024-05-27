@@ -467,7 +467,12 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 				currentFrame, _, err = readNativeFrame[uint16](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
 			case 32:
 				currentFrame, _, err = readNativeFrame[uint32](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
+			default:
+				return nil, bytesToRead, fmt.Errorf("unsupported bitsAllocated, got: %v, %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 			}
+		}
+		if err != nil {
+			return nil, bytesToRead, err
 		}
 		image.Frames[frameIdx] = &currentFrame
 		if fc != nil {

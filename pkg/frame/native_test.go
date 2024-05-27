@@ -61,8 +61,8 @@ func TestNativeFrame_GetImage(t *testing.T) {
 
 			// Check that all pixels are zero except at the
 			// (ExpectedSetPointX, ExpectedSetPointY) point.
-			for x := 0; x < tc.NativeFrame.Cols; x++ {
-				for y := 0; y < tc.NativeFrame.Rows; y++ {
+			for x := 0; x < tc.NativeFrame.Cols(); x++ {
+				for y := 0; y < tc.NativeFrame.Rows(); y++ {
 					currValue := imgGray.Gray16At(x, y).Y
 					if within(point{x, y}, tc.SetPoints) {
 						if currValue != 1 {

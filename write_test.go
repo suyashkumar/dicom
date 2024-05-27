@@ -289,11 +289,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint8]{
 								InternalBitsPerSample: 8,
 								InternalRows:          2,
 								InternalCols:          2,
-								Data:                  [][]int{{1}, {2}, {3}, {4}},
+								Data:                  [][]uint8{{1}, {2}, {3}, {4}},
 							},
 						},
 					},
@@ -319,11 +319,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint16]{
 								InternalBitsPerSample: 16,
 								InternalRows:          2,
 								InternalCols:          2,
-								Data:                  [][]int{{1}, {2}, {3}, {4}},
+								Data:                  [][]uint16{{1}, {2}, {3}, {4}},
 							},
 						},
 					},
@@ -347,11 +347,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint32]{
 								InternalBitsPerSample: 32,
 								InternalRows:          2,
 								InternalCols:          2,
-								Data:                  [][]int{{1}, {2}, {3}, {4}},
+								Data:                  [][]uint32{{1}, {2}, {3}, {4}},
 							},
 						},
 					},
@@ -375,20 +375,20 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint32]{
 								InternalBitsPerSample: 32,
 								InternalRows:          2,
 								InternalCols:          2,
-								Data:                  [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+								Data:                  [][]uint32{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
 							},
 						},
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint32]{
 								InternalBitsPerSample: 32,
 								InternalRows:          2,
 								InternalCols:          2,
-								Data:                  [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+								Data:                  [][]uint32{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
 							},
 						},
 					},
@@ -458,20 +458,20 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint32]{
 								InternalBitsPerSample: 32,
 								InternalRows:          2,
 								InternalCols:          2,
-								Data:                  [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+								Data:                  [][]uint32{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
 							},
 						},
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint32]{
 								InternalBitsPerSample: 32,
 								InternalRows:          2,
 								InternalCols:          2,
-								Data:                  [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+								Data:                  [][]uint32{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
 							},
 						},
 					},
@@ -495,11 +495,11 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: &frame.NativeFrame[int]{
+							NativeData: &frame.NativeFrame[uint8]{
 								InternalBitsPerSample: 8,
 								InternalRows:          1,
 								InternalCols:          3,
-								Data:                  [][]int{{1}, {2}, {3}},
+								Data:                  [][]uint8{{1}, {2}, {3}},
 							},
 						},
 					},

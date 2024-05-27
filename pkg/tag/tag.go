@@ -19,15 +19,16 @@ const (
 	UnknownVR = "UN"
 	// VLUndefinedLength is the VL used to indicated undefined length.
 	VLUndefinedLength uint32 = 0xffffffff
+	// Tags with multiple VRs allowed are separated by "VR1 or VR2 or ... VRn"
+	MultipleVRsAllowedSeparator = " or "
 )
 
 // Tag is a <group, element> tuple that identifies an element type in a DICOM
-// file. List of standard tags are defined in tag.go. See also:
-//
-// ftp://medical.nema.org/medical/dicom/2011/11_06pu.pdf
+// file. List of standard tags are defined in tag_definitions.go. See also:
+// https://dicom.nema.org/medical/dicom/current/output/html/part06.html#chapter_6
 type Tag struct {
 	// Group and element are results of parsing the hex-pair tag, such as
-	// (1000,10008)
+	// (1000,1008)
 	Group   uint16
 	Element uint16
 }
@@ -35,24 +36,23 @@ type Tag struct {
 // Compare returns -1, 0, or 1 if t<other, t==other, t>other, respectively.
 // Tags are ordered first by Group, then by Element.
 func (t Tag) Compare(other Tag) int {
-	if t.Group < other.Group {
+	if t.Equals(other) {
+		return 0
+	}
+	if t.Uint32() < other.Uint32() {
 		return -1
 	}
-	if t.Group > other.Group {
-		return 1
-	}
-	if t.Element < other.Element {
-		return -1
-	}
-	if t.Element > other.Element {
-		return 1
-	}
-	return 0
+	return 1
 }
 
 // Equals returns true if this tag equals the provided tag.
 func (t Tag) Equals(other Tag) bool {
-	return t.Compare(other) == 0
+	return t.Uint32() == other.Uint32()
+}
+
+// Uint32 returns the tag as a uint32 representing the hexadecimal number 0xggggeeee.
+func (t Tag) Uint32() uint32 {
+	return (uint32(t.Group) << 16) | uint32(t.Element)
 }
 
 // IsPrivate indicates if the input group is part of a private tag.
@@ -84,15 +84,20 @@ func (t Tags) Contains(item *Tag) bool {
 type Info struct {
 	Tag Tag
 	// Data encoding "UL", "CS", etc.
+	// For tags with multiple allowed VRs, they are separated as "VR1 or VR2 or ... or VRn".
 	VR string
-	// Human-readable name of the tag, e.g., "CommandDataSetType"
+	// Human-readable name of the tag appropriately formatted for printing, e.g., "Pixel Data"
 	Name string
+	// Human-readable identifier of the tag, e.g., "PixelData"
+	Keyword string
 	// Cardinality (# of values expected in the element)
 	VM string
+	// Whether the tag is retired.
+	Retired bool
 }
 
 // MetadataGroup is the value of Tag.Group for metadata tags.
-const MetadataGroup = 2
+const MetadataGroup = 0x0002
 
 // VRKind defines the golang encoding of a VR.
 type VRKind int
@@ -172,15 +177,15 @@ func Find(tag Tag) (Info, error) {
 	if !ok {
 		// (0000-u-ffff,0000)	UL	GenericGroupLength	1	GENERIC
 		if tag.Group%2 == 0 && tag.Element == 0x0000 {
-			entry = Info{tag, "UL", "GenericGroupLength", "1"}
+			entry = Info{tag, "UL", "Generic Group Length", "GenericGroupLength", "1", false}
 		} else {
-			return Info{}, fmt.Errorf("Could not find tag (0x%x, 0x%x) in dictionary", tag.Group, tag.Element)
+			return Info{}, fmt.Errorf("could not find tag (0x%x, 0x%x) in dictionary", tag.Group, tag.Element)
 		}
 	}
 	return entry, nil
 }
 
-// MustFind is like FindTag, but panics on error.
+// MustFind is like Find, but panics on error.
 func MustFind(tag Tag) Info {
 	e, err := Find(tag)
 	if err != nil {
@@ -197,11 +202,11 @@ func MustFind(tag Tag) Info {
 func FindByName(name string) (Info, error) {
 	maybeInitTagDict()
 	for _, ent := range tagDict {
-		if ent.Name == name {
+		if ent.Keyword == name || ent.Name == name {
 			return ent, nil
 		}
 	}
-	return Info{}, fmt.Errorf("Could not find tag with name %s", name)
+	return Info{}, fmt.Errorf("could not find tag with name %s", name)
 }
 
 // DebugString returns a human-readable diagnostic string for the tag, in format
@@ -214,7 +219,7 @@ func DebugString(tag Tag) string {
 		}
 		return fmt.Sprintf("(%04x,%04x)[??]", tag.Group, tag.Element)
 	}
-	return fmt.Sprintf("(%04x,%04x)[%s]", tag.Group, tag.Element, e.Name)
+	return fmt.Sprintf("(%04x,%04x)[%s]", tag.Group, tag.Element, e.Keyword)
 }
 
 // Split a tag into a group and element, represented as a hex value

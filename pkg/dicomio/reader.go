@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
@@ -21,7 +20,7 @@ var (
 )
 
 // LimitReadUntilEOF is a special dicomio.Reader limit indicating that there is no hard limit and the
-// Reader should read until EOF. 
+// Reader should read until EOF.
 const LimitReadUntilEOF = -9999
 
 // Reader provides common functionality for reading underlying DICOM data.
@@ -197,7 +196,7 @@ func (r *reader) Skip(n int64) error {
 		return ErrorInsufficientBytesLeft
 	}
 
-	_, err := io.CopyN(ioutil.Discard, r, n)
+	_, err := io.CopyN(io.Discard, r, n)
 
 	return err
 }

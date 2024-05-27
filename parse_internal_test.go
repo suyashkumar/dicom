@@ -1,7 +1,6 @@
 package dicom
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -12,7 +11,7 @@ import (
 // This test lives in parse_internal_test.go because this test cannot live in the dicom_test package, due
 // to some dependencies on internal valuesets for diffing.
 func TestParseUntilEOFConformsToParse(t *testing.T) {
-	files, err := ioutil.ReadDir("./testdata")
+	files, err := os.ReadDir("./testdata")
 	if err != nil {
 		t.Fatalf("unable to read testdata/: %v", err)
 	}

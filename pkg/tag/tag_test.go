@@ -10,15 +10,15 @@ func TestFind(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if elem.Name != "PixelData" || elem.VR != "OW" {
-		t.Errorf("Wrong element name: %s", elem.Name)
+	if elem.Keyword != "PixelData" || elem.VR != "OW" {
+		t.Errorf("Wrong element name: %s", elem.Keyword)
 	}
 	elem, err = Find(Tag{0, 0x1002})
 	if err != nil {
 		t.Error(err)
 	}
-	if elem.Name != "EventTypeID" || elem.VR != "US" {
-		t.Errorf("Wrong element name: %s", elem.Name)
+	if elem.Keyword != "EventTypeID" || elem.VR != "US" {
+		t.Errorf("Wrong element name: %s", elem.Keyword)
 	}
 
 	elem, err = FindByName("TransferSyntaxUID")
@@ -42,7 +42,13 @@ func TestSplitTag(t *testing.T) {
 	if tag.Element != 0x0010 {
 		t.Errorf("Error splitting tag. Wrong element: %#x", tag.Element)
 	}
+}
 
+func TestUint32Conversion(t *testing.T) {
+	var got, want uint32 = Tag{Group: 0x7FE0, Element: 0x0010}.Uint32(), 0x7FE00010
+	if got != want {
+		t.Errorf("Uint32() got unexpected value %x; want %x", got, want)
+	}
 }
 
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {

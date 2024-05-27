@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/jpeg"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -20,7 +20,7 @@ import (
 // TestParse is an end-to-end sanity check over DICOMs in testdata/. Currently,
 // it only checks that no error is returned when parsing the files.
 func TestParse(t *testing.T) {
-	files, err := ioutil.ReadDir("./testdata")
+	files, err := os.ReadDir("./testdata")
 	if err != nil {
 		t.Fatalf("unable to read testdata/: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseUntilEOF(t *testing.T) {
-	files, err := ioutil.ReadDir("./testdata")
+	files, err := os.ReadDir("./testdata")
 	if err != nil {
 		t.Fatalf("unable to read testdata/: %v", err)
 	}
@@ -205,7 +205,7 @@ func BenchmarkParse(b *testing.B) {
 	}
 	for _, tc := range cases {
 		b.Run(tc.name, func(b *testing.B) {
-			files, err := ioutil.ReadDir("./testdata")
+			files, err := os.ReadDir("./testdata")
 			if err != nil {
 				b.Fatalf("unable to read testdata/: %v", err)
 			}
@@ -219,7 +219,7 @@ func BenchmarkParse(b *testing.B) {
 						}
 						defer dcm.Close()
 
-						data, err := ioutil.ReadAll(dcm)
+						data, err := io.ReadAll(dcm)
 						if err != nil {
 							b.Errorf("Unable to read file into memory for benchmark: %v", err)
 						}
@@ -238,7 +238,7 @@ func BenchmarkParse(b *testing.B) {
 }
 
 func BenchmarkParser_NextAPI(b *testing.B) {
-	files, err := ioutil.ReadDir("./testdata")
+	files, err := os.ReadDir("./testdata")
 	if err != nil {
 		b.Fatalf("unable to read testdata/: %v", err)
 	}
@@ -252,7 +252,7 @@ func BenchmarkParser_NextAPI(b *testing.B) {
 				}
 				defer dcm.Close()
 
-				data, err := ioutil.ReadAll(dcm)
+				data, err := io.ReadAll(dcm)
 				if err != nil {
 					b.Errorf("Unable to read file into memory for benchmark: %v", err)
 				}
@@ -313,7 +313,7 @@ func Example_getImageFrames() {
 }
 
 func runForEveryTestFile(t *testing.T, testFunc func(t *testing.T, filename string)) {
-	files, err := ioutil.ReadDir("./testdata")
+	files, err := os.ReadDir("./testdata")
 	if err != nil {
 		t.Fatalf("unable to read testdata/: %v", err)
 	}

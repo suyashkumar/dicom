@@ -3,7 +3,6 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -560,7 +559,7 @@ func TestWrite(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			file, err := ioutil.TempFile("", "write_test.dcm")
+			file, err := os.CreateTemp("", "write_test.dcm")
 			if err != nil {
 				t.Fatalf("Unexpected error when creating tempfile: %v", err)
 			}

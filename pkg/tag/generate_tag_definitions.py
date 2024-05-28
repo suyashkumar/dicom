@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.6
-import requests
+import json
 import logging
+import urllib.request
 from typing import IO, NamedTuple, List
 
 logging.basicConfig(level=logging.DEBUG)
@@ -17,8 +18,8 @@ Tag = NamedTuple('Tag', [
     ('retired', bool)])
 
 def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
-    response = requests.get(f"https://raw.githubusercontent.com/innolitics/dicom-standard/{version_hash}/standard/attributes.json")
-    response.raise_for_status()
+    response = urllib.request.urlopen(f"https://raw.githubusercontent.com/innolitics/dicom-standard/{version_hash}/standard/attributes.json")
+    attrs = json.loads(response.read().decode())
     return [
         Tag(
             # The id field should always follow format "ggggeeee", so this should be safe.
@@ -30,7 +31,7 @@ def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
             vm=e["valueMultiplicity"],
             keyword=e["keyword"],
             retired=e["retired"] == "Y")
-        for e in response.json()
+        for e in attrs
         if (resolvable_tag_id := e["id"].replace("x", "0")) and len(e["keyword"]) > 0
     ]
 

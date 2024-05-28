@@ -10,11 +10,11 @@ func ReadUnprocessedValueData(info *PixelDataMetadata, unprocessedValueData []by
 	offset := frameIndex * pixelsPerFrame * info.SamplesPerPixel * bytesAllocated
 	samplesPerPixel := info.SamplesPerPixel
 
-	re := make([][]int, pixelsPerFrame)
-	for i := 0; i < pixelsPerFrame; i++ {
-		re[i] = make([]int, samplesPerPixel)
-		for j := 0; j < samplesPerPixel; j++ {
-			pointOffset := offset + i*info.SamplesPerPixel*bytesAllocated + j*bytesAllocated
+	re := make([][]int, samplesPerPixel)
+	for i := 0; i < samplesPerPixel; i++ {
+		re[i] = make([]int, pixelsPerFrame)
+		for j := 0; j < pixelsPerFrame; j++ {
+			pointOffset := offset + j*info.SamplesPerPixel*bytesAllocated + i*bytesAllocated
 			switch bytesAllocated {
 			case 1:
 				re[i][j] = int(unprocessedValueData[pointOffset])

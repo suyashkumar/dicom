@@ -2,11 +2,12 @@ package inplace
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/pkg/frame"
@@ -15,8 +16,11 @@ import (
 )
 
 func mustNewElement(t *testing.T, tag tag.Tag, data interface{}) *dicom.Element {
+	t.Helper()
 	elem, err := dicom.NewElement(tag, data)
-	require.NoError(t, err)
+	if err != nil {
+		t.Errorf("dicom.NewElement: %v", err)
+	}
 	return elem
 }
 
@@ -189,31 +193,65 @@ func TestReadReadUnprocessedValueData(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			var filesOut bytes.Buffer
-			require.NoError(t, dicom.Write(io.Writer(&filesOut), tc.existingData))
+			var err error
+			if err = dicom.Write(io.Writer(&filesOut), tc.existingData); err != nil {
+				t.Errorf("Write DICOM obj to bytes: %v", err)
+			}
 			rawData := filesOut.Bytes()
 
 			dataset, err := dicom.Parse(bytes.NewReader(rawData), int64(len(rawData)), nil, dicom.SkipProcessingPixelDataValue())
-			require.NoError(t, err)
+			if err != nil {
+				t.Errorf("dicom.Parse: %v", err)
+			}
 			metadata, err := GetPixelDataMetadata(&dataset)
-			require.NoError(t, err)
+			if err != nil {
+				t.Errorf("GetPixelDataMetadata: %v", err)
+			}
 			pixelElement, err := dataset.FindElementByTag(tag.PixelData)
-			require.NoError(t, err)
+			if err != nil {
+				t.Errorf("tag.PixelData not found: %v", err)
+			}
 			pixelDataInfo := dicom.MustGetPixelDataInfo(pixelElement.Value)
-			assert.Equal(t, pixelDataInfo.IntentionallyUnprocessed, true)
-			assert.Equal(t, pixelDataInfo.IsEncapsulated, false)
+			if pixelDataInfo.IsEncapsulated || !pixelDataInfo.IntentionallyUnprocessed {
+				t.Errorf("pixelDataInfo should be IntentionallyUnprocessed: IsEncapsulated=%t IntentionallyUnprocessed%t",
+					pixelDataInfo.IsEncapsulated, pixelDataInfo.IntentionallyUnprocessed)
+			}
 
-			require.NoError(t, IsSafeForUnprocessedValueDataHandling(metadata, pixelDataInfo.UnprocessedValueData))
+			if err = IsSafeForUnprocessedValueDataHandling(metadata, pixelDataInfo.UnprocessedValueData); err != nil {
+				t.Errorf("IsSafeForUnprocessedValueDataHandling(%v)", err)
+			}
 
 			originPixelElement, err := tc.existingData.FindElementByTag(tag.PixelData)
-			require.NoError(t, err)
+			if err != nil {
+				t.Errorf("Find tag.PixelData(%v)", err)
+			}
 			originPixelDataInfo := dicom.MustGetPixelDataInfo(originPixelElement.Value)
 
 			for i := 0; i < metadata.Frames; i++ {
 				originData := originPixelDataInfo.Frames[i].NativeData.Data
 				inplaceData, err := ReadUnprocessedValueData(metadata, pixelDataInfo.UnprocessedValueData, i)
-				require.NoError(t, err)
-				assert.Equal(t, originData, inplaceData, "missing match value", i)
+				if err != nil {
+					t.Errorf("ReadUnprocessedValueData(%v)", err)
+				}
+				assertUnprocessedPixelData(t, originData, inplaceData, fmt.Sprint("frame:", i))
 			}
 		})
+	}
+}
+
+func assertUnprocessedPixelData(t *testing.T, inplaceData [][]int, originData [][]int, msg string) {
+	if len(inplaceData[0]) != len(originData) || len(inplaceData) != len(originData[0]) {
+		t.Errorf("Mismatch data size: origin-data(%d-%d) inplace-data(%d-%d)",
+			len(originData), len(originData[0]), len(inplaceData), len(inplaceData[0]))
+	}
+	tmp := make([][]int, len(originData))
+	for i := 0; i < len(tmp); i++ {
+		tmp[i] = make([]int, len(originData[0]))
+		for j := 0; j < len(originData[0]); j++ {
+			tmp[i][j] = inplaceData[j][i]
+		}
+	}
+	if diff := cmp.Diff(originData, tmp, cmpopts.EquateErrors()); diff != "" {
+		t.Errorf("assertUnprocessedPixelData(%v-%s): unexpected diff: %v", inplaceData, msg, diff)
 	}
 }

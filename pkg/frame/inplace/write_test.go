@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"github.com/suyashkumar/dicom"
 	"github.com/suyashkumar/dicom/pkg/frame"
@@ -52,7 +52,9 @@ func TestWriteUnprocessedValueData(t *testing.T) {
 		},
 	}
 	var buffer bytes.Buffer
-	require.NoError(t, dicom.Write(io.Writer(&buffer), originDataset))
+	if err := dicom.Write(io.Writer(&buffer), originDataset); err != nil {
+		t.Errorf("write from dataset to DICOM bytes: %v", err)
+	}
 	rawData := buffer.Bytes()
 
 	for _, tc := range []struct {
@@ -96,21 +98,17 @@ func TestWriteUnprocessedValueData(t *testing.T) {
 			},
 		},
 	} {
-		dataset, err := dicom.Parse(bytes.NewReader(rawData), int64(len(rawData)), nil, dicom.SkipProcessingPixelDataValue())
-		require.NoError(t, err)
-		metadata, err := GetPixelDataMetadata(&dataset)
-		require.NoError(t, err)
-		pixelElement, err := dataset.FindElementByTag(tag.PixelData)
-		require.NoError(t, err)
-		pixelDataInfo := dicom.MustGetPixelDataInfo(pixelElement.Value)
-		assert.Equal(t, pixelDataInfo.IntentionallyUnprocessed, true)
-		assert.Equal(t, pixelDataInfo.IsEncapsulated, false)
-		// Sanity check if the dataset is suitable for in-place read-write
-		require.NoError(t, IsSafeForUnprocessedValueDataHandling(metadata, pixelDataInfo.UnprocessedValueData))
+		var err error
+		dataset, metadata, pixelDataInfo := setupUnprocessedPixelData(t, rawData)
 		// in-place write then converts to bytes
-		require.NoError(t, WriteUnprocessedValueData(metadata, pixelDataInfo.UnprocessedValueData, tc.rowIndex, tc.colIndex, tc.frameIndex, tc.sampleIndex, 100))
+		if err = WriteUnprocessedValueData(metadata, pixelDataInfo.UnprocessedValueData,
+			tc.rowIndex, tc.colIndex, tc.frameIndex, tc.sampleIndex, 100); err != nil {
+			t.Errorf("WriteUnprocessedValueData: %v", err)
+		}
 		var buffer2 bytes.Buffer
-		require.NoError(t, dicom.Write(io.Writer(&buffer2), dataset))
+		if err = dicom.Write(io.Writer(&buffer2), dataset); err != nil {
+			t.Errorf("Write new DICOM obj to file: %v", err)
+		}
 		outputBytes := buffer2.Bytes()
 		assertPixelDataInfo(t, outputBytes, tc.expectedPixelInfo)
 	}
@@ -154,7 +152,9 @@ func TestWriteUnprocessedValueData_BigEndian(t *testing.T) {
 		},
 	}
 	var buffer bytes.Buffer
-	require.NoError(t, dicom.Write(io.Writer(&buffer), originDataset))
+	if err := dicom.Write(io.Writer(&buffer), originDataset); err != nil {
+		t.Errorf("write from dataset to DICOM bytes: %v", err)
+	}
 	rawData := buffer.Bytes()
 
 	for _, tc := range []struct {
@@ -198,31 +198,58 @@ func TestWriteUnprocessedValueData_BigEndian(t *testing.T) {
 			},
 		},
 	} {
-		dataset, err := dicom.Parse(bytes.NewReader(rawData), int64(len(rawData)), nil, dicom.SkipProcessingPixelDataValue())
-		require.NoError(t, err)
-		metadata, err := GetPixelDataMetadata(&dataset)
-		require.NoError(t, err)
-		pixelElement, err := dataset.FindElementByTag(tag.PixelData)
-		require.NoError(t, err)
-		pixelDataInfo := dicom.MustGetPixelDataInfo(pixelElement.Value)
-		assert.Equal(t, pixelDataInfo.IntentionallyUnprocessed, true)
-		assert.Equal(t, pixelDataInfo.IsEncapsulated, false)
-		// Sanity check if the dataset is suitable for in-place read-write
-		require.NoError(t, IsSafeForUnprocessedValueDataHandling(metadata, pixelDataInfo.UnprocessedValueData))
+		dataset, metadata, pixelDataInfo := setupUnprocessedPixelData(t, rawData)
+		var err error
 		// in-place write then converts to bytes
-		require.NoError(t, WriteUnprocessedValueData(metadata, pixelDataInfo.UnprocessedValueData, tc.rowIndex, tc.colIndex, tc.frameIndex, tc.sampleIndex, 100))
+		if err = WriteUnprocessedValueData(metadata, pixelDataInfo.UnprocessedValueData,
+			tc.rowIndex, tc.colIndex, tc.frameIndex, tc.sampleIndex, 100); err != nil {
+			t.Errorf("WriteUnprocessedValueData: %v", err)
+		}
 		var buffer2 bytes.Buffer
-		require.NoError(t, dicom.Write(io.Writer(&buffer2), dataset))
+		if err = dicom.Write(io.Writer(&buffer2), dataset); err != nil {
+			t.Errorf("Write new DICOM obj to file: %v", err)
+		}
 		outputBytes := buffer2.Bytes()
 		assertPixelDataInfo(t, outputBytes, tc.expectedPixelInfo)
 	}
 }
 
+func setupUnprocessedPixelData(t testing.TB, rawData []byte) (dicom.Dataset, *PixelDataMetadata, dicom.PixelDataInfo) {
+	dataset, err := dicom.Parse(bytes.NewReader(rawData), int64(len(rawData)), nil, dicom.SkipProcessingPixelDataValue())
+	if err != nil {
+		t.Errorf("dicom.Parse: %v", err)
+	}
+	metadata, err := GetPixelDataMetadata(&dataset)
+	if err != nil {
+		t.Errorf("GetPixelDataMetadata: %v", err)
+	}
+	pixelElement, err := dataset.FindElementByTag(tag.PixelData)
+	if err != nil {
+		t.Errorf("tag.PixelData not found: %v", err)
+	}
+	pixelDataInfo := dicom.MustGetPixelDataInfo(pixelElement.Value)
+	if !pixelDataInfo.IntentionallyUnprocessed || pixelDataInfo.IsEncapsulated {
+		t.Errorf("unexpected pixelDataInfo: IntentionallyUnprocessed=%t IsEncapsulated=%t",
+			pixelDataInfo.IntentionallyUnprocessed, pixelDataInfo.IsEncapsulated)
+	}
+	// Sanity check if the dataset is suitable for in-place read-write
+	if err = IsSafeForUnprocessedValueDataHandling(metadata, pixelDataInfo.UnprocessedValueData); err != nil {
+		t.Errorf("IsSafeForUnprocessedValueDataHandling(%v)", err)
+	}
+	return dataset, metadata, pixelDataInfo
+}
+
 func assertPixelDataInfo(t testing.TB, rawData []byte, expectedPixelDataInfo dicom.PixelDataInfo) {
 	dataset2, err := dicom.Parse(bytes.NewReader(rawData), int64(len(rawData)), nil)
-	require.NoError(t, err)
+	if err != nil {
+		t.Errorf("read new create dcm file: %v", err)
+	}
 	pixelElement, err := dataset2.FindElementByTag(tag.PixelData)
-	require.NoError(t, err)
+	if err != nil {
+		t.Errorf("pixel data not found: %v", err)
+	}
 	pixelDataInfo := dicom.MustGetPixelDataInfo(pixelElement.Value)
-	require.Equal(t, pixelDataInfo, expectedPixelDataInfo)
+	if diff := cmp.Diff(pixelDataInfo, expectedPixelDataInfo, cmpopts.EquateErrors()); diff != "" {
+		t.Errorf("assert pixelDataInfo in dicom file(%v): unexpected diff: %v", pixelDataInfo, diff)
+	}
 }

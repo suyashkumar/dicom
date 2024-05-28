@@ -37,28 +37,25 @@ def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
 
 def generate(out: IO[str]):
     tags = read_tags_from_innolitics(INNOLITICS_VERSION_HASH)
+    newLineChar = chr(10)
+    print(f'''// AUTO-GENERATED from generate_tag_definitions.py. DO NOT EDIT.
+package tag
 
-    print("// AUTO-GENERATED from generate_tag_definitions.py. DO NOT EDIT.", file=out)
-    print("package tag", file=out)
-    print(file=out)
-    for t in tags:
-        print(f"var {t.keyword} = Tag{{0x{t.group:04x}, 0x{t.elem:04x}}}", file=out)
+{newLineChar.join(f"var {t.keyword} = Tag{{0x{t.group:04x}, 0x{t.elem:04x}}}" for t in tags)}
 
-    print(file=out)
-    print("var tagDict map[Tag]Info", file=out)
-    print("", file=out)
-    print("func init() {", file=out)
-    print("	maybeInitTagDict()", file=out)
-    print("}", file=out)
-    print("func maybeInitTagDict() {", file=out)
-    print("	if len(tagDict) > 0 {", file=out)
-    print("		return", file=out)
-    print("	}", file=out)
-    print("	tagDict = make(map[Tag]Info)", file=out)
-    for t in tags:
-        retired = f"{t.retired}".lower()
-        print(f'	tagDict[{t.keyword}] = Info{{{t.keyword}, "{t.vr}", "{t.name}", "{t.keyword}", "{t.vm}", {retired}}}', file=out)
-    print("}", file=out)
+var tagDict map[Tag]Info
+
+func init() {{
+	maybeInitTagDict()
+}}
+
+func maybeInitTagDict() {{
+	if len(tagDict) > 0 {{
+		return
+	}}
+	tagDict = make(map[Tag]Info)
+{newLineChar.join(f'	tagDict[{t.keyword}] = Info{{{t.keyword}, "{t.vr}", "{t.name}", "{t.keyword}", "{t.vm}", {str(t.retired).lower()}}}' for t in tags)}
+}}''', file=out)
 
 def main():
     with open("tag_definitions.go", "w") as out:

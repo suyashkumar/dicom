@@ -5130,6 +5130,7 @@ var tagDict map[Tag]Info
 func init() {
 	maybeInitTagDict()
 }
+
 func maybeInitTagDict() {
 	if len(tagDict) > 0 {
 		return

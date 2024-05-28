@@ -25,7 +25,7 @@ def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
             # The id field should always follow format "ggggeeee", so this should be safe.
             group=int(resolvable_tag_id[:4], 16),
             elem=int(resolvable_tag_id[4:], 16),
-            # To understand this ternary expression, see: https://dicom.nema.org/medical/dicom/current/output/html/part06.html#note_6_2.
+            # To understand this ternary expression, see: https://dicom.nema.org/medical/dicom/2024a/output/html/part06.html#note_6_2.
             vr=e["valueRepresentation"] if resolvable_tag_id[:4].lower() != 'fffe' else "NA",
             name=e["name"],
             vm=e["valueMultiplicity"],

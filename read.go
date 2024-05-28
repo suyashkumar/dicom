@@ -68,8 +68,8 @@ func (r *reader) readVR(isImplicit bool, t tag.Tag) (string, error) {
 			switch entry.Tag {
 			case tag.PixelData, tag.OverlayData:
 				// OW takes priority in these cases. See notes at:
-				// 1. https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_8.1.2
-				// 2. https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_8.2
+				// 1. https://dicom.nema.org/medical/dicom/2024a/output/html/part05.html#sect_8.1.2
+				// 2. https://dicom.nema.org/medical/dicom/2024a/output/html/part05.html#sect_8.2
 				return "OW", nil
 			default:
 				return strings.Split(entry.VR, tag.MultipleVRsAllowedSeparator)[0], nil

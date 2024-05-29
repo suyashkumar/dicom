@@ -151,15 +151,17 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 // readHeader reads the DICOM magic header and group two metadata elements.
 // This should only be called once per DICOM at the start of parsing.
 func (r *reader) readHeader() ([]*Element, error) {
-	// Check to see if magic word is at byte offset 128. If not, this is a
-	// non-standard non-compliant DICOM. We try to read this DICOM in a
-	// compatibility mode, where we rewind to position 0 and blindly attempt to
-	// parse a Dataset (and do not parse metadata in the usual way).
+	// Check for Preamble (128 bytes) + magic word (4 bytes).
 	data, err := r.rawReader.Peek(128 + 4)
 	if err != nil {
 		return nil, err
 	}
 	if string(data[128:]) != magicWord {
+		// If magic word is not at byte offset 128 this is a non-standard
+		// non-compliant DICOM. We try to read this DICOM in a compatibility
+		// mode, where we rewind to position 0 and blindly attempt to parse
+		// a Dataset (and do not parse metadata in the usual way), which is
+		// why we return nil error.
 		return nil, nil
 	}
 

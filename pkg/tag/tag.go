@@ -192,19 +192,27 @@ func MustFind(tag Tag) Info {
 	return e
 }
 
-// FindByName finds information about the tag with the given name. If the tag is
+// FindByKeyword finds information about the tag with the given name. If the tag is
 // not part of the DICOM standard, or is retired from the standard, it returns
 // an error.
 //
-//	Example: FindTagByName("TransferSyntaxUID")
-func FindByName(name string) (Info, error) {
+// Example: FindTagByKeyword("TransferSyntaxUID")
+func FindByKeyword(keyword string) (Info, error) {
 	maybeInitTagDict()
 	for _, ent := range tagDict {
-		if ent.Keyword == name || ent.Name == name {
+		if ent.Keyword == keyword || ent.Name == keyword {
 			return ent, nil
 		}
 	}
-	return Info{}, fmt.Errorf("could not find tag with name %s", name)
+	return Info{}, fmt.Errorf("could not find tag with name %s", keyword)
+}
+
+// FindByName finds information about the tag with the given name. If the tag is
+// not part of the DICOM standard, or is retired from the standard, it returns
+// an error.
+// Deprecated: use FindByKeyword instead.
+func FindByName(name string) (Info, error) {
+	return FindByKeyword(name)
 }
 
 // DebugString returns a human-readable diagnostic string for the tag, in format

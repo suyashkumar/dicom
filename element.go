@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
@@ -148,7 +147,7 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawVR := strings.Split(tagInfo.VR, tag.MultipleVRsAllowedSeparator)[0]
+	rawVR := tagInfo.VRs[0]
 	if t == tag.PixelData {
 		rawVR = "OW"
 	}

@@ -19,8 +19,6 @@ const (
 	UnknownVR = "UN"
 	// VLUndefinedLength is the VL used to indicated undefined length.
 	VLUndefinedLength uint32 = 0xffffffff
-	// Tags with multiple VRs allowed are separated by "VR1 or VR2 or ... VRn"
-	MultipleVRsAllowedSeparator = " or "
 )
 
 // Tag is a <group, element> tuple that identifies an element type in a DICOM
@@ -83,9 +81,9 @@ func (t Tags) Contains(item *Tag) bool {
 // standard.
 type Info struct {
 	Tag Tag
-	// Data encoding "UL", "CS", etc.
-	// For tags with multiple allowed VRs, they are separated as "VR1 or VR2 or ... or VRn".
-	VR string
+	// List of all possible data encodings for this tag, e.g., "UL", "CS", etc.
+	// At least one entry is present.
+	VRs []string
 	// Human-readable name of the tag appropriately formatted for printing, e.g., "Pixel Data"
 	Name string
 	// Human-readable identifier of the tag, e.g., "PixelData"
@@ -177,7 +175,7 @@ func Find(tag Tag) (Info, error) {
 	if !ok {
 		// (0000-u-ffff,0000)	UL	GenericGroupLength	1	GENERIC
 		if tag.Group%2 == 0 && tag.Element == 0x0000 {
-			entry = Info{tag, "UL", "Generic Group Length", "GenericGroupLength", "1", false}
+			entry = Info{tag, []string{"UL"}, "Generic Group Length", "GenericGroupLength", "1", false}
 		} else {
 			return Info{}, fmt.Errorf("could not find tag (0x%x, 0x%x) in dictionary", tag.Group, tag.Element)
 		}

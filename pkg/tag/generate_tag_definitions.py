@@ -11,7 +11,7 @@ INNOLITICS_VERSION_HASH = "8670abdd9ad16c61af5146ef857899699bdd9c5f" # rev2024b 
 Tag = NamedTuple('Tag', [
     ('group', int),
     ('elem', int),
-    ('vr', str),
+    ('vr', List[str]),
     ('name', str),
     ('vm', str),
     ('keyword', str),
@@ -20,13 +20,14 @@ Tag = NamedTuple('Tag', [
 def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
     response = urllib.request.urlopen(f"https://raw.githubusercontent.com/innolitics/dicom-standard/{version_hash}/standard/attributes.json")
     attrs = json.loads(response.read().decode())
+    allowed_vrs_separator = " or "
     return [
         Tag(
             # The id field should always follow format "ggggeeee", so this should be safe.
             group=int(resolvable_tag_id[:4], 16),
             elem=int(resolvable_tag_id[4:], 16),
             # To understand this ternary expression, see: https://dicom.nema.org/medical/dicom/2024a/output/html/part06.html#note_6_2.
-            vr=e["valueRepresentation"] if resolvable_tag_id[:4].lower() != 'fffe' else "NA",
+            vr=(e["valueRepresentation"] if resolvable_tag_id[:4].lower() != 'fffe' else "NA").split(allowed_vrs_separator),
             name=e["name"],
             vm=e["valueMultiplicity"],
             keyword=e["keyword"],
@@ -37,11 +38,12 @@ def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
 
 def generate(out: IO[str]):
     tags = read_tags_from_innolitics(INNOLITICS_VERSION_HASH)
-    newLineChar = chr(10)
+    new_line = chr(10)
+    wrap_in_quotes = lambda s: f'\"{s}\"'
     print(f'''// AUTO-GENERATED from generate_tag_definitions.py. DO NOT EDIT.
 package tag
 
-{newLineChar.join(f"var {t.keyword} = Tag{{0x{t.group:04x}, 0x{t.elem:04x}}}" for t in tags)}
+{new_line.join(f"var {t.keyword} = Tag{{0x{t.group:04x}, 0x{t.elem:04x}}}" for t in tags)}
 
 var tagDict map[Tag]Info
 
@@ -54,7 +56,7 @@ func maybeInitTagDict() {{
 		return
 	}}
 	tagDict = make(map[Tag]Info)
-{newLineChar.join(f'	tagDict[{t.keyword}] = Info{{{t.keyword}, "{t.vr}", "{t.name}", "{t.keyword}", "{t.vm}", {str(t.retired).lower()}}}' for t in tags)}
+{new_line.join(f'	tagDict[{t.keyword}] = Info{{{t.keyword}, []string{{{", ".join(map(wrap_in_quotes, t.vr))}}}, "{t.name}", "{t.keyword}", "{t.vm}", {str(t.retired).lower()}}}' for t in tags)}
 }}''', file=out)
 
 def main():

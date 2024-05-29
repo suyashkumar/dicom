@@ -46,7 +46,7 @@ func (e *Element) Equals(target *Element) bool {
 func (e *Element) String() string {
 	var tagName string
 	if tagInfo, err := tag.Find(e.Tag); err == nil {
-		tagName = tagInfo.Name
+		tagName = tagInfo.Keyword
 	}
 	return fmt.Sprintf("[\n  Tag: %s\n  Tag Name: %s\n  VR: %s\n  VR Raw: %s\n  VL: %d\n  Value: %s\n]\n\n",
 		e.Tag.String(),
@@ -147,8 +147,10 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawVR := tagInfo.VR
-
+	rawVR := tagInfo.VRs[0]
+	if t == tag.PixelData {
+		rawVR = "OW"
+	}
 	value, err := NewValue(data)
 	if err != nil {
 		return nil, err

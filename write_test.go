@@ -3,13 +3,11 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/suyashkumar/dicom/pkg/vrraw"
-
 	"github.com/suyashkumar/dicom/pkg/frame"
+	"github.com/suyashkumar/dicom/pkg/vrraw"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 
@@ -401,17 +399,23 @@ func TestWrite(t *testing.T) {
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
-				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ExplicitVRLittleEndian}),
 				mustNewElement(tag.BitsAllocated, []int{8}),
-				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
-					IsEncapsulated: true,
-					Frames: []*frame.Frame{
-						{
-							Encapsulated:     true,
-							EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
+				setUndefinedLength(&Element{
+					Tag:                 tag.PixelData,
+					ValueRepresentation: tag.VRPixelData,
+					// Encapsulated should always have OB VR, but mustNewElement would make it OW.
+					RawValueRepresentation: "OB",
+					Value: mustNewValue(PixelDataInfo{
+						IsEncapsulated: true,
+						Frames: []*frame.Frame{
+							{
+								Encapsulated:     true,
+								EncapsulatedData: frame.EncapsulatedFrame{Data: []byte{1, 2, 3, 4}},
+							},
 						},
-					},
-				})),
+					}),
+				}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
@@ -560,7 +564,7 @@ func TestWrite(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			file, err := ioutil.TempFile("", "write_test.dcm")
+			file, err := os.CreateTemp("", "write_test.dcm")
 			if err != nil {
 				t.Fatalf("Unexpected error when creating tempfile: %v", err)
 			}

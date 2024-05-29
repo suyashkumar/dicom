@@ -65,7 +65,15 @@ func (r *reader) readTag() (*tag.Tag, error) {
 func (r *reader) readVR(isImplicit bool, t tag.Tag) (string, error) {
 	if isImplicit {
 		if entry, err := tag.Find(t); err == nil {
-			return entry.VR, nil
+			switch entry.Tag {
+			case tag.PixelData, tag.OverlayData:
+				// OW takes priority in these cases. See notes at:
+				// 1. https://dicom.nema.org/medical/dicom/2024a/output/html/part05.html#sect_8.1.2
+				// 2. https://dicom.nema.org/medical/dicom/2024a/output/html/part05.html#sect_8.2
+				return "OW", nil
+			default:
+				return entry.VRs[0], nil
+			}
 		}
 		return tag.UnknownVR, nil
 	}

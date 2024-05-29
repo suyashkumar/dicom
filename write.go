@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/suyashkumar/dicom/pkg/vrraw"
 
@@ -291,13 +292,13 @@ func verifyVROrDefault(t tag.Tag, vr string, opts writeOptSet) (string, error) {
 	if vr == "" {
 		// Otherwise if we did find it, and our VR is blank, we'll return the known vr
 		// we just pulled.
-		return tagInfo.VR, nil
+		return tagInfo.VRs[0], nil
 	}
 
 	// Verify the VR on the way out if the caller wants it.
-	if !opts.skipVRVerification && tagInfo.VR != vr {
+	if !opts.skipVRVerification && !slices.Contains(tagInfo.VRs, vr) {
 		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
-			tag.DebugString(t), vr, tagInfo.VR)
+			tag.DebugString(t), vr, tagInfo.VRs)
 	}
 
 	return vr, nil

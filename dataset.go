@@ -175,7 +175,7 @@ func (d *Dataset) String() string {
 		tabs := buildTabs(elem.l)
 		var tagName string
 		if tagInfo, err := tag.Find(elem.e.Tag); err == nil {
-			tagName = tagInfo.Name
+			tagName = tagInfo.Keyword
 		}
 
 		b.WriteString(fmt.Sprintf("%s[\n", tabs))

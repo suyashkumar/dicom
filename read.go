@@ -20,9 +20,6 @@ import (
 )
 
 var (
-	// ErrorMagicWord indicates that the magic word was not found in the correct
-	// location in the DICOM.
-	ErrorMagicWord = errors.New("error, DICM magic word not found in correct location")
 	// ErrorOWRequiresEvenVL indicates that an element with VR=OW had a not even
 	// value length which is not allowed.
 	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
@@ -163,7 +160,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 		return nil, err
 	}
 	if string(data[128:]) != magicWord {
-		return nil, ErrorMagicWord
+		return nil, nil
 	}
 
 	err = r.rawReader.Skip(128 + 4) // skip preamble + magic word

@@ -40,6 +40,9 @@ const (
 )
 
 var (
+	// ErrorMagicWord indicates that the magic word was not found in the correct
+	// location in the DICOM.
+	ErrorMagicWord = errors.New("error, DICM magic word not found in correct location")
 	// ErrorMetaElementGroupLength indicates that the MetaElementGroupLength
 	// was not found where expected in the metadata.
 	ErrorMetaElementGroupLength = errors.New("MetaElementGroupLength tag not found where expected")
@@ -278,8 +281,8 @@ func SkipPixelData() ParseOption {
 // a PixelData element will be added to the dataset with the
 // PixelDataInfo.IntentionallyUnprocessed = true, and the raw bytes of the
 // entire PixelData element stored in PixelDataInfo.UnprocessedValueData.
-//
-// In the future, we may be able to extend this functionality to support
+// 
+// In the future, we may be able to extend this functionality to support 
 // on-demand processing of elements elsewhere in the library.
 func SkipProcessingPixelDataValue() ParseOption {
 	return func(set *parseOptSet) {

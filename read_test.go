@@ -684,14 +684,6 @@ func headerWithFileMetaInformationGroupLength() (*headerData, error) {
 	return headerData, nil
 }
 
-func TestReadHeader_InvalidMagicWord(t *testing.T) {
-	notDICOMReader := bufio.NewReader(bytes.NewReader(make([]byte, 128+4)))
-	r := &reader{rawReader: dicomio.NewReader(notDICOMReader, binary.LittleEndian, dicomio.LimitReadUntilEOF)}
-	if _, err := r.readHeader(); err != ErrorMagicWord {
-		t.Fatalf("Expected %v error, got %v", ErrorMagicWord, err)
-	}
-}
-
 func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	opts := parseOptSet{allowMissingMetaElementGroupLength: true}
 

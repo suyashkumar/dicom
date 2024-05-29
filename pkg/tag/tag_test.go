@@ -10,70 +10,70 @@ import (
 
 func TestFind(t *testing.T) {
 	tests := []struct {
-		name            string
-		tag             Tag
-		expectedKeyword string
-		expectedVRs     []string
-		expectedRetired bool
+		name        string
+		tag         Tag
+		wantKeyword string
+		wantVRs     []string
+		wantRetired bool
 	}{
 		{
-			name:            "basic",
-			tag:             Tag{0x0010, 0x0010},
-			expectedKeyword: "PatientName",
-			expectedVRs:     []string{"PN"},
+			name:        "basic",
+			tag:         Tag{0x0010, 0x0010},
+			wantKeyword: "PatientName",
+			wantVRs:     []string{"PN"},
 		},
 		{
-			name:            "multiple vrs allowed",
-			tag:             Tag{0x7FE0, 0x0010},
-			expectedKeyword: "PixelData",
-			expectedVRs:     []string{"OW", "OB"},
+			name:        "multiple vrs allowed",
+			tag:         Tag{0x7FE0, 0x0010},
+			wantKeyword: "PixelData",
+			wantVRs:     []string{"OW", "OB"},
 		},
 		{
-			name:            "NA tag",
-			tag:             Tag{0xfffe, 0xe000},
-			expectedKeyword: "Item",
-			expectedVRs:     []string{"NA"},
+			name:        "NA tag",
+			tag:         Tag{0xfffe, 0xe000},
+			wantKeyword: "Item",
+			wantVRs:     []string{"NA"},
 		},
 		{
-			name:            "retired tag",
-			tag:             Tag{0x7f00, 0x0011},
-			expectedKeyword: "VariableNextDataGroup",
-			expectedVRs:     []string{"US"},
-			expectedRetired: true,
+			name:        "retired tag",
+			tag:         Tag{0x7f00, 0x0011},
+			wantKeyword: "VariableNextDataGroup",
+			wantVRs:     []string{"US"},
+			wantRetired: true,
 		},
 		{
-			name:            "file meta tag (group 0002)",
-			tag:             Tag{0x0002, 0x0010},
-			expectedKeyword: "TransferSyntaxUID",
-			expectedVRs:     []string{"UI"},
+			name:        "file meta tag (group 0002)",
+			tag:         Tag{0x0002, 0x0010},
+			wantKeyword: "TransferSyntaxUID",
+			wantVRs:     []string{"UI"},
 		},
 		{
-			name:            "DICOMDIR tag (group 0004)",
-			tag:             Tag{0x0004, 0x1130},
-			expectedKeyword: "FileSetID",
-			expectedVRs:     []string{"CS"},
+			name:        "DICOMDIR tag (group 0004)",
+			tag:         Tag{0x0004, 0x1130},
+			wantKeyword: "FileSetID",
+			wantVRs:     []string{"CS"},
 		},
 		{
-			name:            "tag definition constant",
-			tag:             CodeValue,
-			expectedKeyword: "CodeValue",
-			expectedVRs:     []string{"SH"},
+			name:        "tag definition constant",
+			tag:         CodeValue,
+			wantKeyword: "CodeValue",
+			wantVRs:     []string{"SH"},
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.expectedKeyword, func(t *testing.T) {
+		t.Run(test.wantKeyword, func(t *testing.T) {
 			elem, err := Find(test.tag)
 			if err != nil {
-				t.Fatalf("Find returned unecpected error: %v", err)
+				t.Fatalf("Find returned unexpected error: %v", err)
 			}
-			if elem.Keyword != test.expectedKeyword {
-				t.Errorf("Unexpected keyword, want %s, got %s", test.expectedKeyword, elem.Keyword)
+			if elem.Keyword != test.wantKeyword {
+				t.Errorf("Unexpected keyword, want %s, got %s", test.wantKeyword, elem.Keyword)
 			}
-			if !cmp.Equal(elem.VRs, test.expectedVRs, cmpopts.SortSlices(func(x, y string) bool { return x < y })) {
-				t.Errorf("Unexpected VRs list, want %v, got %v", test.expectedVRs, elem.VRs)
+			if !cmp.Equal(elem.VRs, test.wantVRs, cmpopts.SortSlices(func(x, y string) bool { return x < y })) {
+				t.Errorf("Unexpected VRs list, want %v, got %v", test.wantVRs, elem.VRs)
 			}
-			if elem.Retired != test.expectedRetired {
-				t.Errorf("Unexpected Retired value, want %v, got %v", test.expectedRetired, elem.Retired)
+			if elem.Retired != test.wantRetired {
+				t.Errorf("Unexpected Retired value, want %v, got %v", test.wantRetired, elem.Retired)
 			}
 		})
 	}

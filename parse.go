@@ -161,11 +161,15 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	if err != nil {
 		debug.Log("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
 	} else {
-		bo, implicit, err = uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
+		tsStr := MustGetStrings(ts.Value)[0]
+		bo, implicit, err = uid.ParseTransferSyntaxUID(tsStr)
 		if err != nil {
 			// TODO(suyashkumar): should we attempt to parse with LittleEndian
 			// Implicit here?
 			debug.Log("WARN: could not parse transfer syntax uid in metadata")
+		}
+		if tsStr == uid.DeflatedExplicitVRLittleEndian {
+			p.reader.rawReader.SetDeflate()
 		}
 	}
 	p.SetTransferSyntax(bo, implicit)
@@ -281,8 +285,8 @@ func SkipPixelData() ParseOption {
 // a PixelData element will be added to the dataset with the
 // PixelDataInfo.IntentionallyUnprocessed = true, and the raw bytes of the
 // entire PixelData element stored in PixelDataInfo.UnprocessedValueData.
-// 
-// In the future, we may be able to extend this functionality to support 
+//
+// In the future, we may be able to extend this functionality to support
 // on-demand processing of elements elsewhere in the library.
 func SkipProcessingPixelDataValue() ParseOption {
 	return func(set *parseOptSet) {

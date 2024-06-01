@@ -26,7 +26,8 @@ var (
 	ErrorUnexpectedValueType = errors.New("Unexpected ValueType")
 	// ErrorUnsupportedBitsPerSample indicates that the BitsPerSample in this
 	// Dataset is not supported when unpacking native PixelData.
-	ErrorUnsupportedBitsPerSample = errors.New("unsupported BitsPerSample value")
+	ErrorUnsupportedBitsPerSample          = errors.New("unsupported BitsPerSample value")
+	errorDeflatedTransferSyntaxUnsupported = errors.New("deflated explicit vr little endian transfer syntax not yet support on write (https://github.com/suyashkumar/dicom/issues/323)")
 )
 
 // Writer is a struct that allows element-by element writing to a DICOM writer.
@@ -260,6 +261,9 @@ func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.T
 	elem, err := ds.FindElementByTag(t)
 	if err != nil {
 		return err
+	}
+	if elem.Tag == tag.TransferSyntaxUID && MustGetStrings(elem.Value)[0] == uid.DeflatedExplicitVRLittleEndian {
+		return errorDeflatedTransferSyntaxUnsupported
 	}
 	err = writeElement(w, elem, optSet)
 	if err != nil {

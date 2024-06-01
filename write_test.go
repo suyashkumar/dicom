@@ -3,6 +3,7 @@ package dicom
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"os"
 	"testing"
 
@@ -27,13 +28,13 @@ import (
 // Write implementation (e.g. it kinda goes both ways and covers Parse too).
 func TestWrite(t *testing.T) {
 	cases := []struct {
-		name          string
-		dataset       Dataset
-		extraElems    []*Element
-		expectedError error
-		opts          []WriteOption
-		parseOpts     []ParseOption
-		cmpOpts       []cmp.Option
+		name       string
+		dataset    Dataset
+		extraElems []*Element
+		wantError  error
+		opts       []WriteOption
+		parseOpts  []ParseOption
+		cmpOpts    []cmp.Option
 	}{
 		{
 			name: "basic types",
@@ -58,7 +59,7 @@ func TestWrite(t *testing.T) {
 					},
 				},
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "private tag",
@@ -70,7 +71,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.TransferSyntaxUID, []string{uid.ExplicitVRLittleEndian}),
 				mustNewPrivateElement(tag.Tag{0x0003, 0x0010}, vrraw.ShortText, []string{"some data"}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "sequence (2 Items with 2 values each)",
@@ -120,7 +121,7 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "sequence (2 Items with 2 values each) - skip vr verification",
@@ -170,8 +171,8 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
-			opts:          []WriteOption{SkipVRVerification()},
+			wantError: nil,
+			opts:      []WriteOption{SkipVRVerification()},
 		},
 		{
 			name: "nested sequences",
@@ -207,7 +208,7 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "nested sequences - without VR verification",
@@ -243,8 +244,8 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
-			opts:          []WriteOption{SkipVRVerification()},
+			wantError: nil,
+			opts:      []WriteOption{SkipVRVerification()},
 		},
 		{
 			name: "without transfer syntax",
@@ -255,7 +256,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.Rows, []int{128}),
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
-			expectedError: ErrorElementNotFound,
+			wantError: ErrorElementNotFound,
 		},
 		{
 			name: "without transfer syntax with DefaultMissingTransferSyntax",
@@ -267,9 +268,9 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 			}},
 			// This gets inserted if DefaultMissingTransferSyntax is provided:
-			extraElems:    []*Element{mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})},
-			expectedError: nil,
-			opts:          []WriteOption{DefaultMissingTransferSyntax()},
+			extraElems: []*Element{mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})},
+			wantError:  nil,
+			opts:       []WriteOption{DefaultMissingTransferSyntax()},
 		},
 		{
 			name: "native PixelData: 8bit",
@@ -299,7 +300,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "native PixelData: 16bit",
@@ -327,7 +328,7 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "native PixelData: 32bit",
@@ -355,7 +356,7 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "native PixelData: 2 SamplesPerPixel, 2 frames",
@@ -392,7 +393,7 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "encapsulated PixelData",
@@ -419,7 +420,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "encapsulated PixelData: multiframe",
@@ -444,7 +445,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "native_PixelData_2samples_2frames_BigEndian",
@@ -481,7 +482,7 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "native_PixelData_odd_bytes",
@@ -509,7 +510,7 @@ func TestWrite(t *testing.T) {
 					},
 				}),
 			}},
-			expectedError: nil,
+			wantError: nil,
 		},
 		{
 			name: "PixelData with IntentionallyUnprocessed=true",
@@ -526,8 +527,8 @@ func TestWrite(t *testing.T) {
 					IsEncapsulated:           false,
 				}),
 			}},
-			parseOpts:     []ParseOption{SkipProcessingPixelDataValue()},
-			expectedError: nil,
+			parseOpts: []ParseOption{SkipProcessingPixelDataValue()},
+			wantError: nil,
 		},
 		{
 			name: "Native PixelData with IntentionallySkipped=true",
@@ -542,8 +543,8 @@ func TestWrite(t *testing.T) {
 					IsEncapsulated:       false,
 				}),
 			}},
-			parseOpts:     []ParseOption{SkipPixelData()},
-			expectedError: nil,
+			parseOpts: []ParseOption{SkipPixelData()},
+			wantError: nil,
 		},
 		{
 			name: "Encapsulated PixelData with IntentionallySkipped=true",
@@ -558,8 +559,23 @@ func TestWrite(t *testing.T) {
 					IsEncapsulated:       true,
 				})),
 			}},
-			parseOpts:     []ParseOption{SkipPixelData()},
-			expectedError: nil,
+			parseOpts: []ParseOption{SkipPixelData()},
+			wantError: nil,
+		},
+		{
+			name: "deflated transfer syntax returns error",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.DeflatedExplicitVRLittleEndian}),
+				mustNewElement(tag.BitsAllocated, []int{8}),
+				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+				setUndefinedLength(mustNewElement(tag.PixelData, PixelDataInfo{
+					IntentionallySkipped: true,
+					IsEncapsulated:       true,
+				})),
+			}},
+			parseOpts: []ParseOption{SkipPixelData()}, wantError: errorDeflatedTransferSyntaxUnsupported,
 		},
 	}
 	for _, tc := range cases {
@@ -568,12 +584,12 @@ func TestWrite(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error when creating tempfile: %v", err)
 			}
-			if err = Write(file, tc.dataset, tc.opts...); err != tc.expectedError {
-				t.Fatalf("Write(%v): unexpected error. got: %v, want: %v", tc.dataset, err, tc.expectedError)
+			if err = Write(file, tc.dataset, tc.opts...); !errors.Is(err, tc.wantError) {
+				t.Fatalf("Write(%v): unexpected error. got: %v, want: %v", tc.dataset, err, tc.wantError)
 			}
 			file.Close()
 			// If we expect an error, we do not need to continue to check the value of the written data, so we continue to the next test case.
-			if tc.expectedError != nil {
+			if tc.wantError != nil {
 				return
 			}
 			// Read the data back in and check for equality to the tc.dataset:

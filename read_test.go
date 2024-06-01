@@ -915,7 +915,7 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 	}
 }
 
-func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, dicomio.Reader) {
+func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, *dicomio.Reader) {
 	b.Helper()
 	dataset := Dataset{
 		Elements: []*Element{

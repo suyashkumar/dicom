@@ -14,8 +14,8 @@ type Writer struct {
 }
 
 // NewWriter initializes and returns a Writer.
-func NewWriter(out io.Writer, bo binary.ByteOrder, implicit bool) Writer {
-	return Writer{
+func NewWriter(out io.Writer, bo binary.ByteOrder, implicit bool) *Writer {
+	return &Writer{
 		out:      out,
 		bo:       bo,
 		implicit: implicit,

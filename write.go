@@ -32,7 +32,7 @@ var (
 
 // Writer is a struct that allows element-by element writing to a DICOM writer.
 type Writer struct {
-	writer dicomio.Writer
+	writer *dicomio.Writer
 	optSet *writeOptSet
 }
 
@@ -145,7 +145,7 @@ func toWriteOptSet(opts ...WriteOption) *writeOptSet {
 	return optSet
 }
 
-func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts writeOptSet) error {
+func writeFileHeader(w *dicomio.Writer, ds *Dataset, metaElems []*Element, opts writeOptSet) error {
 	// File headers are always written in littleEndian explicit
 	w.SetTransferSyntax(binary.LittleEndian, false)
 
@@ -211,7 +211,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	return nil
 }
 
-func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
+func writeElement(w *dicomio.Writer, elem *Element, opts writeOptSet) error {
 	vr := elem.RawValueRepresentation
 	var err error
 	vr, err = verifyVROrDefault(elem.Tag, elem.RawValueRepresentation, opts)
@@ -257,7 +257,7 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	return nil
 }
 
-func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.Tag]bool, optSet writeOptSet) error {
+func writeMetaElem(w *dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.Tag]bool, optSet writeOptSet) error {
 	elem, err := ds.FindElementByTag(t)
 	if err != nil {
 		return err
@@ -336,7 +336,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 	return nil
 }
 
-func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
+func writeTag(w *dicomio.Writer, t tag.Tag, vl uint32) error {
 	if vl%2 != 0 && vl != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
 			tag.DebugString(t), vl)
@@ -347,7 +347,7 @@ func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
 	return w.WriteUInt16(t.Element)
 }
 
-func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
+func writeVRVL(w *dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 	// Rectify Undefined Length VL
 	if vl == 0xffff {
 		vl = tag.VLUndefinedLength
@@ -397,7 +397,7 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 	return nil
 }
 
-func writeRawItem(w dicomio.Writer, data []byte) error {
+func writeRawItem(w *dicomio.Writer, data []byte) error {
 	length := uint32(len(data))
 	if err := writeTag(w, tag.Item, length); err != nil {
 		return err
@@ -411,7 +411,7 @@ func writeRawItem(w dicomio.Writer, data []byte) error {
 	return nil
 }
 
-func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) error {
+func writeBasicOffsetTable(w *dicomio.Writer, offsets []uint32) error {
 	byteOrder, implicit := w.GetTransferSyntax()
 	data := &bytes.Buffer{}
 	subWriter := dicomio.NewWriter(data, byteOrder, implicit)
@@ -423,7 +423,7 @@ func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) error {
 	return writeRawItem(w, data.Bytes())
 }
 
-func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
+func encodeElementHeader(w *dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 	err := writeTag(w, t, vl)
 	if err != nil {
 		return err
@@ -435,7 +435,7 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 	return nil
 }
 
-func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32, opts writeOptSet) error {
+func writeValue(w *dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32, opts writeOptSet) error {
 	if vl == tag.VLUndefinedLength && valueType <= 2 { // strings, bytes or ints
 		return fmt.Errorf("encoding undefined-length element not yet supported: %v", t)
 	}
@@ -461,7 +461,7 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 	}
 }
 
-func writeStrings(w dicomio.Writer, values []string, vr string) error {
+func writeStrings(w *dicomio.Writer, values []string, vr string) error {
 	s := ""
 	for i, substr := range values {
 		if i > 0 {
@@ -490,7 +490,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 	return nil
 }
 
-func writeBytes(w dicomio.Writer, values []byte, vr string) error {
+func writeBytes(w *dicomio.Writer, values []byte, vr string) error {
 	var err error
 	switch vr {
 	case vrraw.OtherWord, vrraw.Unknown:
@@ -506,7 +506,7 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	return nil
 }
 
-func writeInts(w dicomio.Writer, values []int, vr string) error {
+func writeInts(w *dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
 		// TODO(suyashkumar): consider additional validation of VR=AT elements.
@@ -525,7 +525,7 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	return nil
 }
 
-func writeFloats(w dicomio.Writer, v Value, vr string) error {
+func writeFloats(w *dicomio.Writer, v Value, vr string) error {
 	if v.ValueType() != Floats {
 		return ErrorUnexpectedValueType
 	}
@@ -551,7 +551,7 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 	return nil
 }
 
-func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
+func writePixelData(w *dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 
 	if vl == tag.VLUndefinedLength {
@@ -628,7 +628,7 @@ var sequenceDelimitationItem = &Element{
 	ValueLength: 0, // This should be 00000000H in base32
 }
 
-func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts writeOptSet) error {
+func writeSequence(w *dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts writeOptSet) error {
 	// We always write out sequences using the undefined length encoding.
 	// Note: we currently don't validate that the length of the sequence matches
 	// the VL if it's not undefined VL.
@@ -663,7 +663,7 @@ var item = &Element{
 	ValueLength: tag.VLUndefinedLength,
 }
 
-func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts writeOptSet) error {
+func writeSequenceItem(w *dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts writeOptSet) error {
 	// Write out item header.
 	if err := writeElement(w, item, opts); err != nil {
 		return err
@@ -680,7 +680,7 @@ func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string
 	return writeElement(w, sequenceItemDelimitationItem, opts)
 }
 
-func writeOtherWordString(w dicomio.Writer, data []byte) error {
+func writeOtherWordString(w *dicomio.Writer, data []byte) error {
 	if len(data)%2 != 0 {
 		return ErrorOWRequiresEvenVL
 	}
@@ -699,7 +699,7 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 	return nil
 }
 
-func writeOtherByteString(w dicomio.Writer, data []byte) error {
+func writeOtherByteString(w *dicomio.Writer, data []byte) error {
 	if err := w.WriteBytes(data); err != nil {
 		return err
 	}

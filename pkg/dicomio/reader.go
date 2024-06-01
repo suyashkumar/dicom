@@ -24,67 +24,7 @@ var (
 // Reader should read until EOF.
 const LimitReadUntilEOF = -9999
 
-// Reader provides common functionality for reading underlying DICOM data.
-type Reader interface {
-	io.Reader
-	// ReadUInt8 reads a uint16 from the underlying reader.
-	ReadUInt8() (uint8, error)
-	// ReadUInt16 reads a uint16 from the underlying reader.
-	ReadUInt16() (uint16, error)
-	// ReadUInt32 reads a uint32 from the underlying reader.
-	ReadUInt32() (uint32, error)
-	// ReadInt16 reads a int16 from the underlying reader.
-	ReadInt16() (int16, error)
-	// ReadInt32 reads a int32 from the underlying reader.
-	ReadInt32() (int32, error)
-	// ReadFloat32 reads a float32 from the underlying reader.
-	ReadFloat32() (float32, error)
-	// ReadFloat64 reads a float32 from the underlying reader.
-	ReadFloat64() (float64, error)
-	// ReadString reads an n byte string from the underlying reader.
-	// Uses the charset.CodingSystem encoding decoders to read the string, if
-	// set.
-	ReadString(n uint32) (string, error)
-	// Skip skips the reader ahead by n bytes.
-	Skip(n int64) error
-	// Peek returns the next n bytes without advancing the reader. This will
-	// return bufio.ErrBufferFull if the buffer is full.
-	Peek(n int) ([]byte, error)
-	// PushLimit sets a read limit of n bytes from the current position of the
-	// reader. Once the limit is reached, IsLimitExhausted will return true, and
-	// other attempts to read data from dicomio.Reader will return io.EOF.
-	PushLimit(n int64) error
-	// PopLimit removes the most recent limit set, and restores the limit before
-	// that one.
-	PopLimit()
-	// IsLimitExhausted indicates whether or not we have read up to the
-	// currently set limit position.
-	IsLimitExhausted() bool
-	// BytesLeftUntilLimit returns the number of bytes remaining until we reach
-	// the currently set limit position.
-	BytesLeftUntilLimit() int64
-	// SetTransferSyntax sets the byte order and whether the current transfer
-	// syntax is implicit or not.
-	SetTransferSyntax(bo binary.ByteOrder, implicit bool)
-	// IsImplicit returns if the currently set transfer syntax on this Reader is
-	// implicit or not.
-	IsImplicit() bool
-	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString
-	// is called.
-	SetCodingSystem(cs charset.CodingSystem)
-	// ByteOrder returns the current byte order.
-	ByteOrder() binary.ByteOrder
-	// SetDeflate applies deflate decompression to the underlying reader for all
-	// subsequent reads. This should be set when working with a deflated
-	// transfer syntax. Right now this is expected to be called once when
-	// parsing the top level dicom data, and there is no facility to swap
-	// between deflate and non-deflate reading.
-	// This also sets the current limit to LimitReadUntilEOF, since the original
-	// limits (if any) will be based on uncompressed bytes.
-	SetDeflate()
-}
-
-type reader struct {
+type Reader struct {
 	in         *bufio.Reader
 	bo         binary.ByteOrder
 	implicit   bool
@@ -97,9 +37,9 @@ type reader struct {
 	cs charset.CodingSystem
 }
 
-// NewReader creates and returns a new dicomio.Reader.
-func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) Reader {
-	return &reader{
+// NewReader creates and returns a new *dicomio.Reader.
+func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) *Reader {
+	return &Reader{
 		in:        in,
 		bo:        bo,
 		limit:     limit,
@@ -107,14 +47,14 @@ func NewReader(in *bufio.Reader, bo binary.ByteOrder, limit int64) Reader {
 	}
 }
 
-func (r *reader) BytesLeftUntilLimit() int64 {
+func (r *Reader) BytesLeftUntilLimit() int64 {
 	if r.limit == LimitReadUntilEOF {
 		return math.MaxInt64
 	}
 	return r.limit - r.bytesRead
 }
 
-func (r *reader) Read(p []byte) (int, error) {
+func (r *Reader) Read(p []byte) (int, error) {
 	// Check if we've hit the limit
 	if r.BytesLeftUntilLimit() <= 0 {
 		if len(p) == 0 {
@@ -135,43 +75,50 @@ func (r *reader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (r *reader) ReadUInt8() (uint8, error) {
+// ReadUInt8 reads an uint8 from the underlying *Reader.
+func (r *Reader) ReadUInt8() (uint8, error) {
 	var out uint8
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
 
-func (r *reader) ReadUInt16() (uint16, error) {
+// ReadUInt16 reads an uint16 from the underlying *Reader.
+func (r *Reader) ReadUInt16() (uint16, error) {
 	var out uint16
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
 
-func (r *reader) ReadUInt32() (uint32, error) {
+// ReadUInt32 reads an uint32 from the underlying *Reader.
+func (r *Reader) ReadUInt32() (uint32, error) {
 	var out uint32
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
 
-func (r *reader) ReadInt16() (int16, error) {
+// ReadInt16 reads an int16 from the underlying *Reader.
+func (r *Reader) ReadInt16() (int16, error) {
 	var out int16
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
 
-func (r *reader) ReadInt32() (int32, error) {
+// ReadInt32 reads an int32 from the underlying *Reader.
+func (r *Reader) ReadInt32() (int32, error) {
 	var out int32
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
 
-func (r *reader) ReadFloat32() (float32, error) {
+// ReadFloat32 reads a float32 from the underlying *Reader.
+func (r *Reader) ReadFloat32() (float32, error) {
 	var out float32
 	err := binary.Read(r, r.bo, &out)
 	return out, err
 }
 
-func (r *reader) ReadFloat64() (float64, error) {
+// ReadFloat64 reads a float64 from the underlying *Reader.
+func (r *Reader) ReadFloat64() (float64, error) {
 	var out float64
 	err := binary.Read(r, r.bo, &out)
 	return out, err
@@ -192,7 +139,8 @@ func internalReadString(data []byte, d *encoding.Decoder) (string, error) {
 	return string(bytes), nil
 }
 
-func (r *reader) ReadString(n uint32) (string, error) {
+// ReadString reads a string from the underlying *Reader.
+func (r *Reader) ReadString(n uint32) (string, error) {
 	data := make([]byte, n)
 	_, err := io.ReadFull(r, data)
 	if err != nil {
@@ -200,7 +148,9 @@ func (r *reader) ReadString(n uint32) (string, error) {
 	}
 	return internalReadString(data, r.cs.Ideographic)
 }
-func (r *reader) Skip(n int64) error {
+
+// Skip skips the *Reader ahead by n bytes.
+func (r *Reader) Skip(n int64) error {
 	if r.BytesLeftUntilLimit() < n {
 		// not enough left to skip
 		return ErrorInsufficientBytesLeft
@@ -211,8 +161,8 @@ func (r *reader) Skip(n int64) error {
 	return err
 }
 
-// PushLimit creates a limit n bytes from the current position
-func (r *reader) PushLimit(n int64) error {
+// PushLimit creates a limit n bytes from the current position.
+func (r *Reader) PushLimit(n int64) error {
 	newLimit := r.bytesRead + n
 	if newLimit > r.limit && r.limit != LimitReadUntilEOF {
 		return fmt.Errorf("new limit exceeds current limit of buffer, new limit: %d, limit: %d", newLimit, r.limit)
@@ -223,7 +173,10 @@ func (r *reader) PushLimit(n int64) error {
 	r.limit = newLimit
 	return nil
 }
-func (r *reader) PopLimit() {
+
+// PopLimit removes the most recent limit set, and restores the limit before
+// that one.
+func (r *Reader) PopLimit() {
 	if r.bytesRead < r.limit && r.limit != LimitReadUntilEOF {
 		// didn't read all the way to the limit, so skip over what's left.
 		_ = r.Skip(r.limit - r.bytesRead)
@@ -234,33 +187,47 @@ func (r *reader) PopLimit() {
 	r.limitStack = r.limitStack[:last]
 }
 
-func (r *reader) IsLimitExhausted() bool {
+func (r *Reader) IsLimitExhausted() bool {
 	// if limit < 0 than we should read until EOF
 	return (r.BytesLeftUntilLimit() <= 0 && r.limit != LimitReadUntilEOF)
 }
 
-func (r *reader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
+func (r *Reader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
 	r.bo = bo
 	r.implicit = implicit
 }
 
-func (r *reader) SetDeflate() {
+// SetDeflate applies deflate decompression to the underlying *Reader for all
+// subsequent reads. This should be set when working with a deflated
+// transfer syntax. Right now this is expected to be called once when
+// parsing the top level dicom data, and there is no facility to swap
+// between deflate and non-deflate reading.
+// This also sets the current limit to LimitReadUntilEOF, since the original
+// limits (if any) will be based on uncompressed bytes.
+func (r *Reader) SetDeflate() {
 	r.in = bufio.NewReader(flate.NewReader(r.in))
 	// TODO(https://github.com/suyashkumar/dicom/issues/320): consider always
 	// having the top level limit read until EOF.
-	r.limit = LimitReadUntilEOF // needed because original limits may not apply to the deflated reader
+	r.limit = LimitReadUntilEOF // needed because original limits may not apply to the deflated *Reader
 }
 
-func (r *reader) IsImplicit() bool { return r.implicit }
+// IsImplicit returns if the currently set transfer syntax on this *Reader is
+// implicit or not.
+func (r *Reader) IsImplicit() bool { return r.implicit }
 
-func (r *reader) SetCodingSystem(cs charset.CodingSystem) {
+// SetCodingSystem sets the charset.CodingSystem to be used when ReadString
+// is called.
+func (r *Reader) SetCodingSystem(cs charset.CodingSystem) {
 	r.cs = cs
 }
 
-func (r *reader) Peek(n int) ([]byte, error) {
+// Peek reads and returns the next n bytes (if possible) without advancing the
+// underlying reader.
+func (r *Reader) Peek(n int) ([]byte, error) {
 	return r.in.Peek(n)
 }
 
-func (r *reader) ByteOrder() binary.ByteOrder {
+// ByteOrder returns the current byte order.
+func (r *Reader) ByteOrder() binary.ByteOrder {
 	return r.bo
 }

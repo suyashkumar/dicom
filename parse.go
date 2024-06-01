@@ -219,7 +219,7 @@ func (p *Parser) GetMetadata() Dataset {
 	return p.metadata
 }
 
-// SetTransferSyntax sets the transfer syntax for the underlying dicomio.Reader.
+// SetTransferSyntax sets the transfer syntax for the underlying *dicomio.Reader.
 func (p *Parser) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
 	p.reader.rawReader.SetTransferSyntax(bo, implicit)
 }

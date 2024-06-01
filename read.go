@@ -34,12 +34,12 @@ var (
 )
 
 // reader is responsible for mid-level dicom parsing capabilities, like
-// reading tags, VRs, and elements from the low-level dicomio.Reader dicom data.
+// reading tags, VRs, and elements from the low-level *dicomio.Reader dicom data.
 // TODO(suyashkumar): consider revisiting naming of this struct "reader" as it
-// interplays with the rawReader dicomio.Reader. We could consider combining
-// them, or embedding the dicomio.Reader struct into reader.
+// interplays with the rawReader *dicomio.Reader. We could consider combining
+// them, or embedding the *dicomio.Reader struct into reader.
 type reader struct {
-	rawReader dicomio.Reader
+	rawReader *dicomio.Reader
 	opts      parseOptSet
 }
 
@@ -315,7 +315,7 @@ func getNthBit(data byte, n int) int {
 	return 0
 }
 
-func fillBufferSingleBitAllocated(pixelData []int, d dicomio.Reader, bo binary.ByteOrder) error {
+func fillBufferSingleBitAllocated(pixelData []int, d *dicomio.Reader, bo binary.ByteOrder) error {
 	debug.Logf("len of pixeldata: %d", len(pixelData))
 	if len(pixelData)%8 > 0 {
 		return errors.New("when bitsAllocated is 1, we can't read a number of samples that is not a multiple of 8")

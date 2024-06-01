@@ -2,6 +2,7 @@ package dicomio
 
 import (
 	"bufio"
+	"compress/flate"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -71,7 +72,16 @@ type Reader interface {
 	// SetCodingSystem sets the charset.CodingSystem to be used when ReadString
 	// is called.
 	SetCodingSystem(cs charset.CodingSystem)
+	// ByteOrder returns the current byte order.
 	ByteOrder() binary.ByteOrder
+	// SetDeflate applies deflate decompression to the underlying reader for all
+	// subsequent reads. This should be set when working with a deflated
+	// transfer syntax. Right now this is expected to be called once when
+	// parsing the top level dicom data, and there is no facility to swap
+	// between deflate and non-deflate reading.
+	// This also sets the current limit to LimitReadUntilEOF, since the original
+	// limits (if any) will be based on uncompressed bytes.
+	SetDeflate()
 }
 
 type reader struct {
@@ -232,6 +242,13 @@ func (r *reader) IsLimitExhausted() bool {
 func (r *reader) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
 	r.bo = bo
 	r.implicit = implicit
+}
+
+func (r *reader) SetDeflate() {
+	r.in = bufio.NewReader(flate.NewReader(r.in))
+	// TODO(https://github.com/suyashkumar/dicom/issues/320): consider always
+	// having the top level limit read until EOF.
+	r.limit = LimitReadUntilEOF // needed because original limits may not apply to the deflated reader
 }
 
 func (r *reader) IsImplicit() bool { return r.implicit }

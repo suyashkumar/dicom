@@ -158,9 +158,8 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	implicit := true
 
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
-	if err != nil {
-		debug.Log("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
-	} else {
+	if err == nil {
+		// If we found the transfer syntax, apply it.
 		tsStr := MustGetStrings(ts.Value)[0]
 		bo, implicit, err = uid.ParseTransferSyntaxUID(tsStr)
 		if err != nil {
@@ -171,6 +170,10 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 		if tsStr == uid.DeflatedExplicitVRLittleEndian {
 			p.reader.rawReader.SetDeflate()
 		}
+	} else {
+		// No transfer syntax found, warn the user we're proceeding with the
+		// default Little Endian implicit.
+		debug.Log("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
 	}
 	p.SetTransferSyntax(bo, implicit)
 

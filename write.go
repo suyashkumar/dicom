@@ -66,7 +66,7 @@ func (w *Writer) writeDataset(ds Dataset) error {
 		return err
 	}
 
-	endian, implicit, err := ds.transferSyntax()
+	endian, implicit, err := ds.TransferSyntax()
 	if (err != nil && err != ErrorElementNotFound) || (err == ErrorElementNotFound && !w.optSet.defaultMissingTransferSyntax) {
 		return err
 	}

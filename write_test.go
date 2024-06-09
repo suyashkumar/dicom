@@ -51,7 +51,7 @@ func TestWrite(t *testing.T) {
 				// Some tag with an unknown VR.
 				{
 					Tag:                    tag.Tag{0x0019, 0x1027},
-					ValueRepresentation:    tag.VRBytes,
+					ValueRepresentation:    tag.VRUnknown,
 					RawValueRepresentation: "UN",
 					ValueLength:            4,
 					Value: &bytesValue{
@@ -576,6 +576,41 @@ func TestWrite(t *testing.T) {
 				})),
 			}},
 			parseOpts: []ParseOption{SkipPixelData()}, wantError: errorDeflatedTransferSyntaxUnsupported,
+		},
+		{
+			name: "nested unknown sequences",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.13"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				makeUNSequenceElement(tag.Tag{0x0019, 0x1027}, [][]*Element{
+					// Item 1.
+					{
+						{
+							Tag:                    tag.Tag{0x0019, 0x1028},
+							ValueRepresentation:    tag.VRUnknown,
+							RawValueRepresentation: "UN",
+							Value: &bytesValue{
+								value: []byte{0x1, 0x2, 0x3, 0x4},
+							},
+						},
+						// Nested Sequence.
+						makeUNSequenceElement(tag.Tag{0x0019, 0x1029}, [][]*Element{
+							{
+								{
+									Tag:                    tag.PatientName,
+									ValueRepresentation:    tag.VRStringList,
+									RawValueRepresentation: "PN",
+									Value: &stringsValue{
+										value: []string{"Bob", "Jones"},
+									},
+								},
+							},
+						}),
+					},
+				}),
+			}},
 		},
 	}
 	for _, tc := range cases {

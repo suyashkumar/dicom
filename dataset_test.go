@@ -8,13 +8,13 @@ import (
 	"github.com/suyashkumar/dicom/pkg/tag"
 )
 
-func makeSequenceElement(tg tag.Tag, items [][]*Element) *Element {
+func makeSequenceElement(tg tag.Tag, items [][]*Element, unknown bool) *Element {
 	sequenceItems := make([]*SequenceItemValue, 0, len(items))
 	for _, item := range items {
 		sequenceItems = append(sequenceItems, &SequenceItemValue{elements: item})
 	}
 
-	return &Element{
+	e := &Element{
 		Tag:                    tg,
 		ValueRepresentation:    tag.VRSequence,
 		RawValueRepresentation: "SQ",
@@ -22,6 +22,14 @@ func makeSequenceElement(tg tag.Tag, items [][]*Element) *Element {
 			value: sequenceItems,
 		},
 	}
+
+	if unknown {
+		e.ValueRepresentation = tag.VRUnknown
+		e.RawValueRepresentation = "UN"
+		e.ValueLength = tag.VLUndefinedLength
+	}
+
+	return e
 }
 
 func TestDataset_FindElementByTag(t *testing.T) {
@@ -83,9 +91,9 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 							{
 								mustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 							},
-						}),
+						}, false),
 					},
-				}),
+				}, false),
 			}},
 			expectedFlatElements: []*Element{
 				// First, expect the entire SQ element
@@ -98,9 +106,9 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 							{
 								mustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 							},
-						}),
+						}, false),
 					},
-				}),
+				}, false),
 				// Then expect the inner elements
 				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
 				// Inner SQ element
@@ -108,7 +116,7 @@ func TestDataset_FlatStatefulIterator(t *testing.T) {
 					{
 						mustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 					},
-				}),
+				}, false),
 				// Inner element of the inner SQ
 				mustNewElement(tag.PatientName, []string{"Bob", "Smith"}),
 			},
@@ -139,7 +147,7 @@ func ExampleDataset_FlatIterator() {
 		Elements: []*Element{
 			mustNewElement(tag.Rows, []int{100}),
 			mustNewElement(tag.Columns, []int{100}),
-			makeSequenceElement(tag.AddOtherSequence, nestedData),
+			makeSequenceElement(tag.AddOtherSequence, nestedData, false),
 		},
 	}
 
@@ -172,7 +180,7 @@ func ExampleDataset_FlatIteratorWithExhaustAllElements() {
 		Elements: []*Element{
 			mustNewElement(tag.Rows, []int{100}),
 			mustNewElement(tag.Columns, []int{100}),
-			makeSequenceElement(tag.AddOtherSequence, nestedData),
+			makeSequenceElement(tag.AddOtherSequence, nestedData, false),
 		},
 	}
 
@@ -220,7 +228,7 @@ func ExampleDataset_FlatStatefulIterator() {
 					value: []int{200},
 				},
 			},
-			makeSequenceElement(tag.AddOtherSequence, nestedData),
+			makeSequenceElement(tag.AddOtherSequence, nestedData, false),
 		},
 	}
 

@@ -127,6 +127,19 @@ func readValue(r dicomio.Reader, t tag.Tag, vr string, vl uint32, isImplicit boo
 		return readPixelData(r, t, vr, vl, d, fc)
 	case tag.VRFloat32List, tag.VRFloat64List:
 		return readFloat(r, t, vr, vl)
+	// More details on how we treat Unknown VRs can be found at
+	// https://github.com/suyashkumar/dicom/issues/220
+	// and
+	// https://github.com/suyashkumar/dicom/issues/231.
+	// It remains to be seen if this fits most DICOMs we see in the wild.
+	// TODO(suyashkumar): consider replacing UN VRs with SQ earlier on if they
+	// meet this criteria, so users of the Dataset can interact with it
+	// correctly.
+	case tag.VRUnknown:
+		if isImplicit && vl == tag.VLUndefinedLength {
+			return readSequence(r, t, vr, vl)
+		}
+		return readBytes(r, t, vr, vl)
 	default:
 		return readString(r, t, vr, vl)
 	}
@@ -433,7 +446,7 @@ func readSequenceItem(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value,
 
 func readBytes(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error) {
 	// TODO: add special handling of PixelData
-	if vr == vrraw.OtherByte {
+	if vr == vrraw.OtherByte || vr == vrraw.Unknown {
 		data := make([]byte, vl)
 		_, err := io.ReadFull(r, data)
 		return &bytesValue{value: data}, err
@@ -477,7 +490,6 @@ func readString(r dicomio.Reader, t tag.Tag, vr string, vl uint32) (Value, error
 
 	// Split multiple strings
 	strs := strings.Split(str, "\\")
-
 	return &stringsValue{value: strs}, err
 }
 

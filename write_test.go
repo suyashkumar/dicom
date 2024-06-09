@@ -47,6 +47,17 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.FloatingPointValue, []float64{128.10}),
 				mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
 				mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+				mustNewElement(tag.SelectorSLValue, []int{-20}),
+				// Some tag with an unknown VR.
+				{
+					Tag:                    tag.Tag{0x0019, 0x1027},
+					ValueRepresentation:    tag.VRUnknown,
+					RawValueRepresentation: "UN",
+					ValueLength:            4,
+					Value: &bytesValue{
+						value: []byte{0x1, 0x2, 0x3, 0x4},
+					},
+				},
 			}},
 			expectedError: nil,
 		},
@@ -108,7 +119,7 @@ func TestWrite(t *testing.T) {
 							},
 						},
 					},
-				}),
+				}, false),
 			}},
 			expectedError: nil,
 		},
@@ -158,7 +169,7 @@ func TestWrite(t *testing.T) {
 							},
 						},
 					},
-				}),
+				}, false),
 			}},
 			expectedError: nil,
 			opts:          []WriteOption{SkipVRVerification()},
@@ -193,9 +204,45 @@ func TestWrite(t *testing.T) {
 									},
 								},
 							},
-						}),
+						}, false),
 					},
-				}),
+				}, false),
+			}},
+			expectedError: nil,
+		},
+		{
+			name: "nested unknown sequences",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.13"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+				makeSequenceElement(tag.Tag{0x0019, 0x1027}, [][]*Element{
+					// Item 1.
+					{
+						{
+							Tag:                    tag.Tag{0x0019, 0x1028},
+							ValueRepresentation:    tag.VRUnknown,
+							RawValueRepresentation: "UN",
+							Value: &bytesValue{
+								value: []byte{0x1, 0x2, 0x3, 0x4},
+							},
+						},
+						// Nested Sequence.
+						makeSequenceElement(tag.Tag{0x0019, 0x1029}, [][]*Element{
+							{
+								{
+									Tag:                    tag.PatientName,
+									ValueRepresentation:    tag.VRStringList,
+									RawValueRepresentation: "PN",
+									Value: &stringsValue{
+										value: []string{"Bob", "Jones"},
+									},
+								},
+							},
+						}, true),
+					},
+				}, true),
 			}},
 			expectedError: nil,
 		},
@@ -229,9 +276,9 @@ func TestWrite(t *testing.T) {
 									},
 								},
 							},
-						}),
+						}, false),
 					},
-				}),
+				}, false),
 			}},
 			expectedError: nil,
 			opts:          []WriteOption{SkipVRVerification()},

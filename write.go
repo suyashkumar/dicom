@@ -321,6 +321,8 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		}
 	case vrraw.FloatingPointSingle, vrraw.FloatingPointDouble:
 		ok = valueType == Floats
+	case vrraw.Unknown:
+		ok = (valueType == Bytes || valueType == Sequences)
 	default:
 		ok = valueType == Strings
 	}
@@ -488,7 +490,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	var err error
 	switch vr {
-	case vrraw.OtherWord:
+	case vrraw.OtherWord, vrraw.Unknown:
 		err = writeOtherWordString(w, values)
 	case vrraw.OtherByte:
 		err = writeOtherByteString(w, values)

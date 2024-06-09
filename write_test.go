@@ -51,7 +51,7 @@ func TestWrite(t *testing.T) {
 				// Some tag with an unknown VR.
 				{
 					Tag:                    tag.Tag{0x0019, 0x1027},
-					ValueRepresentation:    tag.VRBytes,
+					ValueRepresentation:    tag.VRUnknown,
 					RawValueRepresentation: "UN",
 					ValueLength:            4,
 					Value: &bytesValue{

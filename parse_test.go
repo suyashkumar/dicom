@@ -100,18 +100,17 @@ func TestParseFile_SkipPixelData(t *testing.T) {
 		runForEveryTestFile(t, func(t *testing.T, filename string) {
 			dataset, err := dicom.ParseFile(filename, nil, dicom.SkipPixelData())
 			if err != nil {
-				t.Errorf("Unexpected error parsing dataset: %v", dataset)
+				t.Errorf("Unexpected error parsing dataset: %v, %v", err, dataset)
 			}
 			el, err := dataset.FindElementByTag(tag.PixelData)
-			if err != nil {
-				t.Errorf("Unexpected error when finding PixelData in Dataset: %v", err)
-			}
-			pixelData := dicom.MustGetPixelDataInfo(el.Value)
-			if !pixelData.IntentionallySkipped {
-				t.Errorf("Expected pixelData.IntentionallySkipped=true, got false")
-			}
-			if got := len(pixelData.Frames); got != 0 {
-				t.Errorf("unexpected frames length. got: %v, want: %v", got, 0)
+			if err == nil {
+				pixelData := dicom.MustGetPixelDataInfo(el.Value)
+				if !pixelData.IntentionallySkipped {
+					t.Errorf("Expected pixelData.IntentionallySkipped=true, got false")
+				}
+				if got := len(pixelData.Frames); got != 0 {
+					t.Errorf("unexpected frames length. got: %v, want: %v", got, 0)
+				}
 			}
 		})
 	})

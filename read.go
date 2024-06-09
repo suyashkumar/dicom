@@ -143,6 +143,19 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 		return r.readPixelData(vl, d, fc)
 	case tag.VRFloat32List, tag.VRFloat64List:
 		return r.readFloat(t, vr, vl)
+	// More details on how we treat Unknown VRs can be found at
+	// https://github.com/suyashkumar/dicom/issues/220
+	// and
+	// https://github.com/suyashkumar/dicom/issues/231.
+	// It remains to be seen if this fits most DICOMs we see in the wild.
+	// TODO(suyashkumar): consider replacing UN VRs with SQ earlier on if they
+	// meet this criteria, so users of the Dataset can interact with it
+	// correctly.
+	case tag.VRUnknown:
+		if vl == tag.VLUndefinedLength {
+			return r.readSequence(t, vr, vl, d)
+		}
+		return r.readBytes(t, vr, vl)
 	default:
 		return r.readString(t, vr, vl)
 	}

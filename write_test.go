@@ -896,8 +896,8 @@ func TestWriteElement(t *testing.T) {
 	}
 }
 
-func TestWrite_OverrideMissingTransferSyntaxWith(t *testing.T) {
-	ds := Dataset{Elements: []*Element{
+func TestWrite_OverrideMissingTransferSyntax(t *testing.T) {
+	dsWithMissingTS := Dataset{Elements: []*Element{
 		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 		mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
@@ -927,14 +927,14 @@ func TestWrite_OverrideMissingTransferSyntaxWith(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Write out dicom with OverrideMissingTransferSyntax option.
 			writtenDICOM := &bytes.Buffer{}
-			if err := Write(writtenDICOM, ds, OverrideMissingTransferSyntaxWith(tc.overrideTransferSyntax)); err != nil {
-				t.Errorf("Write(OverrideMissingTransferSyntaxWith(%v)) returned unexpected error: %v", tc.overrideTransferSyntax, err)
+			if err := Write(writtenDICOM, dsWithMissingTS, OverrideMissingTransferSyntax(tc.overrideTransferSyntax)); err != nil {
+				t.Errorf("Write(OverrideMissingTransferSyntax(%v)) returned unexpected error: %v", tc.overrideTransferSyntax, err)
 			}
 
-			// Read dataset back in to see if no roundtrip errors, and also
+			// Read dataset back in to ensure no roundtrip errors, and also
 			// check that the written out transfer syntax tag matches.
-
 			parsedDS, err := ParseUntilEOF(writtenDICOM, nil)
 			if err != nil {
 				t.Fatalf("ParseUntilEOF returned unexpected error when reading written dataset back in: %v", err)
@@ -953,7 +953,6 @@ func TestWrite_OverrideMissingTransferSyntaxWith(t *testing.T) {
 			if tsVal[0] != tc.overrideTransferSyntax {
 				t.Errorf("TransferSyntaxUID in written dicom did not contain the override transfer syntax value. got: %v, want: %v", tsVal[0], tc.overrideTransferSyntax)
 			}
-
 		})
 	}
 }

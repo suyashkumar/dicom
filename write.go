@@ -156,12 +156,24 @@ func OverrideMissingTransferSyntax(transferSyntaxUID string) WriteOption {
 	}
 }
 
+// skipWritingTransferSyntaxForTests is a test WriteOption that cause Write to skip
+// writing the transfer syntax uid element in the DICOM metadata. When used in
+// combination with OverrideMissingTransferSyntax, this can be used to set the
+// TransferSyntax for the written dataset without writing the actual transfer
+// syntax element to the metadata.
+func skipWritingTransferSyntaxForTests() WriteOption {
+	return func(set *writeOptSet) {
+		set.skipWritingTransferSyntaxForTests = true
+	}
+}
+
 // writeOptSet represents the flattened option set after all WriteOptions have been applied.
 type writeOptSet struct {
-	skipVRVerification               bool
-	skipValueTypeVerification        bool
-	defaultMissingTransferSyntax     bool
-	overrideMissingTransferSyntaxUID string
+	skipVRVerification                bool
+	skipValueTypeVerification         bool
+	defaultMissingTransferSyntax      bool
+	overrideMissingTransferSyntaxUID  string
+	skipWritingTransferSyntaxForTests bool
 }
 
 func (w *writeOptSet) validate() error {
@@ -203,21 +215,23 @@ func writeFileHeader(w *dicomio.Writer, ds *Dataset, metaElems []*Element, opts 
 		return err
 	}
 
-	err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts)
+	if !opts.skipWritingTransferSyntaxForTests {
+		err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts)
 
-	if errors.Is(err, ErrorElementNotFound) && opts.defaultMissingTransferSyntax {
-		// Write the default transfer syntax
-		if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
+		if errors.Is(err, ErrorElementNotFound) && opts.defaultMissingTransferSyntax {
+			// Write the default transfer syntax
+			if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
+				return err
+			}
+		} else if errors.Is(err, ErrorElementNotFound) && opts.overrideMissingTransferSyntaxUID != "" {
+			// Write the override transfer syntax
+			if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{opts.overrideMissingTransferSyntaxUID}), opts); err != nil {
+				return err
+			}
+		} else if err != nil {
+			// Return the error if none of the above conditions/overrides apply.
 			return err
 		}
-	} else if errors.Is(err, ErrorElementNotFound) && opts.overrideMissingTransferSyntaxUID != "" {
-		// Write the override transfer syntax
-		if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{opts.overrideMissingTransferSyntaxUID}), opts); err != nil {
-			return err
-		}
-	} else if err != nil {
-		// Return the error if none of the above conditions/overrides apply.
-		return err
 	}
 
 	for _, elem := range metaElems {

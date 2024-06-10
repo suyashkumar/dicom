@@ -22,8 +22,10 @@ package dicom
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -170,14 +172,64 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 		if tsStr == uid.DeflatedExplicitVRLittleEndian {
 			p.reader.rawReader.SetDeflate()
 		}
-	} else {
-		// No transfer syntax found, warn the user we're proceeding with the
-		// default Little Endian implicit.
-		debug.Log("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
+		p.SetTransferSyntax(bo, implicit)
+		return &p, nil
 	}
-	p.SetTransferSyntax(bo, implicit)
 
-	return &p, nil
+	// No transfer syntax found, so let's try to infer the transfer syntax by
+	// trying to read the next element under various transfer syntaxes.
+	next100, err := p.reader.rawReader.Peek(100)
+	if errors.Is(err, io.EOF) {
+		// DICOM is shorter than 100 bytes.
+		return nil, fmt.Errorf("dicom with missing transfer syntax metadata is shorter than 100 bytes, so cannot infer transfer syntax")
+	}
+
+	syntaxes := []struct {
+		name     string
+		bo       binary.ByteOrder
+		implicit bool
+	}{
+		{
+			name:     "Little Endian Implicit",
+			bo:       binary.LittleEndian,
+			implicit: true,
+		},
+		{
+			name:     "Big Endian Explicit",
+			bo:       binary.BigEndian,
+			implicit: false,
+		},
+		{
+			name:     "Little Endian Explicit",
+			bo:       binary.LittleEndian,
+			implicit: false,
+		},
+	}
+
+	for _, syntax := range syntaxes {
+		if canReadElementFromBytes(next100, optSet, syntax.bo, syntax.implicit) {
+			debug.Logf("WARN: could not find transfer syntax uid in metadata, proceeding with %v", syntax.name)
+			p.SetTransferSyntax(syntax.bo, syntax.implicit)
+			return &p, nil
+		}
+	}
+	// TODO(https://github.com/suyashkumar/dicom/issues/329): consider trying
+	// deflated parsing as a fallback as well.
+	return &p, errors.New("dicom missing transfer syntax uid in metadata, and it was not possible to successfully infer it using the next 100 bytes of the dicom")
+}
+
+func canReadElementFromBytes(buf []byte, optSet parseOptSet, bo binary.ByteOrder, implicit bool) bool {
+	next100Reader := bytes.NewReader(buf)
+	subR := &reader{
+		rawReader: dicomio.NewReader(bufio.NewReader(next100Reader), bo, int64(len(buf))),
+		opts:      optSet,
+	}
+	subR.rawReader.SetTransferSyntax(bo, implicit)
+	_, err := subR.readElement(nil, nil)
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 // Next parses and returns the next top-level element from the DICOM this Parser points to.

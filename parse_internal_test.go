@@ -1,10 +1,17 @@
 package dicom
 
 import (
+	"bytes"
+	"errors"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/suyashkumar/dicom/pkg/tag"
 )
+
+// parse_internal_test.go holds tests that must exist in the dicom package (as
+// opposed to dicom_test), in order to access internal entities.
 
 // TestParseUntilEOFConformsToParse runs both the dicom.ParseUntilEOF and the dicom.Parse APIs against each
 // testdata file and ensures the outputs are the same.
@@ -45,6 +52,58 @@ func TestParseUntilEOFConformsToParse(t *testing.T) {
 
 			})
 		}
+	}
+}
+
+func TestParse_InfersMissingTransferSyntax(t *testing.T) {
+	dsWithMissingTS := Dataset{Elements: []*Element{
+		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+		mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+		mustNewElement(tag.Rows, []int{128}),
+		mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+		mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+		mustNewElement(tag.RedPaletteColorLookupTableData, make([]byte, 200)),
+	}}
+
+	cases := []struct {
+		name                   string
+		overrideTransferSyntax string
+	}{
+		{
+			name:                   "Little Endian Implicit",
+			overrideTransferSyntax: "1.2.840.10008.1.2",
+		},
+		{
+			name:                   "Little Endian Explicit",
+			overrideTransferSyntax: "1.2.840.10008.1.2.1",
+		},
+		{
+			name:                   "Big Endian Explicit",
+			overrideTransferSyntax: "1.2.840.10008.1.2.2",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Write out Dataset with OverrideMissingTransferSyntax option _and_
+			// the skipWritingTransferSyntaxForTests to ensure no Transfer Syntax
+			// element is written to the test dicom. The test later verifies
+			// that no Transfer Syntax element was written to the metadata.
+			writtenDICOM := &bytes.Buffer{}
+			if err := Write(writtenDICOM, dsWithMissingTS, OverrideMissingTransferSyntax(tc.overrideTransferSyntax), skipWritingTransferSyntaxForTests()); err != nil {
+				t.Errorf("Write(OverrideMissingTransferSyntax(%v)) returned unexpected error: %v", tc.overrideTransferSyntax, err)
+			}
+
+			parsedDS, err := ParseUntilEOF(writtenDICOM, nil)
+			if err != nil {
+				t.Fatalf("ParseUntilEOF returned unexpected error when reading written dataset back in: %v", err)
+			}
+			_, err = parsedDS.FindElementByTag(tag.TransferSyntaxUID)
+			if !errors.Is(err, ErrorElementNotFound) {
+				t.Fatalf("expected test dicom dataset to be missing explicit TransferSyntaxUID tag, but found one. got: %v, want: ErrorElementNotFound", err)
+			}
+		})
 	}
 }
 

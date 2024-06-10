@@ -87,11 +87,11 @@ func TestParse_InfersMissingTransferSyntax(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Write out Dataset with OverrideMissingTransferSyntax option _and_
-			// the testSkipWritingTransferSyntax to ensure no Transfer Syntax
+			// the skipWritingTransferSyntaxForTests to ensure no Transfer Syntax
 			// element is written to the test dicom. The test later verifies
 			// that no Transfer Syntax element was written to the metadata.
 			writtenDICOM := &bytes.Buffer{}
-			if err := Write(writtenDICOM, dsWithMissingTS, OverrideMissingTransferSyntax(tc.overrideTransferSyntax), testSkipWritingTransferSyntax()); err != nil {
+			if err := Write(writtenDICOM, dsWithMissingTS, OverrideMissingTransferSyntax(tc.overrideTransferSyntax), skipWritingTransferSyntaxForTests()); err != nil {
 				t.Errorf("Write(OverrideMissingTransferSyntax(%v)) returned unexpected error: %v", tc.overrideTransferSyntax, err)
 			}
 

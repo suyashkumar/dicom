@@ -156,12 +156,12 @@ func OverrideMissingTransferSyntax(transferSyntaxUID string) WriteOption {
 	}
 }
 
-// testSkipWritingTransferSyntax is a test WriteOption that cause Write to skip
+// skipWritingTransferSyntaxForTests is a test WriteOption that cause Write to skip
 // writing the transfer syntax uid element in the DICOM metadata. When used in
 // combination with OverrideMissingTransferSyntax, this can be used to set the
 // TransferSyntax for the written dataset without writing the actual transfer
 // syntax element to the metadata.
-func testSkipWritingTransferSyntax() WriteOption {
+func skipWritingTransferSyntaxForTests() WriteOption {
 	return func(set *writeOptSet) {
 		set.skipWritingTransferSyntaxForTests = true
 	}

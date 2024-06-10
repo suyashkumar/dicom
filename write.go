@@ -142,9 +142,9 @@ func DefaultMissingTransferSyntax() WriteOption {
 	}
 }
 
-// OverrideMissingTransferSyntax returns a WriteOption indicating that if
-// the dicom to be written does _not_ have a transfer syntax UID in its metadata
-// that it should be written using the provided transferSyntaxUID. A
+// OverrideMissingTransferSyntax indicates that if the Dataset to be written
+// does _not_ have a transfer syntax UID in its metadata, the Dataset should
+// be written out with the provided transfer syntax UID if possible. A
 // transfer syntax uid element with the specified transfer syntax will be
 // written to the metadata as well.
 //

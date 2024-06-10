@@ -866,7 +866,10 @@ func TestWriteElement(t *testing.T) {
 	}}
 
 	buf := bytes.Buffer{}
-	w := NewWriter(&buf)
+	w, err := NewWriter(&buf)
+	if err != nil {
+		t.Fatalf("NewWriter() returned unexpected error: %v", err)
+	}
 	w.SetTransferSyntax(binary.LittleEndian, true)
 
 	for _, e := range writeDS.Elements {
@@ -890,5 +893,67 @@ func TestWriteElement(t *testing.T) {
 		if diff := cmp.Diff(writtenElem, readElem, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
 			t.Errorf("unexpected diff in element: %s", diff)
 		}
+	}
+}
+
+func TestWrite_OverrideMissingTransferSyntaxWith(t *testing.T) {
+	ds := Dataset{Elements: []*Element{
+		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+		mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
+		mustNewElement(tag.Rows, []int{128}),
+		mustNewElement(tag.FloatingPointValue, []float64{128.10}),
+		mustNewElement(tag.DimensionIndexPointer, []int{32, 36950}),
+		mustNewElement(tag.RedPaletteColorLookupTableData, []byte{0x1, 0x2, 0x3, 0x4}),
+	}}
+
+	cases := []struct {
+		name                   string
+		overrideTransferSyntax string
+	}{
+		{
+			name:                   "Little Endian Implicit",
+			overrideTransferSyntax: "1.2.840.10008.1.2",
+		},
+		{
+			name:                   "Little Endian Explicit",
+			overrideTransferSyntax: "1.2.840.10008.1.2.1",
+		},
+		{
+			name:                   "Big Endian Explicit",
+			overrideTransferSyntax: "1.2.840.10008.1.2.2",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			writtenDICOM := &bytes.Buffer{}
+			if err := Write(writtenDICOM, ds, OverrideMissingTransferSyntaxWith(tc.overrideTransferSyntax)); err != nil {
+				t.Errorf("Write(OverrideMissingTransferSyntaxWith(%v)) returned unexpected error: %v", tc.overrideTransferSyntax, err)
+			}
+
+			// Read dataset back in to see if no roundtrip errors, and also
+			// check that the written out transfer syntax tag matches.
+
+			parsedDS, err := ParseUntilEOF(writtenDICOM, nil)
+			if err != nil {
+				t.Fatalf("ParseUntilEOF returned unexpected error when reading written dataset back in: %v", err)
+			}
+			tsElem, err := parsedDS.FindElementByTag(tag.TransferSyntaxUID)
+			if err != nil {
+				t.Fatalf("unable to find transfer syntax uid element in written dataset: %v", err)
+			}
+			tsVal, ok := tsElem.Value.GetValue().([]string)
+			if !ok {
+				t.Fatalf("TransferSyntaxUID tag was not of type []")
+			}
+			if len(tsVal) != 1 {
+				t.Errorf("TransferSyntaxUID []string contained more than one element unexpectedly: %v", tsVal)
+			}
+			if tsVal[0] != tc.overrideTransferSyntax {
+				t.Errorf("TransferSyntaxUID in written dicom did not contain the override transfer syntax value. got: %v, want: %v", tsVal[0], tc.overrideTransferSyntax)
+			}
+
+		})
 	}
 }

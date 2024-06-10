@@ -606,7 +606,10 @@ type headerData struct {
 // Write a collection of elements and return them as an encoded buffer of bytes.
 func writeElements(elements []*Element) ([]byte, error) {
 	buff := bytes.Buffer{}
-	dcmWriter := NewWriter(&buff)
+	dcmWriter, err := NewWriter(&buff)
+	if err != nil {
+		return []byte{}, err
+	}
 	dcmWriter.SetTransferSyntax(binary.LittleEndian, true)
 
 	for _, e := range elements {

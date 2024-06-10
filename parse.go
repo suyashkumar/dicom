@@ -195,11 +195,6 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 			implicit: true,
 		},
 		{
-			name:     "Big Endian Implicit",
-			bo:       binary.BigEndian,
-			implicit: true,
-		},
-		{
 			name:     "Big Endian Explicit",
 			bo:       binary.BigEndian,
 			implicit: false,

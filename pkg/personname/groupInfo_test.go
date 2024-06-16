@@ -396,7 +396,7 @@ func TestGroupInfo_DCM_panic(t *testing.T) {
 		TrailingNullLevel: 5,
 	}
 
-	var recovered interface{}
+	var recovered any
 
 	func() {
 		defer func() {

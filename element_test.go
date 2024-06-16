@@ -2,6 +2,7 @@ package dicom
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -62,7 +63,7 @@ func TestElement_String(t *testing.T) {
 func TestNewValue(t *testing.T) {
 	cases := []struct {
 		name      string
-		data      interface{}
+		data      any
 		wantValue Value
 		wantError error
 	}{
@@ -141,7 +142,7 @@ func TestNewValue(t *testing.T) {
 func TestNewValue_UnexpectedType(t *testing.T) {
 	data := 10
 	_, err := NewValue(data)
-	if err != ErrorUnexpectedDataType {
+	if !errors.Is(err, ErrorUnexpectedDataType) {
 		t.Errorf("NewValue(%v) expected an error. got: %v, want: %v", data, err, ErrorUnexpectedDataType)
 	}
 }

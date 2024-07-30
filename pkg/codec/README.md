@@ -25,8 +25,8 @@ swig -go -cgo -c++ -intgosize 64 codec.i
 ```go
 import (
 	"github.com/suyashkumar/dicom"
-	_ "github.com/suyashkumar/dicom/pkg/codec"
 	"github.com/suyashkumar/dicom/pkg/tag"
+	_ "github.com/suyashkumar/dicom/pkg/codec"
 )
 
 func main() {

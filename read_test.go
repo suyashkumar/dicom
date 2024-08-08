@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"io"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -40,6 +41,16 @@ func TestReadTag(t *testing.T) {
 			wantTag: tag.Tag{0x0011, 0x0010},
 			wantErr: nil,
 		},
+		{
+			name:    "expected EOF on group read",
+			data:    []byte{0x1},
+			wantErr: io.EOF,
+		},
+		{
+			name:    "expected EOF on element read",
+			data:    []byte{0x1, 0x2},
+			wantErr: io.EOF,
+		},
 	}
 
 	for _, tc := range cases {
@@ -50,11 +61,11 @@ func TestReadTag(t *testing.T) {
 				rawReader: dicomio.NewReader(bufio.NewReader(data), binary.LittleEndian, int64(data.Len())),
 			}
 			gotTag, err := r.readTag()
-			if err != tc.wantErr {
+			if !errors.Is(err, tc.wantErr) {
 				t.Errorf("TestReadTag: unexpected err. got: %v, want: %v", err, tc.wantErr)
 			}
 
-			if !gotTag.Equals(tc.wantTag) {
+			if gotTag != nil && !gotTag.Equals(tc.wantTag) {
 				t.Errorf("TestReadTag: unexpected output. got: %v, want: %v", gotTag, tc.wantTag)
 			}
 		})
@@ -99,7 +110,7 @@ func TestReadFloat_float64(t *testing.T) {
 				rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len())),
 			}
 			got, err := r.readFloat(tag.Tag{}, tc.VR, uint32(data.Len()))
-			if err != tc.expectedErr {
+			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readFloat(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
 			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(floatsValue{})); diff != "" {
@@ -146,7 +157,7 @@ func TestReadFloat_float32(t *testing.T) {
 				rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len())),
 			}
 			got, err := r.readFloat(tag.Tag{}, tc.VR, uint32(data.Len()))
-			if err != tc.expectedErr {
+			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readFloat(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
 			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(floatsValue{})); diff != "" {
@@ -196,7 +207,7 @@ func TestReadOWBytes(t *testing.T) {
 
 			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))}
 			got, err := r.readBytes(tag.Tag{}, tc.VR, uint32(data.Len()))
-			if err != tc.expectedErr {
+			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readBytes(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
 			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(bytesValue{})); diff != "" {
@@ -618,7 +629,10 @@ type headerData struct {
 // Write a collection of elements and return them as an encoded buffer of bytes.
 func writeElements(elements []*Element) ([]byte, error) {
 	buff := bytes.Buffer{}
-	dcmWriter := NewWriter(&buff)
+	dcmWriter, err := NewWriter(&buff)
+	if err != nil {
+		return []byte{}, err
+	}
 	dcmWriter.SetTransferSyntax(binary.LittleEndian, true)
 
 	for _, e := range elements {
@@ -929,7 +943,7 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 	}
 }
 
-func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, dicomio.Reader) {
+func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, *dicomio.Reader) {
 	b.Helper()
 	dataset := Dataset{
 		Elements: []*Element{

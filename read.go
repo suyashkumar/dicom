@@ -35,12 +35,12 @@ var (
 )
 
 // reader is responsible for mid-level dicom parsing capabilities, like
-// reading tags, VRs, and elements from the low-level dicomio.Reader dicom data.
+// reading tags, VRs, and elements from the low-level *dicomio.Reader dicom data.
 // TODO(suyashkumar): consider revisiting naming of this struct "reader" as it
-// interplays with the rawReader dicomio.Reader. We could consider combining
-// them, or embedding the dicomio.Reader struct into reader.
+// interplays with the rawReader *dicomio.Reader. We could consider combining
+// them, or embedding the *dicomio.Reader struct into reader.
 type reader struct {
-	rawReader dicomio.Reader
+	rawReader *dicomio.Reader
 	opts      parseOptSet
 }
 
@@ -51,22 +51,23 @@ func (r *reader) readTag() (*tag.Tag, error) {
 	if gerr == nil && eerr == nil {
 		return &tag.Tag{Group: group, Element: element}, nil
 	}
-	// If the error is an io.EOF, return the error directly instead of the compound error later.
-	// Once we target go1.20 we can use errors.Join: https://pkg.go.dev/errors#Join
-	if errors.Is(gerr, io.EOF) {
-		return nil, gerr
-	}
-	if errors.Is(eerr, io.EOF) {
-		return nil, eerr
-	}
-	return nil, fmt.Errorf("error reading tag: %v %v", gerr, eerr)
+
+	return nil, fmt.Errorf("error reading tag: %w", errors.Join(gerr, eerr))
 }
 
 // TODO: Parsed VR should be an enum. Will require refactors of tag pkg.
 func (r *reader) readVR(isImplicit bool, t tag.Tag) (string, error) {
 	if isImplicit {
 		if entry, err := tag.Find(t); err == nil {
-			return entry.VR, nil
+			switch entry.Tag {
+			case tag.PixelData, tag.OverlayData:
+				// OW takes priority in these cases. See notes at:
+				// 1. https://dicom.nema.org/medical/dicom/2024a/output/html/part05.html#sect_8.1.2
+				// 2. https://dicom.nema.org/medical/dicom/2024a/output/html/part05.html#sect_8.2
+				return "OW", nil
+			default:
+				return entry.VRs[0], nil
+			}
 		}
 		return tag.UnknownVR, nil
 	}
@@ -136,6 +137,18 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 		return r.readPixelData(vl, d, fc)
 	case tag.VRFloat32List, tag.VRFloat64List:
 		return r.readFloat(t, vr, vl)
+	// More details on how we treat Unknown VRs can be found at
+	// https://github.com/suyashkumar/dicom/issues/220
+	// and
+	// https://github.com/suyashkumar/dicom/issues/231.
+	// TODO(suyashkumar): consider replacing UN VRs with SQ earlier on if they
+	// meet this criteria, so users of the Dataset can interact with it
+	// correctly.
+	case tag.VRUnknown:
+		if vl == tag.VLUndefinedLength {
+			return r.readSequence(t, vr, vl, d)
+		}
+		return r.readBytes(t, vr, vl)
 	default:
 		return r.readString(t, vr, vl)
 	}
@@ -144,15 +157,17 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 // readHeader reads the DICOM magic header and group two metadata elements.
 // This should only be called once per DICOM at the start of parsing.
 func (r *reader) readHeader() ([]*Element, error) {
-	// Check to see if magic word is at byte offset 128. If not, this is a
-	// non-standard non-compliant DICOM. We try to read this DICOM in a
-	// compatibility mode, where we rewind to position 0 and blindly attempt to
-	// parse a Dataset (and do not parse metadata in the usual way).
+	// Check for Preamble (128 bytes) + magic word (4 bytes).
 	data, err := r.rawReader.Peek(128 + 4)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading DICOM header preamble: %w", err)
 	}
 	if string(data[128:]) != magicWord {
+		// If magic word is not at byte offset 128 this is a non-standard
+		// non-compliant DICOM. We try to read this DICOM in a compatibility
+		// mode, where we rewind to position 0 and blindly attempt to parse
+		// a Dataset (and do not parse metadata in the usual way), which is
+		// why we return nil error.
 		return nil, nil
 	}
 
@@ -165,7 +180,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
 	maybeMetaLen, err := r.readElement(nil, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading DICOM header element: %w", err)
 	}
 
 	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
@@ -191,9 +206,8 @@ func (r *reader) readHeader() ([]*Element, error) {
 			elem, err := r.readElement(nil, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
-				return nil, err
+				return nil, fmt.Errorf("error reading DICOM header element: %w", err)
 			}
-			// log.Printf("Metadata Element: %s\n", elem)
 			metaElems = append(metaElems, elem)
 		}
 	} else {
@@ -201,12 +215,12 @@ func (r *reader) readHeader() ([]*Element, error) {
 		debug.Log("Proceeding without metadata group length")
 		for {
 			// Lets peek into the tag field until we get to end-of-header
-			group_bytes, err := r.rawReader.Peek(2)
+			groupBytes, err := r.rawReader.Peek(2)
 			if err != nil {
 				return nil, ErrorMetaElementGroupLength
 			}
 			var group uint16
-			buff := bytes.NewBuffer(group_bytes)
+			buff := bytes.NewBuffer(groupBytes)
 			if err := binary.Read(buff, binary.LittleEndian, &group); err != nil {
 				return nil, err
 			}
@@ -218,7 +232,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 			elem, err := r.readElement(nil, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
-				return nil, err
+				return nil, fmt.Errorf("error reading DICOM header element (with no meta element group length defined): %w", err)
 			}
 			metaElems = append(metaElems, elem)
 		}
@@ -235,7 +249,7 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 		// TODO: use basic offset table
 		_, _, err := r.readRawItem(true /*shouldSkip*/)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("readPixelData: error skipping basic offset table: %w", err)
 		}
 
 		for !r.rawReader.IsLimitExhausted() {
@@ -269,7 +283,7 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 		// If we're here, it means the VL isn't undefined length, so we should
 		// be able to safely skip the native PixelData.
 		if err := r.rawReader.Skip(int64(vl)); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("readPixelData: skipPixelData option was set, and had error skipping PixelData: %w", err)
 		}
 		return &pixelDataValue{PixelDataInfo{IntentionallySkipped: true}}, nil
 	}
@@ -306,7 +320,7 @@ func getNthBit(data byte, n int) int {
 	return 0
 }
 
-func fillBufferSingleBitAllocated(pixelData []int, d dicomio.Reader, bo binary.ByteOrder) error {
+func fillBufferSingleBitAllocated(pixelData []int, d *dicomio.Reader, bo binary.ByteOrder) error {
 	debug.Logf("len of pixeldata: %d", len(pixelData))
 	if len(pixelData)%8 > 0 {
 		return errors.New("when bitsAllocated is 1, we can't read a number of samples that is not a multiple of 8")
@@ -371,12 +385,12 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	// Parse information from previously parsed attributes that are needed to parse NativeData Frames:
 	rows, err := parsedData.FindElementByTag(tag.Rows)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("readNativeFrames: error finding Rows tag: %w", err)
 	}
 
 	cols, err := parsedData.FindElementByTag(tag.Columns)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("readNativeFrames: error finding Columns tag: %w", err)
 	}
 
 	nof, err := parsedData.FindElementByTag(tag.NumberOfFrames)
@@ -385,7 +399,7 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 		// No error, so parse number of frames
 		nFrames, err = strconv.Atoi(MustGetStrings(nof.Value)[0]) // odd that number of frames is encoded as a string...
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("readNativeFrames: error converting NumberOfFrames from string to int: %w", err)
 		}
 	} else {
 		// error fetching NumberOfFrames, so default to 1. TODO: revisit
@@ -394,13 +408,13 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 
 	b, err := parsedData.FindElementByTag(tag.BitsAllocated)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("readNativeFrames: error finding BitsAllocated tag: %w", err)
 	}
 	bitsAllocated := MustGetInts(b.Value)[0]
 
 	s, err := parsedData.FindElementByTag(tag.SamplesPerPixel)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("readNativeFrames: error finding SamplesPerPixel tag: %w", err)
 	}
 	samplesPerPixel := MustGetInts(s.Value)[0]
 
@@ -420,15 +434,15 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 		case uint32(bytesToRead) == vl-1 && vl%2 == 0:
 			skipFinalPaddingByte = true
 		case uint32(bytesToRead) == vl-1 && vl%2 != 0:
-			return nil, 0, fmt.Errorf("vl=%d: %w", vl, ErrorExpectedEvenLength)
+			return nil, 0, fmt.Errorf("error when reading Native PixelData, got vl=%d, expected even VL: %w", vl, ErrorExpectedEvenLength)
 		default:
 			// calculated bytesToRead and actual VL mismatch
 			if !r.opts.allowMismatchPixelDataLength {
-				return nil, 0, fmt.Errorf("expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
+				return nil, 0, fmt.Errorf("error when reading Native PixelData: expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
 			}
 			image, err := makeErrorPixelData(r.rawReader, vl, fc, ErrorMismatchPixelDataLength)
 			if err != nil {
-				return nil, 0, err
+				return nil, 0, fmt.Errorf("readNativeFrames: error making error pixel data: %w", err)
 			}
 			return image, int(vl), nil
 		}
@@ -482,14 +496,14 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	if skipFinalPaddingByte {
 		err := r.rawReader.Skip(1)
 		if err != nil {
-			return nil, bytesToRead, fmt.Errorf("could not read padding byte: %w", err)
+			return nil, bytesToRead, fmt.Errorf("error when reading Native PixelData: could not read padding byte, when one needed to be skipped: %w", err)
 		}
 		bytesToRead++
 	}
 	return &image, bytesToRead, nil
 }
 
-func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRead, samplesPerPixel, pixelsPerFrame int, pixelBuf []byte, rawReader dicomio.Reader) (frame.Frame, int, error) {
+func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRead, samplesPerPixel, pixelsPerFrame int, pixelBuf []byte, rawReader *dicomio.Reader) (frame.Frame, int, error) {
 	// Init current frame
 	nativeFrame := frame.NewNativeFrame[I](bitsAllocated, rows, cols, pixelsPerFrame, samplesPerPixel)
 	currentFrame := frame.Frame{
@@ -544,8 +558,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 			subElement, err := r.readElement(seqElements, nil)
 			if err != nil {
 				// Stop reading due to error
-				log.Println("error reading subitem, ", err)
-				return nil, err
+				return nil, fmt.Errorf("readSequence: error reading subitem in a sequence: %w", err)
 			}
 			if subElement.Tag == tag.SequenceDelimitationItem {
 				// Stop reading
@@ -555,7 +568,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 				// This is an error, should be an Item!
 				// TODO: use error var
 				log.Println("Tag is ", subElement.Tag)
-				return nil, fmt.Errorf("non item found in sequence")
+				return nil, fmt.Errorf("readSequence: error, non item element found in sequence. got: %v", subElement)
 			}
 
 			// Append the Item element's dataset of elements to this Sequence's sequencesValue.
@@ -571,7 +584,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 			subElement, err := r.readElement(seqElements, nil)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
-				return nil, err
+				return nil, fmt.Errorf("readSequence: error reading subitem in a sequence: %w", err)
 			}
 
 			// Append the Item element's dataset of elements to this Sequence's sequencesValue.
@@ -588,7 +601,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (Value, error) {
 	var sequenceItem SequenceItemValue
 
-	// seqElements holds items read so farawReader.
+	// seqElements holds items read so far.
 	// TODO: deduplicate with sequenceItem above
 	seqElements := Dataset{}
 
@@ -596,7 +609,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 		for {
 			subElem, err := r.readElement(&seqElements, nil)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("readSequenceItem: error reading subitem in a sequence item: %w", err)
 			}
 			if subElem.Tag == tag.ItemDelimitationItem {
 				break
@@ -614,7 +627,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 		for !r.rawReader.IsLimitExhausted() {
 			subElem, err := r.readElement(&seqElements, nil)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("readSequenceItem: error reading subitem in a sequence item: %w", err)
 			}
 
 			sequenceItem.elements = append(sequenceItem.elements, subElem)
@@ -635,7 +648,7 @@ func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 	} else if vr == vrraw.OtherWord {
 		// OW -> stream of 16 bit words
 		if vl%2 != 0 {
-			return nil, ErrorOWRequiresEvenVL
+			return nil, fmt.Errorf("error reading bytes element (%v) value: %w", t, ErrorOWRequiresEvenVL)
 		}
 
 		buf := bytes.NewBuffer(make([]byte, 0, vl))
@@ -643,7 +656,7 @@ func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 		for i := 0; i < numWords; i++ {
 			word, err := r.rawReader.ReadUInt16()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading bytes element (%v) value: %w", t, err)
 			}
 			// TODO: support bytes.BigEndian byte ordering
 			err = binary.Write(buf, binary.LittleEndian, word)
@@ -654,11 +667,14 @@ func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 		return &bytesValue{value: buf.Bytes()}, nil
 	}
 
-	return nil, ErrorUnsupportedVR
+	return nil, fmt.Errorf("error reading bytes element (%v): %w", t, ErrorUnsupportedVR)
 }
 
 func (r *reader) readString(t tag.Tag, vr string, vl uint32) (Value, error) {
 	str, err := r.rawReader.ReadString(vl)
+	if err != nil {
+		return nil, fmt.Errorf("error reading string element (%v) value: %w", t, err)
+	}
 	onlySpaces := true
 	for _, char := range str {
 		if !unicode.IsSpace(char) {
@@ -672,7 +688,7 @@ func (r *reader) readString(t tag.Tag, vr string, vl uint32) (Value, error) {
 
 	// Split multiple strings
 	strs := strings.Split(str, "\\")
-	return &stringsValue{value: strs}, err
+	return &stringsValue{value: strs}, nil
 }
 
 func (r *reader) readFloat(t tag.Tag, vr string, vl uint32) (Value, error) {
@@ -686,26 +702,26 @@ func (r *reader) readFloat(t tag.Tag, vr string, vl uint32) (Value, error) {
 		case vrraw.FloatingPointSingle:
 			val, err := r.rawReader.ReadFloat32()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading floating point element (%v) value: %w", t, err)
 			}
 			// TODO(suyashkumar): revisit this hack to prevent some internal representation issues upconverting from
 			// float32 to float64. There is no loss of precision, but the value gets some additional significant digits
 			// when using golang casting. This approach prevents those artifacts, but is less efficient.
 			pval, err := strconv.ParseFloat(fmt.Sprint(val), 64)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading floating point element (%v) value during strconv.ParseFloat: %w", t, err)
 			}
 			retVal.value = append(retVal.value, pval)
 			break
 		case vrraw.FloatingPointDouble:
 			val, err := r.rawReader.ReadFloat64()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading floating point element (%v) value: %w", t, err)
 			}
 			retVal.value = append(retVal.value, val)
 			break
 		default:
-			return nil, errorUnableToParseFloat
+			return nil, fmt.Errorf("error reading floating point element(%v) value: unsupported VR: %w", t, errorUnableToParseFloat)
 		}
 	}
 	r.rawReader.PopLimit()
@@ -715,7 +731,7 @@ func (r *reader) readFloat(t tag.Tag, vr string, vl uint32) (Value, error) {
 func (r *reader) readDate(t tag.Tag, vr string, vl uint32) (Value, error) {
 	rawDate, err := r.rawReader.ReadString(vl)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading date element (%v) value: %w", t, err)
 	}
 	date := strings.Trim(rawDate, " \000")
 
@@ -735,33 +751,33 @@ func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 		case vrraw.UnsignedShort, vrraw.AttributeTag:
 			val, err := r.rawReader.ReadUInt16()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading int element (%v) value (ReadUInt16): %w", t, err)
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
 		case vrraw.UnsignedLong:
 			val, err := r.rawReader.ReadUInt32()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading int element (%v) value (ReadUInt32): %w", t, err)
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
 		case vrraw.SignedLong:
 			val, err := r.rawReader.ReadInt32()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading int element (%v) value (ReadInt32): %w", t, err)
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
 		case vrraw.SignedShort:
 			val, err := r.rawReader.ReadInt16()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error reading int element (%v) value (ReadInt16): %w", t, err)
 			}
 			retVal.value = append(retVal.value, int(val))
 			break
 		default:
-			return nil, errors.New("unable to parse integer type")
+			return nil, fmt.Errorf("unable to parse integer type due to unknown VR %v", vr)
 		}
 	}
 	r.rawReader.PopLimit()
@@ -776,7 +792,7 @@ func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
 	t, err := r.readTag()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("readElement: error when reading element tag: %w", err)
 	}
 	debug.Logf("readElement: tag: %s", t.String())
 
@@ -788,20 +804,19 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 
 	vr, err := r.readVR(readImplicit, *t)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("readElement: error when reading VR for element %v: %w", t, err)
 	}
 	debug.Logf("readElement: vr: %s", vr)
 
 	vl, err := r.readVL(readImplicit, *t, vr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("readElement: error when reading VL for element %v: %w", t, err)
 	}
 	debug.Logf("readElement: vl: %d", vl)
 
 	val, err := r.readValue(*t, vr, vl, readImplicit, d, fc)
 	if err != nil {
-		log.Println("error reading value ", err)
-		return nil, err
+		return nil, fmt.Errorf("readElement: error when reading value for element %v: %w", t, err)
 	}
 
 	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
@@ -814,16 +829,16 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 	t, err := r.readTag()
 	if err != nil {
-		return nil, true, err
+		return nil, true, fmt.Errorf("readRawItem: error when reading item tag: %w", err)
 	}
 	// Item is always encoded implicit. PS3.6 7.5
 	vr, err := r.readVR(true, *t)
 	if err != nil {
-		return nil, true, err
+		return nil, true, fmt.Errorf("readRawItem: error when reading VR for item %v: %w", t, err)
 	}
 	vl, err := r.readVL(true, *t, vr)
 	if err != nil {
-		return nil, true, err
+		return nil, true, fmt.Errorf("readRawItem: error when reading VL for item %v: %w", t, err)
 	}
 
 	if *t == tag.SequenceDelimitationItem {
@@ -846,14 +861,13 @@ func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 
 	if shouldSkip {
 		if err := r.rawReader.Skip(int64(vl)); err != nil {
-			return nil, false, err
+			return nil, false, fmt.Errorf("readRawItem: error when skipping item %v (vl=%d): %w", t, vl, err)
 		}
 	} else {
 		data := make([]byte, vl)
 		_, err = io.ReadFull(r.rawReader, data)
 		if err != nil {
-			log.Println(err)
-			return nil, false, err
+			return nil, false, fmt.Errorf("readRawItem: error when reading item %v value: %w", t, err)
 		}
 		return data, false, nil
 	}

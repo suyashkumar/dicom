@@ -33,7 +33,7 @@ func (d *Dataset) FindElementByTag(tag tag.Tag) (*Element, error) {
 			return e, nil
 		}
 	}
-	return nil, ErrorElementNotFound
+	return nil, fmt.Errorf("unable to find %v element: %w", tag, ErrorElementNotFound)
 }
 
 func (d *Dataset) transferSyntax() (binary.ByteOrder, bool, error) {
@@ -57,7 +57,7 @@ func (d *Dataset) FindElementByTagNested(tag tag.Tag) (*Element, error) {
 			return e, nil
 		}
 	}
-	return nil, ErrorElementNotFound
+	return nil, fmt.Errorf("unable to find %v element: %w", tag, ErrorElementNotFound)
 }
 
 // FlatIterator will be deprecated soon in favor of
@@ -175,7 +175,7 @@ func (d *Dataset) String() string {
 		tabs := buildTabs(elem.l)
 		var tagName string
 		if tagInfo, err := tag.Find(elem.e.Tag); err == nil {
-			tagName = tagInfo.Name
+			tagName = tagInfo.Keyword
 		}
 
 		b.WriteString(fmt.Sprintf("%s[\n", tabs))

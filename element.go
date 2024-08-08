@@ -46,7 +46,7 @@ func (e *Element) Equals(target *Element) bool {
 func (e *Element) String() string {
 	var tagName string
 	if tagInfo, err := tag.Find(e.Tag); err == nil {
-		tagName = tagInfo.Name
+		tagName = tagInfo.Keyword
 	}
 	return fmt.Sprintf("[\n  Tag: %s\n  Tag Name: %s\n  VR: %s\n  VR Raw: %s\n  VL: %d\n  Value: %s\n]\n\n",
 		e.Tag.String(),
@@ -91,7 +91,7 @@ type Value interface {
 	ValueType() ValueType
 	// GetValue returns the underlying value that this Value holds. What type is returned here can be determined exactly
 	// from the ValueType() of this Value (see the ValueType godoc).
-	GetValue() interface{} // TODO: rename to Get to read cleaner
+	GetValue() any // TODO: rename to Get to read cleaner
 	String() string
 	MarshalJSON() ([]byte, error)
 	// Equals returns true if this value equals the input Value.
@@ -107,7 +107,7 @@ type Value interface {
 // Acceptable types: []int, []string, []byte, []float64, PixelDataInfo,
 // [][]*Element (represents a sequence, which contains several
 // items which each contain several elements).
-func NewValue(data interface{}) (Value, error) {
+func NewValue(data any) (Value, error) {
 	switch data.(type) {
 	case []int:
 		return &intsValue{value: data.([]int)}, nil
@@ -127,11 +127,11 @@ func NewValue(data interface{}) (Value, error) {
 		}
 		return &sequencesValue{value: sequenceItems}, nil
 	default:
-		return nil, ErrorUnexpectedDataType
+		return nil, fmt.Errorf("NewValue: unexpected data type %T: %w", data, ErrorUnexpectedDataType)
 	}
 }
 
-func mustNewValue(data interface{}) Value {
+func mustNewValue(data any) Value {
 	v, err := NewValue(data)
 	if err != nil {
 		panic(err)
@@ -142,13 +142,15 @@ func mustNewValue(data interface{}) Value {
 // NewElement creates a new DICOM Element with the supplied tag and with a value
 // built from the provided data. The data can be one of the types that is
 // acceptable to NewValue.
-func NewElement(t tag.Tag, data interface{}) (*Element, error) {
+func NewElement(t tag.Tag, data any) (*Element, error) {
 	tagInfo, err := tag.Find(t)
 	if err != nil {
 		return nil, err
 	}
-	rawVR := tagInfo.VR
-
+	rawVR := tagInfo.VRs[0]
+	if t == tag.PixelData {
+		rawVR = "OW"
+	}
 	value, err := NewValue(data)
 	if err != nil {
 		return nil, err
@@ -162,7 +164,7 @@ func NewElement(t tag.Tag, data interface{}) (*Element, error) {
 	}, nil
 }
 
-func mustNewElement(t tag.Tag, data interface{}) *Element {
+func mustNewElement(t tag.Tag, data any) *Element {
 	elem, err := NewElement(t, data)
 	if err != nil {
 		log.Panic(err)
@@ -170,7 +172,7 @@ func mustNewElement(t tag.Tag, data interface{}) *Element {
 	return elem
 }
 
-func mustNewPrivateElement(t tag.Tag, rawVR string, data interface{}) *Element {
+func mustNewPrivateElement(t tag.Tag, rawVR string, data any) *Element {
 	value, err := NewValue(data)
 	if err != nil {
 		log.Panic(fmt.Errorf("error creating value: %w", err))
@@ -215,9 +217,9 @@ type bytesValue struct {
 	value []byte
 }
 
-func (b *bytesValue) isElementValue()       {}
-func (b *bytesValue) ValueType() ValueType  { return Bytes }
-func (b *bytesValue) GetValue() interface{} { return b.value }
+func (b *bytesValue) isElementValue()      {}
+func (b *bytesValue) ValueType() ValueType { return Bytes }
+func (b *bytesValue) GetValue() any        { return b.value }
 func (b *bytesValue) String() string {
 	return fmt.Sprintf("%v", b.value)
 }
@@ -240,9 +242,9 @@ type stringsValue struct {
 	value []string
 }
 
-func (s *stringsValue) isElementValue()       {}
-func (s *stringsValue) ValueType() ValueType  { return Strings }
-func (s *stringsValue) GetValue() interface{} { return s.value }
+func (s *stringsValue) isElementValue()      {}
+func (s *stringsValue) ValueType() ValueType { return Strings }
+func (s *stringsValue) GetValue() any        { return s.value }
 func (s *stringsValue) String() string {
 	return fmt.Sprintf("%v", s.value)
 }
@@ -271,9 +273,9 @@ type intsValue struct {
 	value []int
 }
 
-func (i *intsValue) isElementValue()       {}
-func (i *intsValue) ValueType() ValueType  { return Ints }
-func (i *intsValue) GetValue() interface{} { return i.value }
+func (i *intsValue) isElementValue()      {}
+func (i *intsValue) ValueType() ValueType { return Ints }
+func (i *intsValue) GetValue() any        { return i.value }
 func (i *intsValue) String() string {
 	return fmt.Sprintf("%v", i.value)
 }
@@ -302,9 +304,9 @@ type floatsValue struct {
 	value []float64
 }
 
-func (f *floatsValue) isElementValue()       {}
-func (f *floatsValue) ValueType() ValueType  { return Floats }
-func (f *floatsValue) GetValue() interface{} { return f.value }
+func (f *floatsValue) isElementValue()      {}
+func (f *floatsValue) ValueType() ValueType { return Floats }
+func (f *floatsValue) GetValue() any        { return f.value }
 func (f *floatsValue) String() string {
 	return fmt.Sprintf("%v", f.value)
 }
@@ -343,7 +345,7 @@ func (s *SequenceItemValue) ValueType() ValueType { return SequenceItem }
 // GetValue returns the underlying value that this Value holds. What type is
 // returned here can be determined exactly from the ValueType() of this Value
 // (see the ValueType godoc).
-func (s *SequenceItemValue) GetValue() interface{} { return s.elements }
+func (s *SequenceItemValue) GetValue() any { return s.elements }
 
 // String is used to get a string representation of this struct.
 func (s *SequenceItemValue) String() string {
@@ -377,9 +379,9 @@ type sequencesValue struct {
 	value []*SequenceItemValue
 }
 
-func (s *sequencesValue) isElementValue()       {}
-func (s *sequencesValue) ValueType() ValueType  { return Sequences }
-func (s *sequencesValue) GetValue() interface{} { return s.value }
+func (s *sequencesValue) isElementValue()      {}
+func (s *sequencesValue) ValueType() ValueType { return Sequences }
+func (s *sequencesValue) GetValue() any        { return s.value }
 func (s *sequencesValue) String() string {
 	// TODO: consider adding more sophisticated formatting
 	return fmt.Sprintf("%+v", s.value)
@@ -440,9 +442,9 @@ type pixelDataValue struct {
 	PixelDataInfo
 }
 
-func (p *pixelDataValue) isElementValue()       {}
-func (p *pixelDataValue) ValueType() ValueType  { return PixelData }
-func (p *pixelDataValue) GetValue() interface{} { return p.PixelDataInfo }
+func (p *pixelDataValue) isElementValue()      {}
+func (p *pixelDataValue) ValueType() ValueType { return PixelData }
+func (p *pixelDataValue) GetValue() any        { return p.PixelDataInfo }
 func (p *pixelDataValue) String() string {
 	if len(p.Frames) == 0 {
 		return "empty pixel data"
@@ -530,7 +532,7 @@ func MustGetPixelDataInfo(v Value) PixelDataInfo {
 
 // allValues is used for tests that need to pass in instances of the unexported
 // value structs to cmp.AllowUnexported.
-var allValues = []interface{}{
+var allValues = []any{
 	floatsValue{},
 	intsValue{},
 	stringsValue{},

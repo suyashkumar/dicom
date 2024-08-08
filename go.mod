@@ -1,6 +1,6 @@
 module github.com/suyashkumar/dicom
 
-go 1.18
+go 1.22
 
 require (
 	github.com/google/go-cmp v0.6.0

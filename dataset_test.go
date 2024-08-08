@@ -24,6 +24,23 @@ func makeSequenceElement(tg tag.Tag, items [][]*Element) *Element {
 	}
 }
 
+func makeUNSequenceElement(tg tag.Tag, items [][]*Element) *Element {
+	sequenceItems := make([]*SequenceItemValue, 0, len(items))
+	for _, item := range items {
+		sequenceItems = append(sequenceItems, &SequenceItemValue{elements: item})
+	}
+
+	return &Element{
+		Tag:                    tg,
+		ValueRepresentation:    tag.VRUnknown,
+		RawValueRepresentation: "UN",
+		Value: &sequencesValue{
+			value: sequenceItems,
+		},
+		ValueLength: tag.VLUndefinedLength,
+	}
+}
+
 func TestDataset_FindElementByTag(t *testing.T) {
 	data := Dataset{
 		Elements: []*Element{

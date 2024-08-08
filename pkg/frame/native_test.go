@@ -1,6 +1,7 @@
 package frame_test
 
 import (
+	"errors"
 	"image"
 	"testing"
 
@@ -22,27 +23,30 @@ func TestNativeFrame_GetImage(t *testing.T) {
 		{
 			Name: "Square",
 			NativeFrame: frame.NativeFrame[int]{
-				InternalRows: 2,
-				InternalCols: 2,
-				Data:         [][]int{{0}, {0}, {1}, {0}},
+				InternalRows:            2,
+				InternalCols:            2,
+				InternalSamplesPerPixel: 1,
+				RawData:                 []int{0, 0, 1, 0},
 			},
 			SetPoints: []point{{0, 1}},
 		},
 		{
 			Name: "Rectangle",
 			NativeFrame: frame.NativeFrame[int]{
-				InternalRows: 3,
-				InternalCols: 2,
-				Data:         [][]int{{0}, {0}, {0}, {0}, {1}, {0}},
+				InternalRows:            3,
+				InternalCols:            2,
+				InternalSamplesPerPixel: 1,
+				RawData:                 []int{0, 0, 0, 0, 1, 0},
 			},
 			SetPoints: []point{{0, 2}},
 		},
 		{
 			Name: "Rectangle - multiple points",
 			NativeFrame: frame.NativeFrame[int]{
-				InternalRows: 5,
-				InternalCols: 3,
-				Data:         [][]int{{0}, {0}, {0}, {0}, {1}, {1}, {0}, {0}, {0}, {0}, {1}, {0}, {0}, {0}, {0}},
+				InternalRows:            5,
+				InternalCols:            3,
+				InternalSamplesPerPixel: 1,
+				RawData:                 []int{0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0},
 			},
 			SetPoints: []point{{1, 1}, {2, 1}, {1, 3}},
 		},
@@ -79,6 +83,31 @@ func TestNativeFrame_GetImage(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestNativeFrame_GetImage_Errors(t *testing.T) {
+	cases := []struct {
+		name        string
+		nativeFrame frame.NativeFrame[int]
+		wantErr     error
+	}{
+		{
+			name: "InternalSamplesPerPixel is not 1",
+			nativeFrame: frame.NativeFrame[int]{
+				InternalSamplesPerPixel: 2,
+			},
+			wantErr: frame.UnsupportedSamplesPerPixel,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := tc.nativeFrame.GetImage()
+			if !errors.Is(err, tc.wantErr) {
+				t.Errorf("GetImage unexpected error. got: %v, want: %v", err, tc.wantErr)
+			}
+		})
 	}
 }
 

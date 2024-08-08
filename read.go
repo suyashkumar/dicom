@@ -452,10 +452,10 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 			if err := fillBufferSingleBitAllocated(buf, r.rawReader, bo); err != nil {
 				return nil, bytesToRead, err
 			}
-			nativeFrame := frame.NewNativeFrame[int](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], pixelsPerFrame)
+			nativeFrame := frame.NewNativeFrame[int](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], pixelsPerFrame, samplesPerPixel)
 			for pixel := 0; pixel < pixelsPerFrame; pixel++ {
 				for value := 0; value < samplesPerPixel; value++ {
-					nativeFrame.Data[pixel] = buf[pixel*samplesPerPixel : (pixel+1)*samplesPerPixel]
+					nativeFrame.RawData[(pixel*samplesPerPixel)+value] = buf[pixel*samplesPerPixel+value]
 				}
 			}
 			currentFrame.NativeData = nativeFrame
@@ -491,15 +491,14 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 
 func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRead, samplesPerPixel, pixelsPerFrame int, pixelBuf []byte, rawReader dicomio.Reader) (frame.Frame, int, error) {
 	// Init current frame
-	nativeFrame := frame.NewNativeFrame[I](bitsAllocated, rows, cols, pixelsPerFrame)
+	nativeFrame := frame.NewNativeFrame[I](bitsAllocated, rows, cols, pixelsPerFrame, samplesPerPixel)
 	currentFrame := frame.Frame{
 		Encapsulated: false,
 		NativeData:   nativeFrame,
 	}
-	// buf := make([]I, pixelsPerFrame*samplesPerPixel)
+
 	bo := rawReader.ByteOrder()
 	for pixel := 0; pixel < pixelsPerFrame; pixel++ {
-		nativeFrame.Data[pixel] = make([]I, samplesPerPixel)
 		for value := 0; value < samplesPerPixel; value++ {
 			_, err := io.ReadFull(rawReader, pixelBuf)
 			if err != nil {
@@ -511,19 +510,19 @@ func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRe
 				if !ok {
 
 				}
-				nativeFrame.Data[pixel][value] = v
+				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
 			} else if bitsAllocated == 16 {
 				v, ok := any(bo.Uint16(pixelBuf)).(I)
 				if !ok {
 
 				}
-				nativeFrame.Data[pixel][value] = v
+				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
 			} else if bitsAllocated == 32 {
 				v, ok := any(bo.Uint32(pixelBuf)).(I)
 				if !ok {
 
 				}
-				nativeFrame.Data[pixel][value] = v
+				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
 			} else {
 				return frame.Frame{}, bytesToRead, fmt.Errorf("bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 			}

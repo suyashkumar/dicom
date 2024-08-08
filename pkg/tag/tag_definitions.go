@@ -4727,7 +4727,7 @@ func maybeInitTagDict() {
 	tagDict[Tag{0x0024, 0x0338}] = Info{Tag{0x0024, 0x0338}, "CS", "IndexNormalsFlag", "1"}
 	tagDict[Tag{0x0024, 0x0341}] = Info{Tag{0x0024, 0x0341}, "FL", "IndexProbability", "1"}
 	tagDict[Tag{0x0024, 0x0344}] = Info{Tag{0x0024, 0x0344}, "SQ", "IndexProbabilitySequence", "1"}
-	tagDict[Tag{0x0028, 0x0002}] = Info{Tag{0x0028, 0x0002}, "US", "SamplesPerPixel", "1"}
+	tagDict[Tag{0x0028, 0x0002}] = Info{Tag{0x0028, 0x0002}, "US", "InternalSamplesPerPixel", "1"}
 	tagDict[Tag{0x0028, 0x0003}] = Info{Tag{0x0028, 0x0003}, "US", "SamplesPerPixelUsed", "1"}
 	tagDict[Tag{0x0028, 0x0004}] = Info{Tag{0x0028, 0x0004}, "CS", "PhotometricInterpretation", "1"}
 	tagDict[Tag{0x0028, 0x0006}] = Info{Tag{0x0028, 0x0006}, "US", "PlanarConfiguration", "1"}

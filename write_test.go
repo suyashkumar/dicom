@@ -362,7 +362,7 @@ func TestWrite(t *testing.T) {
 			wantError: nil,
 		},
 		{
-			name: "native PixelData: 2 InternalSamplesPerPixel, 2 frames",
+			name: "native PixelData: 2 SamplesPerPixel, 2 frames",
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),

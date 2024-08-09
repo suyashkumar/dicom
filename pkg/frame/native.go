@@ -11,14 +11,42 @@ import (
 
 var UnsupportedSamplesPerPixel = errors.New("unsupported samples per pixel")
 
+// INativeFrame is an interface representation of NativeFrame[I]'s capabilities,
+// and offers a way to use a NativeFrame _without_ requiring propogation of
+// type parameters. This allows for some more ergonomic signatures, though
+// NativeFrame[I] can be used directly as well for those who prefer it.
 type INativeFrame interface {
+	// Rows returns the number of rows in this frame.
 	Rows() int
+	// Cols returns the number of columns in this frame.
 	Cols() int
+	// SamplesPerPixel returns the number of samples per pixel in this frame.
 	SamplesPerPixel() int
+	// BitsPerSample returns the bits per sample in this frame.
 	BitsPerSample() int
-	GetPixel(x, y int) []int
-	GetPixelAtIdx(idx int) []int
+	// GetPixel returns the samples (as a slice) for the pixel at (x, y).
+	// The coordinate system of the image starts with (0, 0) in the upper left
+	// corner of the image, with X increasing to the right, and Y increasing
+	// down:
+	//
+	//  0 -------▶ X
+	//  |
+	//  |
+	//  ▼
+	//  Y
+	GetPixel(x, y int) ([]int, error)
+	// RawDataSlice will return the underlying data slice, which will be of type
+	// []I. Based on BitsPerSample, you can anticipate what type of slice you'll
+	// get, and type assert as needed:
+	//  BitsPerSample    Slice
+	//  8                []uint8
+	//  16               []uint16
+	//  32               []uint32
 	RawDataSlice() any
+	// Equals returns true if this INativeFrame exactly equals the provided
+	// INativeFrame. This checks every pixel value, so may be expensive.
+	// In the future we may compute a one time hash during construction to make
+	// this less expensive in the future if called multiple time.
 	Equals(frame INativeFrame) bool
 	CommonFrame
 }
@@ -51,25 +79,21 @@ func NewNativeFrame[I constraints.Integer](bitsPerSample, rows, cols, pixelsPerF
 	}
 }
 
-func (n *NativeFrame[I]) Rows() int          { return n.InternalRows }
-func (n *NativeFrame[I]) Cols() int          { return n.InternalCols }
-func (n *NativeFrame[I]) BitsPerSample() int { return n.InternalBitsPerSample }
-
+func (n *NativeFrame[I]) Rows() int            { return n.InternalRows }
+func (n *NativeFrame[I]) Cols() int            { return n.InternalCols }
+func (n *NativeFrame[I]) BitsPerSample() int   { return n.InternalBitsPerSample }
 func (n *NativeFrame[I]) SamplesPerPixel() int { return n.InternalSamplesPerPixel }
-func (n *NativeFrame[I]) GetPixelAtIdx(idx int) []int {
-	vals := make([]int, n.InternalSamplesPerPixel)
-	for i := 0; i < n.InternalSamplesPerPixel; i++ {
-		vals[i] = int(n.RawData[idx+i])
+
+func (n *NativeFrame[I]) GetPixel(x, y int) ([]int, error) {
+	if x < 0 || y < 0 || x >= n.InternalCols || y >= n.InternalRows {
+		return nil, fmt.Errorf("provided zero-indexed coordinate (%v, %v) is out of bounds for this frame which has dimension %v x %v", x, y, n.InternalCols, n.InternalRows)
 	}
-	return vals
-}
-func (n *NativeFrame[I]) GetPixel(x, y int) []int {
 	pixelIdx := (x * n.InternalSamplesPerPixel) + (y * (n.Cols() * n.InternalSamplesPerPixel))
 	vals := make([]int, n.InternalSamplesPerPixel)
 	for i := 0; i < n.InternalSamplesPerPixel; i++ {
 		vals[i] = int(n.RawData[pixelIdx+i])
 	}
-	return vals
+	return vals, nil
 }
 
 func (n *NativeFrame[I]) GetSample(x, y, sampleIdx int) int {

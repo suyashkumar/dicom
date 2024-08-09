@@ -638,7 +638,7 @@ func writePixelData(w *dicomio.Writer, t tag.Tag, value Value, vr string, vl uin
 		}
 		numFrames := len(image.Frames)
 		numPixels := image.Frames[0].NativeData.Rows() * image.Frames[0].NativeData.Cols()
-		numValues := len(image.Frames[0].NativeData.GetPixelAtIdx(0))
+		numValues := image.Frames[0].NativeData.SamplesPerPixel()
 		// Total required buffer length in bytes:
 		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample() / 8
 

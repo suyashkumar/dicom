@@ -2,9 +2,11 @@ package frame_test
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/suyashkumar/dicom/pkg/frame"
 )
 
@@ -108,6 +110,97 @@ func TestNativeFrame_GetImage_Errors(t *testing.T) {
 				t.Errorf("GetImage unexpected error. got: %v, want: %v", err, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestNativeFrame_SimpleHelpers(t *testing.T) {
+	// Tests various helper methods on NativeFrame[I]. GetImage is tested in a
+	// separate top-level test case.
+	f := frame.NativeFrame[uint8]{
+		RawData:                 []uint8{1, 2, 3, 4, 5, 6},
+		InternalSamplesPerPixel: 2,
+		InternalRows:            1,
+		InternalCols:            3,
+		InternalBitsPerSample:   8,
+	}
+
+	if got := f.Rows(); got != 1 {
+		t.Errorf("Rows() unexpected value, got: %v, want: %v", got, 1)
+	}
+	if got := f.Cols(); got != 3 {
+		t.Errorf("Cols() unexpected value, got: %v, want: %v", got, 3)
+	}
+	if got := f.SamplesPerPixel(); got != 2 {
+		t.Errorf("SamplesPerPixel() unexpected value, got: %v, want: %v", got, 2)
+	}
+	if got := f.BitsPerSample(); got != 8 {
+		t.Errorf("BitsPerSample() unexpected value, got: %v, want: %v", got, 8)
+	}
+}
+
+func TestNativeFrame_GetPixel(t *testing.T) {
+	f := frame.NativeFrame[uint8]{
+		RawData:                 []uint8{1, 2, 3, 4, 5, 6, 7, 8},
+		InternalSamplesPerPixel: 2,
+		InternalRows:            2,
+		InternalCols:            2,
+		InternalBitsPerSample:   8,
+	}
+	cases := []struct {
+		x    int
+		y    int
+		want []int
+	}{
+		{
+			x:    0,
+			y:    0,
+			want: []int{1, 2},
+		},
+		{
+			x:    1,
+			y:    0,
+			want: []int{3, 4},
+		},
+		{
+			x:    0,
+			y:    1,
+			want: []int{5, 6},
+		},
+		{
+			x:    1,
+			y:    1,
+			want: []int{7, 8},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("x: %d, y: %d", tc.x, tc.y), func(t *testing.T) {
+			got, err := f.GetPixel(tc.x, tc.y)
+			if err != nil {
+				t.Errorf("GetPixel(%d, %d) got unexpected error: %v", tc.x, tc.y, err)
+			}
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("GetPixel(%d, %d) got unexpected slice. diff: %v", tc.x, tc.y, diff)
+			}
+		})
+	}
+}
+
+func TestNativeFrame_RawDataSlice(t *testing.T) {
+	f := frame.NativeFrame[uint8]{
+		RawData:                 []uint8{1, 2, 3, 4, 5, 6, 7, 8},
+		InternalSamplesPerPixel: 2,
+		InternalRows:            2,
+		InternalCols:            2,
+		InternalBitsPerSample:   8,
+	}
+
+	sl := f.RawDataSlice()
+	rd, ok := sl.([]uint8)
+	if !ok {
+		t.Errorf("RawDataSlice() should have returned a []uint8, but unable to type cast to []uint8")
+	}
+	if diff := cmp.Diff(rd, f.RawData); diff != "" {
+		t.Errorf("RawDataSlice() got unexpected slice. diff: %v", diff)
 	}
 }
 

@@ -71,6 +71,9 @@ type NativeFrame[I constraints.Integer] struct {
 	InternalBitsPerSample   int
 }
 
+// NewNativeFrame creates a new NativeFrame[I] given the input parameters. It
+// initializes the NativeFrame's internal RawData slice based on pixelsPerFrame
+// and samplesPerPixel.
 func NewNativeFrame[I constraints.Integer](bitsPerSample, rows, cols, pixelsPerFrame, samplesPerPixel int) *NativeFrame[I] {
 	return &NativeFrame[I]{
 		InternalBitsPerSample:   bitsPerSample,

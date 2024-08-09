@@ -99,7 +99,7 @@ func TestNativeFrame_GetImage_Errors(t *testing.T) {
 			nativeFrame: frame.NativeFrame[int]{
 				InternalSamplesPerPixel: 2,
 			},
-			wantErr: frame.UnsupportedSamplesPerPixel,
+			wantErr: frame.ErrUnsupportedSamplesPerPixel,
 		},
 	}
 

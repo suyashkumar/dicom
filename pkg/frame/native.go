@@ -9,16 +9,18 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-var UnsupportedSamplesPerPixel = errors.New("unsupported samples per pixel")
+var ErrUnsupportedSamplesPerPixel = errors.New("unsupported samples per pixel")
 
 // INativeFrame is an interface representation of NativeFrame[I]'s capabilities,
 // and offers a way to use a NativeFrame _without_ requiring propogation of
 // type parameters. This allows for some more ergonomic signatures, though
 // NativeFrame[I] can be used directly as well for those who prefer it.
 type INativeFrame interface {
-	// Rows returns the number of rows in this frame.
+	// Rows returns the number of rows in this frame (which is the max y
+	// dimension).
 	Rows() int
-	// Cols returns the number of columns in this frame.
+	// Cols returns the number of columns in this frame (which is the max x
+	// dimension).
 	Cols() int
 	// SamplesPerPixel returns the number of samples per pixel in this frame.
 	SamplesPerPixel() int
@@ -79,11 +81,29 @@ func NewNativeFrame[I constraints.Integer](bitsPerSample, rows, cols, pixelsPerF
 	}
 }
 
-func (n *NativeFrame[I]) Rows() int            { return n.InternalRows }
-func (n *NativeFrame[I]) Cols() int            { return n.InternalCols }
-func (n *NativeFrame[I]) BitsPerSample() int   { return n.InternalBitsPerSample }
+// Rows returns the number of rows in this frame (which is the max y dimension).
+func (n *NativeFrame[I]) Rows() int { return n.InternalRows }
+
+// Cols returns the number of columns in this frame (which is the max x
+// dimension).
+func (n *NativeFrame[I]) Cols() int { return n.InternalCols }
+
+// BitsPerSample returns the bits per sample.
+func (n *NativeFrame[I]) BitsPerSample() int { return n.InternalBitsPerSample }
+
+// SamplesPerPixel returns the samples per pixel.
 func (n *NativeFrame[I]) SamplesPerPixel() int { return n.InternalSamplesPerPixel }
 
+// GetPixel returns the samples (as a slice) for the pixel at (x, y).
+// The coordinate system of the image starts with (0, 0) in the upper left
+// corner of the image, with X increasing to the right, and Y increasing
+// down:
+//
+//	0 -------▶ X
+//	|
+//	|
+//	▼
+//	Y
 func (n *NativeFrame[I]) GetPixel(x, y int) ([]int, error) {
 	if x < 0 || y < 0 || x >= n.InternalCols || y >= n.InternalRows {
 		return nil, fmt.Errorf("provided zero-indexed coordinate (%v, %v) is out of bounds for this frame which has dimension %v x %v", x, y, n.InternalCols, n.InternalRows)
@@ -96,11 +116,20 @@ func (n *NativeFrame[I]) GetPixel(x, y int) ([]int, error) {
 	return vals, nil
 }
 
+// GetSample returns a specific sample inside a pixel at (x, y).
 func (n *NativeFrame[I]) GetSample(x, y, sampleIdx int) int {
 	dataSampleIdx := (x * n.InternalSamplesPerPixel) + (y * (n.Cols() * n.InternalSamplesPerPixel)) + sampleIdx
 	return int(n.RawData[dataSampleIdx])
 }
 
+// RawDataSlice will return the underlying data slice, which will be of type
+// []I. Based on BitsPerSample, you can anticipate what type of slice you'll
+// get, and type assert as needed:
+//
+//	BitsPerSample    Slice
+//	8                []uint8
+//	16               []uint16
+//	32               []uint32
 func (n *NativeFrame[I]) RawDataSlice() any { return n.RawData }
 
 // IsEncapsulated indicates if the frame is encapsulated or not.
@@ -123,7 +152,7 @@ func (n *NativeFrame[I]) GetEncapsulatedFrame() (*EncapsulatedFrame, error) {
 // autoscale pixel values or use window width or level info.
 func (n *NativeFrame[I]) GetImage() (image.Image, error) {
 	if n.InternalSamplesPerPixel != 1 {
-		return nil, fmt.Errorf("GetImage(): unexpected InternalSamplesPerPixel got %v, expected 1 since only grayscale images are supported for now %w", n.InternalSamplesPerPixel, UnsupportedSamplesPerPixel)
+		return nil, fmt.Errorf("GetImage(): unexpected InternalSamplesPerPixel got %v, expected 1 since only grayscale images are supported for now %w", n.InternalSamplesPerPixel, ErrUnsupportedSamplesPerPixel)
 	}
 	i := image.NewGray16(image.Rect(0, 0, n.Cols(), n.Rows()))
 	for idx := 0; idx < len(n.RawData); idx++ {

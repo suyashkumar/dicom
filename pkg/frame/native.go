@@ -169,7 +169,8 @@ func (n *NativeFrame[I]) Equals(target INativeFrame) bool {
 	}
 	if n.Rows() != target.Rows() ||
 		n.Cols() != target.Cols() ||
-		n.BitsPerSample() != n.BitsPerSample() {
+		n.BitsPerSample() != target.BitsPerSample() ||
+		n.SamplesPerPixel() != target.SamplesPerPixel() {
 		return false
 	}
 

@@ -48,9 +48,9 @@ Kostakoglu L ,  Duan F ,  Idowu MO ,  Jolles PR ,  Bear HD ,  Muzi M ,  Cormack 
 ##### Data Citation:
 Choyke P, Turkbey B, Pinto P, Merino M, Wood B. (2016). Data From PROSTATE-MRI. The Cancer Imaging Archive. https://doi.org/10.7937/K9/TCIA.2016.6046GUDv
 
-
 #### TCIA Citation
 Clark K, Vendt B, Smith K, Freymann J, Kirby J, Koppel P, Moore S, Phillips S, Maffitt D, Pringle M, Tarbox L, Prior F. The Cancer Imaging Archive (TCIA): Maintaining and Operating a Public Information Repository, Journal of Digital Imaging, Volume 26, Number 6, December, 2013, pp 1045-1057.
+
 
 #### For file 4.dcm
 
@@ -59,6 +59,7 @@ Desai, S., Baghal, A., Wongsurawat, T., Al-Shukri, S., Gates, K., Farmer, P., Ru
 
 #### TCIA Citation
 Clark K, Vendt B, Smith K, Freymann J, Kirby J, Koppel P, Moore S, Phillips S, Maffitt D, Pringle M, Tarbox L, Prior F. The Cancer Imaging Archive (TCIA): Maintaining and Operating a Public Information Repository, Journal of Digital Imaging, Volume 26, Number 6, December, 2013, pp 1045-1057. DOI: 10.1007/s10278-013-9622-7
+
 
 #### File 5.dcm & 6.dcm
 This file was sourced from cornerstone [5.dcm from here](https://github.com/cornerstonejs/dicomParser/blob/master/testImages/encapsulated/multi-frame/CT0012.explicit_little_endian.dcm), and [6.dcm from here](https://github.com/cornerstonejs/dicomParser/blob/7d2084349bf2bdaffe74021e27b286a6c295ca66/testImages/deflate/image_dfl).

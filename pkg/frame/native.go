@@ -12,7 +12,7 @@ import (
 var ErrUnsupportedSamplesPerPixel = errors.New("unsupported samples per pixel")
 
 // INativeFrame is an interface representation of NativeFrame[I]'s capabilities,
-// and offers a way to use a NativeFrame _without_ requiring propogation of
+// and offers a way to use a NativeFrame _without_ requiring propagation of
 // type parameters. This allows for some more ergonomic signatures, though
 // NativeFrame[I] can be used directly as well for those who prefer it.
 type INativeFrame interface {

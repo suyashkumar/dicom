@@ -358,7 +358,7 @@ func verifyVROrDefault(t tag.Tag, vr string, opts writeOptSet) (string, error) {
 
 	// Verify the VR on the way out if the caller wants it.
 	if !opts.skipVRVerification && !slices.Contains(tagInfo.VRs, vr) {
-		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
+		return "", fmt.Errorf("ERROR dicomio.verifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
 			tag.DebugString(t), vr, tagInfo.VRs)
 	}
 

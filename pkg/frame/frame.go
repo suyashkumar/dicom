@@ -16,12 +16,12 @@ var ErrorFrameTypeNotPresent = errors.New("the frame type you requested is not p
 type CommonFrame interface {
 	// GetImage gets this frame as an image.Image. Beware that the underlying frame may perform
 	// some default rendering and conversions. Operate on the raw NativeFrame or EncapsulatedFrame
-	// if you need to do some custom rendering work or want the data from the dicom.
+	// if you need to do some custom rendering work or want the Data from the dicom.
 	GetImage() (image.Image, error)
 	// IsEncapsulated indicates if the underlying Frame is an EncapsulatedFrame.
 	IsEncapsulated() bool
 	// GetNativeFrame attempts to get the underlying NativeFrame (or returns an error)
-	GetNativeFrame() (*NativeFrame, error)
+	GetNativeFrame() (INativeFrame, error)
 	// GetEncapsulatedFrame attempts to get the underlying EncapsulatedFrame (or returns an error)
 	GetEncapsulatedFrame() (*EncapsulatedFrame, error)
 }
@@ -33,12 +33,12 @@ type Frame struct {
 	// Encapsulated indicates whether the underlying frame is encapsulated or
 	// not.
 	Encapsulated bool
-	// EncapsulatedData holds the encapsulated data for this frame if
+	// EncapsulatedData holds the encapsulated Data for this frame if
 	// Encapsulated is set to true.
 	EncapsulatedData EncapsulatedFrame
-	// NativeData holds the native data for this frame if Encapsulated is set
+	// NativeData holds the native Data for this frame if Encapsulated is set
 	// to false.
-	NativeData NativeFrame
+	NativeData INativeFrame
 }
 
 // IsEncapsulated indicates if the frame is encapsulated or not.
@@ -46,7 +46,7 @@ func (f *Frame) IsEncapsulated() bool { return f.Encapsulated }
 
 // GetNativeFrame returns a NativeFrame from this frame. If the underlying frame
 // is not a NativeFrame, ErrorFrameTypeNotPresent will be returned.
-func (f *Frame) GetNativeFrame() (*NativeFrame, error) {
+func (f *Frame) GetNativeFrame() (INativeFrame, error) {
 	if f.Encapsulated {
 		nf, err := f.EncapsulatedData.GetNativeFrame()
 		return &nf, err
@@ -85,7 +85,7 @@ func (f *Frame) Equals(target *Frame) bool {
 	if f.Encapsulated && !f.EncapsulatedData.Equals(&target.EncapsulatedData) {
 		return false
 	}
-	if !f.Encapsulated && !f.NativeData.Equals(&target.NativeData) {
+	if !f.Encapsulated && !f.NativeData.Equals(target.NativeData) {
 		return false
 	}
 	return true

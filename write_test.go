@@ -288,11 +288,12 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 8,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1}, {2}, {3}, {4}},
+							NativeData: &frame.NativeFrame[uint8]{
+								InternalBitsPerSample:   8,
+								InternalRows:            2,
+								InternalCols:            2,
+								InternalSamplesPerPixel: 1,
+								RawData:                 []uint8{1, 2, 3, 4},
 							},
 						},
 					},
@@ -318,11 +319,12 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 16,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1}, {2}, {3}, {4}},
+							NativeData: &frame.NativeFrame[uint16]{
+								InternalBitsPerSample:   16,
+								InternalRows:            2,
+								InternalCols:            2,
+								InternalSamplesPerPixel: 1,
+								RawData:                 []uint16{1, 2, 3, 4},
 							},
 						},
 					},
@@ -346,11 +348,12 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1}, {2}, {3}, {4}},
+							NativeData: &frame.NativeFrame[uint32]{
+								InternalBitsPerSample:   32,
+								InternalRows:            2,
+								InternalCols:            2,
+								InternalSamplesPerPixel: 1,
+								RawData:                 []uint32{1, 2, 3, 4},
 							},
 						},
 					},
@@ -374,20 +377,22 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+							NativeData: &frame.NativeFrame[uint32]{
+								InternalBitsPerSample:   32,
+								InternalRows:            2,
+								InternalCols:            2,
+								InternalSamplesPerPixel: 2,
+								RawData:                 []uint32{1, 1, 2, 2, 3, 3, 4, 4},
 							},
 						},
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+							NativeData: &frame.NativeFrame[uint32]{
+								InternalBitsPerSample:   32,
+								InternalRows:            2,
+								InternalCols:            2,
+								InternalSamplesPerPixel: 2,
+								RawData:                 []uint32{5, 1, 2, 2, 3, 3, 4, 5},
 							},
 						},
 					},
@@ -475,20 +480,22 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{1, 1}, {2, 2}, {3, 3}, {4, 4}},
+							NativeData: &frame.NativeFrame[uint32]{
+								InternalBitsPerSample:   32,
+								InternalRows:            2,
+								InternalCols:            2,
+								InternalSamplesPerPixel: 2,
+								RawData:                 []uint32{1, 1, 2, 2, 3, 3, 4, 4},
 							},
 						},
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 32,
-								Rows:          2,
-								Cols:          2,
-								Data:          [][]int{{5, 1}, {2, 2}, {3, 3}, {4, 5}},
+							NativeData: &frame.NativeFrame[uint32]{
+								InternalBitsPerSample:   32,
+								InternalRows:            2,
+								InternalCols:            2,
+								InternalSamplesPerPixel: 2,
+								RawData:                 []uint32{5, 1, 2, 2, 3, 3, 4, 5},
 							},
 						},
 					},
@@ -512,11 +519,12 @@ func TestWrite(t *testing.T) {
 					Frames: []*frame.Frame{
 						{
 							Encapsulated: false,
-							NativeData: frame.NativeFrame{
-								BitsPerSample: 8,
-								Rows:          1,
-								Cols:          3,
-								Data:          [][]int{{1}, {2}, {3}},
+							NativeData: &frame.NativeFrame[uint8]{
+								InternalBitsPerSample:   8,
+								InternalRows:            1,
+								InternalCols:            3,
+								InternalSamplesPerPixel: 1,
+								RawData:                 []uint8{1, 2, 3},
 							},
 						},
 					},

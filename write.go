@@ -358,7 +358,7 @@ func verifyVROrDefault(t tag.Tag, vr string, opts writeOptSet) (string, error) {
 
 	// Verify the VR on the way out if the caller wants it.
 	if !opts.skipVRVerification && !slices.Contains(tagInfo.VRs, vr) {
-		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
+		return "", fmt.Errorf("ERROR dicomio.verifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
 			tag.DebugString(t), vr, tagInfo.VRs)
 	}
 
@@ -637,29 +637,41 @@ func writePixelData(w *dicomio.Writer, t tag.Tag, value Value, vr string, vl uin
 			return nil
 		}
 		numFrames := len(image.Frames)
-		numPixels := len(image.Frames[0].NativeData.Data)
-		numValues := len(image.Frames[0].NativeData.Data[0])
+		numPixels := image.Frames[0].NativeData.Rows() * image.Frames[0].NativeData.Cols()
+		numValues := image.Frames[0].NativeData.SamplesPerPixel()
 		// Total required buffer length in bytes:
-		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8
+		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample() / 8
 
 		buf := &bytes.Buffer{}
 		buf.Grow(length)
 		bo, _ := w.GetTransferSyntax()
 		for frame := 0; frame < numFrames; frame++ {
+			currFrameData := image.Frames[frame].NativeData
 			for pixel := 0; pixel < numPixels; pixel++ {
-				for value := 0; value < numValues; value++ {
-					pixelValue := image.Frames[frame].NativeData.Data[pixel][value]
-					switch image.Frames[frame].NativeData.BitsPerSample {
+				for sampleIdx := 0; sampleIdx < currFrameData.SamplesPerPixel(); sampleIdx++ {
+					switch image.Frames[frame].NativeData.BitsPerSample() {
 					case 8:
-						if err := binary.Write(buf, bo, uint8(pixelValue)); err != nil {
+						rawSlice, ok := currFrameData.RawDataSlice().([]uint8)
+						if !ok {
+							return fmt.Errorf("got frame with bitsAllocated=8 but can't assert RawDataSlice to []uint8")
+						}
+						if err := binary.Write(buf, bo, rawSlice[(pixel*currFrameData.SamplesPerPixel())+sampleIdx]); err != nil {
 							return err
 						}
 					case 16:
-						if err := binary.Write(buf, bo, uint16(pixelValue)); err != nil {
+						rawSlice, ok := currFrameData.RawDataSlice().([]uint16)
+						if !ok {
+							return fmt.Errorf("got frame with bitsAllocated=16 but can't assert RawDataSlice to []uint16")
+						}
+						if err := binary.Write(buf, bo, rawSlice[(pixel*currFrameData.SamplesPerPixel())+sampleIdx]); err != nil {
 							return err
 						}
 					case 32:
-						if err := binary.Write(buf, bo, uint32(pixelValue)); err != nil {
+						rawSlice, ok := currFrameData.RawDataSlice().([]uint32)
+						if !ok {
+							return fmt.Errorf("got frame with bitsAllocated=32 but can't assert RawDataSlice to []uint32")
+						}
+						if err := binary.Write(buf, bo, rawSlice[(pixel*currFrameData.SamplesPerPixel())+sampleIdx]); err != nil {
 							return err
 						}
 					default:

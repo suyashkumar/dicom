@@ -29,10 +29,10 @@ func (e *EncapsulatedFrame) GetEncapsulatedFrame() (*EncapsulatedFrame, error) {
 
 // GetNativeFrame returns ErrorFrameTypeNotPresent, because this struct does
 // not hold a NativeFrame.
-func (e EncapsulatedFrame) GetNativeFrame() (NativeFrame, error) {
+func (e EncapsulatedFrame) GetNativeFrame() (INativeFrame, error) {
 	f := sniff(e)
 	if f.decode == nil {
-		return NativeFrame{}, ErrFormat
+		return nil, ErrFormat
 	}
 	m, err := f.decode(e)
 	return m, err
@@ -42,7 +42,7 @@ func (e EncapsulatedFrame) GetNativeFrame() (NativeFrame, error) {
 func (e *EncapsulatedFrame) GetImage() (image.Image, error) {
 	nativeFrame, err := e.GetNativeFrame()
 	if err != nil {
-		// Decoding the data to only re-encode it as a JPEG *without* modifications
+		// Decoding the Data to only re-encode it as a JPEG *without* modifications
 		// is very inefficient. If all you want to do is write the JPEG to disk,
 		// you should fetch the EncapsulatedFrame and grab the []byte Data from
 		// there.

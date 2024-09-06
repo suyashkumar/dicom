@@ -59,7 +59,7 @@ func (e *Element) String() string {
 
 // Value represents a DICOM value. The underlying data that a Value stores can be determined by inspecting its
 // ValueType. DICOM values typically can be one of many types (ints, strings, bytes, sequences of other elements, etc),
-// so this Value interface attempts to represent this as canoically as possible in Golang (since generics do not exist
+// so this Value interface attempts to represent this as canonically as possible in Golang (since generics do not exist
 // yet).
 //
 // Value is JSON serializable out of the box (implements json.Marshaler).
@@ -426,8 +426,10 @@ type PixelDataInfo struct {
 
 	// IntentionallyUnprocessed indicates that the PixelData Value was actually
 	// read (as opposed to skipped over, as in IntentionallySkipped above) and
-	// blindly placed into RawData (if possible). Writing this element back out
-	// should work. This will be true if the
+	// blindly placed into UnprocessedValueData (if possible). Writing this
+	// element back out using the dicom.Writer API should work.
+	//
+	// IntentionallyUnprocessed will be true if the
 	// dicom.SkipProcessingPixelDataValue flag is set with a PixelData tag.
 	IntentionallyUnprocessed bool `json:"intentionallyUnprocessed"`
 	// UnprocessedValueData holds the unprocessed Element value data if
@@ -453,7 +455,7 @@ func (p *pixelDataValue) String() string {
 	if p.ParseErr != nil {
 		return fmt.Sprintf("parseErr err=%s FramesLength=%d Frame[0] size=%d", p.ParseErr.Error(), len(p.Frames), len(p.Frames[0].EncapsulatedData.Data))
 	}
-	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(p.Frames), p.Frames[0].NativeData.Rows, p.Frames[0].NativeData.Cols)
+	return fmt.Sprintf("FramesLength=%d FrameSize rows=%d cols=%d", len(p.Frames), p.Frames[0].NativeData.Rows(), p.Frames[0].NativeData.Cols())
 }
 
 func (p *pixelDataValue) MarshalJSON() ([]byte, error) {

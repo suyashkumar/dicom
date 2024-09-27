@@ -42,6 +42,12 @@ var (
 type reader struct {
 	rawReader *dicomio.Reader
 	opts      parseOptSet
+	// datasetCtx is the top-level context Dataset holding only elements that
+	// may be needed to parse future elements (e.g. like tag.Rows). See
+	// requiredContextElements for elements that will be automatically
+	// included in this context.
+	// TODO(suyashkumar): should this be initialized to the Metadata elements?
+	datasetCtx *Dataset
 }
 
 func (r *reader) readTag() (*tag.Tag, error) {
@@ -178,7 +184,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 
 	// Must read metadata as LittleEndian explicit VR
 	// Read the length of the metadata elements: (0002,0000) MetaElementGroupLength
-	maybeMetaLen, err := r.readElement(nil, nil)
+	maybeMetaLen, err := r.readElementWithContext(r.datasetCtx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error reading DICOM header element: %w", err)
 	}
@@ -203,7 +209,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 		}
 		defer r.rawReader.PopLimit()
 		for !r.rawReader.IsLimitExhausted() {
-			elem, err := r.readElement(nil, nil)
+			elem, err := r.readElementWithContext(r.datasetCtx, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
 				return nil, fmt.Errorf("error reading DICOM header element: %w", err)
@@ -229,7 +235,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 			if group != 0x0002 {
 				break
 			}
-			elem, err := r.readElement(nil, nil)
+			elem, err := r.readElementWithContext(r.datasetCtx, nil)
 			if err != nil {
 				// TODO: see if we can skip over malformed elements somehow
 				return nil, fmt.Errorf("error reading DICOM header element (with no meta element group length defined): %w", err)
@@ -556,7 +562,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 	seqElements := &Dataset{}
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElement, err := r.readElement(seqElements, nil)
+			subElement, err := r.readElementWithContext(seqElements, nil)
 			if err != nil {
 				// Stop reading due to error
 				return nil, fmt.Errorf("readSequence: error reading subitem in a sequence: %w", err)
@@ -582,7 +588,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 			return nil, err
 		}
 		for !r.rawReader.IsLimitExhausted() {
-			subElement, err := r.readElement(seqElements, nil)
+			subElement, err := r.readElementWithContext(seqElements, nil)
 			if err != nil {
 				// TODO: option to ignore errors parsing subelements?
 				return nil, fmt.Errorf("readSequence: error reading subitem in a sequence: %w", err)
@@ -608,7 +614,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 
 	if vl == tag.VLUndefinedLength {
 		for {
-			subElem, err := r.readElement(&seqElements, nil)
+			subElem, err := r.readElementWithContext(&seqElements, nil)
 			if err != nil {
 				return nil, fmt.Errorf("readSequenceItem: error reading subitem in a sequence item: %w", err)
 			}
@@ -626,7 +632,7 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 		}
 
 		for !r.rawReader.IsLimitExhausted() {
-			subElem, err := r.readElement(&seqElements, nil)
+			subElem, err := r.readElementWithContext(&seqElements, nil)
 			if err != nil {
 				return nil, fmt.Errorf("readSequenceItem: error reading subitem in a sequence item: %w", err)
 			}
@@ -785,17 +791,24 @@ func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 	return retVal, err
 }
 
-// readElement reads the next element. If the next element is a sequence element,
-// it may result in a collection of Elements. It takes a pointer to the Dataset of
-// elements read so far, since previously read elements may be needed to parse
+// ReadElement reads the next element. This is the top level function that should
+// be called to read elements. If the next element is a sequence element,
+// it may result in reading a collection of Elements.
+func (r *reader) ReadElement(fc chan<- *frame.Frame) (*Element, error) {
+	return r.readElementWithContext(r.datasetCtx, fc)
+}
+
+// readElementWithContext reads the next element. If the next element is a sequence element,
+// it may result in reading a collection of Elements. It takes a pointer to the Dataset of
+// context elements, since previously read elements may be needed to parse
 // certain Elements (like native PixelData). If the Dataset is nil, it is
 // treated as an empty Dataset.
-func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, error) {
+func (r *reader) readElementWithContext(datasetCtx *Dataset, fc chan<- *frame.Frame) (*Element, error) {
 	t, err := r.readTag()
 	if err != nil {
 		return nil, fmt.Errorf("readElement: error when reading element tag: %w", err)
 	}
-	debug.Logf("readElement: tag: %s", t.String())
+	debug.Logf("readElementWithContext: tag: %s", t.String())
 
 	readImplicit := r.rawReader.IsImplicit()
 	if *t == tag.Item {
@@ -807,21 +820,22 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 	if err != nil {
 		return nil, fmt.Errorf("readElement: error when reading VR for element %v: %w", t, err)
 	}
-	debug.Logf("readElement: vr: %s", vr)
+	debug.Logf("readElementWithContext: vr: %s", vr)
 
 	vl, err := r.readVL(readImplicit, *t, vr)
 	if err != nil {
 		return nil, fmt.Errorf("readElement: error when reading VL for element %v: %w", t, err)
 	}
-	debug.Logf("readElement: vl: %d", vl)
+	debug.Logf("readElementWithContext: vl: %datasetCtx", vl)
 
-	val, err := r.readValue(*t, vr, vl, readImplicit, d, fc)
+	val, err := r.readValue(*t, vr, vl, readImplicit, datasetCtx, fc)
 	if err != nil {
 		return nil, fmt.Errorf("readElement: error when reading value for element %v: %w", t, err)
 	}
 
-	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
-
+	elem := &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}
+	addToContextIfNeeded(datasetCtx, elem)
+	return elem, nil
 }
 
 // Read an Item object as raw bytes, useful when parsing encapsulated PixelData.
@@ -878,4 +892,29 @@ func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 // moreToRead returns true if there is more to read from the underlying dicom.
 func (r *reader) moreToRead() bool {
 	return !r.rawReader.IsLimitExhausted()
+}
+
+// requiredContextElements holds the set of DICOM Element Tags that should
+// be included in the context Dataset. These are elements that may be needed to
+// read downstream elements in the future.
+// addToContextIfNeeded also always adds all Metadata group 2 elements.
+var requiredContextElements = tag.Tags{
+	&tag.Rows,
+	&tag.Columns,
+	&tag.NumberOfFrames,
+	&tag.BitsAllocated,
+	&tag.SamplesPerPixel,
+}
+
+// addToContextIfNeeded adds the element to the provided dataset context if
+// the tag is in requiredContextElements or if the tag has a group of 2
+// (meaning it is a metadata element). In the future we can probably filter this
+// down further.
+func addToContextIfNeeded(datasetCtx *Dataset, e *Element) {
+	if datasetCtx == nil || e == nil {
+		return
+	}
+	if e.Tag.Group == 0x0002 || requiredContextElements.Contains(&e.Tag) {
+		datasetCtx.Elements = append(datasetCtx.Elements, e)
+	}
 }

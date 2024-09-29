@@ -1,6 +1,7 @@
 package dicom
 
 import (
+	"fmt"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -963,4 +964,34 @@ func TestWrite_OverrideMissingTransferSyntax(t *testing.T) {
 			}
 		})
 	}
+}
+
+func MustNewValue(data interface{}) Value {
+	value, err := NewValue(data)
+	if err != nil {
+		panic(err)
+	}
+
+	return value
+}
+
+func ExampleIssue190() {
+	dataset := Dataset{
+		Elements: []*Element{
+			&Element{
+				Tag:                    tag.SmallestImagePixelValue,
+				ValueRepresentation:    tag.VRUInt16List,
+				RawValueRepresentation: "US",
+				ValueLength:            0,
+				Value:                  MustNewValue([]int{1}),
+			},
+		},
+	}
+
+	buffer := new(bytes.Buffer)
+	err := Write(buffer, dataset, DefaultMissingTransferSyntax())
+	if err != nil {
+		fmt.Printf("err: %v", err)
+	}
+	// Output:
 }

@@ -231,3 +231,11 @@ func parseTag(tag string) (Tag, error) {
 	}
 	return Tag{Group: uint16(group), Element: uint16(elem)}, nil
 }
+
+// RegisterCustom allows to add a custom tag. This allows to work arond missing tag definitions
+// and to create private tags
+func RegisterCustom(info Info) {
+	maybeInitTagDict()
+
+	tagDict[info.Tag] = info
+}

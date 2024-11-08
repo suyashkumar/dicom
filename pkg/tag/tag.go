@@ -233,7 +233,8 @@ func parseTag(tag string) (Tag, error) {
 }
 
 // RegisterCustom allows to add a custom tag. This allows to work arond missing tag definitions
-// and to create private tags
+// and to create private tags.
+// If the tag already exists it will be overridden.
 func RegisterCustom(info Info) {
 	maybeInitTagDict()
 

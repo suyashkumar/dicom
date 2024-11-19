@@ -110,27 +110,25 @@ func TestRegisterCustom(t *testing.T) {
 		}
 
 		// When a new tag is registered
-		TagTestTag := Tag{Group: 0x0063, Element: 0x0020}
-		RegisterCustom(Info{
-			Tag:  TagTestTag,
+		TestInfo := Info{
+			Tag:  Tag{Group: 0x0063, Element: 0x0020},
 			VRs:  []string{"UT"},
 			Name: "TestTag",
 			VM:   "1",
-		})
+		}
+		RegisterCustom(TestInfo)
 
 		// Then the tag is now part of the tag collection
 		_, err = FindByName("TestTag")
 		if err != nil {
 			t.Errorf("expected TestTag to be accessible with FindByName")
 		}
-		info, err := Find(TagTestTag)
+		info, err := Find(TestInfo.Tag)
 		if err != nil {
 			t.Fatalf("expected TestTag to be accessible with Find")
 		}
-		if info.VRs[0] != "UT" ||
-			info.Name != "TestTag" ||
-			info.VM != "1" {
-			t.Fatal("info of new registered tag is wrong")
+		if diff := cmp.Diff(TestInfo, info); diff != "" {
+			t.Fatal("info of new registered tag is wrong: \n", diff)
 		}
 	})
 	t.Run("override existing tag", func(t *testing.T) {

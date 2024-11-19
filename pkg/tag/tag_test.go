@@ -113,7 +113,7 @@ func TestRegisterCustom(t *testing.T) {
 		TagTestTag := Tag{Group: 0x0063, Element: 0x0020}
 		RegisterCustom(Info{
 			Tag:  TagTestTag,
-			VR:   "UT",
+			VRs:  []string{"UT"},
 			Name: "TestTag",
 			VM:   "1",
 		})
@@ -121,13 +121,13 @@ func TestRegisterCustom(t *testing.T) {
 		// Then the tag is now part of the tag collection
 		_, err = FindByName("TestTag")
 		if err != nil {
-			t.Fatalf("expected TestTag to be accessible with FindByName")
+			t.Errorf("expected TestTag to be accessible with FindByName")
 		}
 		info, err := Find(TagTestTag)
 		if err != nil {
 			t.Fatalf("expected TestTag to be accessible with Find")
 		}
-		if info.VR != "UT" ||
+		if info.VRs[0] != "UT" ||
 			info.Name != "TestTag" ||
 			info.VM != "1" {
 			t.Fatal("info of new registered tag is wrong")
@@ -140,14 +140,14 @@ func TestRegisterCustom(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected TestTag to be accessible with Find")
 		}
-		if info.VR != "PN" {
+		if info.VRs[0] != "PN" {
 			t.Fatal("expected PatientName VR is originally PN")
 		}
 
 		// When the tag is registered with different content
 		RegisterCustom(Info{
 			Tag:  TagTestTag,
-			VR:   "LO", // originally this is PN
+			VRs:  []string{"LO"}, // originally this is PN
 			Name: "PatientName",
 			VM:   "1",
 		})
@@ -157,7 +157,7 @@ func TestRegisterCustom(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected TestTag to be accessible with Find")
 		}
-		if info.VR != "LO" {
+		if info.VRs[0] != "LO" {
 			t.Fatal("expected the VR to have changed to LO")
 		}
 	})

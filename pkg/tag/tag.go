@@ -250,7 +250,5 @@ func parseTag(tag string) (Tag, error) {
 // and to create private tags.
 // If the tag already exists it will be overridden.
 func RegisterCustom(info Info) {
-	maybeInitTagDict()
-
 	tagDict[info.Tag] = info
 }

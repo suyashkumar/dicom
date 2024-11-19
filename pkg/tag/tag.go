@@ -232,7 +232,7 @@ func parseTag(tag string) (Tag, error) {
 	return Tag{Group: uint16(group), Element: uint16(elem)}, nil
 }
 
-// RegisterCustom allows to add a custom tag. This allows to work arond missing tag definitions
+// RegisterCustom adds a custom tag to this package. This enables users to work around missing tag definitions
 // and to create private tags.
 // If the tag already exists it will be overridden.
 func RegisterCustom(info Info) {

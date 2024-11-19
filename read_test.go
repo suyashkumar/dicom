@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"io"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -40,6 +41,16 @@ func TestReadTag(t *testing.T) {
 			wantTag: tag.Tag{0x0011, 0x0010},
 			wantErr: nil,
 		},
+		{
+			name:    "expected EOF on group read",
+			data:    []byte{0x1},
+			wantErr: io.EOF,
+		},
+		{
+			name:    "expected EOF on element read",
+			data:    []byte{0x1, 0x2},
+			wantErr: io.EOF,
+		},
 	}
 
 	for _, tc := range cases {
@@ -50,11 +61,11 @@ func TestReadTag(t *testing.T) {
 				rawReader: dicomio.NewReader(bufio.NewReader(data), binary.LittleEndian, int64(data.Len())),
 			}
 			gotTag, err := r.readTag()
-			if err != tc.wantErr {
+			if !errors.Is(err, tc.wantErr) {
 				t.Errorf("TestReadTag: unexpected err. got: %v, want: %v", err, tc.wantErr)
 			}
 
-			if !gotTag.Equals(tc.wantTag) {
+			if gotTag != nil && !gotTag.Equals(tc.wantTag) {
 				t.Errorf("TestReadTag: unexpected output. got: %v, want: %v", gotTag, tc.wantTag)
 			}
 		})
@@ -99,7 +110,7 @@ func TestReadFloat_float64(t *testing.T) {
 				rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len())),
 			}
 			got, err := r.readFloat(tag.Tag{}, tc.VR, uint32(data.Len()))
-			if err != tc.expectedErr {
+			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readFloat(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
 			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(floatsValue{})); diff != "" {
@@ -146,7 +157,7 @@ func TestReadFloat_float32(t *testing.T) {
 				rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len())),
 			}
 			got, err := r.readFloat(tag.Tag{}, tc.VR, uint32(data.Len()))
-			if err != tc.expectedErr {
+			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readFloat(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
 			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(floatsValue{})); diff != "" {
@@ -196,7 +207,7 @@ func TestReadOWBytes(t *testing.T) {
 
 			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))}
 			got, err := r.readBytes(tag.Tag{}, tc.VR, uint32(data.Len()))
-			if err != tc.expectedErr {
+			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readBytes(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
 			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(bytesValue{})); diff != "" {
@@ -210,15 +221,16 @@ func TestReadNativeFrames(t *testing.T) {
 	cases := []struct {
 		Name              string
 		existingData      Dataset
-		data              []uint16
+		uint16Data        []uint16
 		dataBytes         []byte
+		uint32Data        []uint32
 		expectedPixelData *PixelDataInfo
 		expectedError     error
 		pixelVLOverride   uint32
 		parseOptSet       parseOptSet
 	}{
 		{
-			Name: "5x5, 1 frame, 1 samples/pixel",
+			Name: "5x5, 1 frame, 1 samples/pixel, bitsAllocated=16",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{5}),
 				mustNewElement(tag.Columns, []int{5}),
@@ -226,17 +238,18 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
-			data: []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			uint16Data: []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          5,
-							Cols:          5,
-							Data:          [][]int{{1}, {2}, {3}, {4}, {5}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}},
+						NativeData: &frame.NativeFrame[uint16]{
+							InternalBitsPerSample:   16,
+							InternalRows:            5,
+							InternalCols:            5,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 						},
 					},
 				},
@@ -244,7 +257,7 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			Name: "2x2, 3 frames, 1 samples/pixel",
+			Name: "2x2, 3 frames, 1 samples/pixel, bitsAllocated=16",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{2}),
 				mustNewElement(tag.Columns, []int{2}),
@@ -252,35 +265,38 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
-			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
+			uint16Data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 0},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {2}},
+						NativeData: &frame.NativeFrame[uint16]{
+							InternalBitsPerSample:   16,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint16{1, 2, 3, 2},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {2}},
+						NativeData: &frame.NativeFrame[uint16]{
+							InternalBitsPerSample:   16,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint16{1, 2, 3, 2},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {0}},
+						NativeData: &frame.NativeFrame[uint16]{
+							InternalBitsPerSample:   16,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint16{1, 2, 3, 0},
 						},
 					},
 				},
@@ -288,7 +304,7 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			Name: "2x2, 2 frames, 2 samples/pixel",
+			Name: "2x2, 2 frames, 2 samples/pixel, bitsAllocated=16",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{2}),
 				mustNewElement(tag.Columns, []int{2}),
@@ -296,26 +312,55 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
-			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
+			uint16Data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 5},
 			expectedPixelData: &PixelDataInfo{
 				IsEncapsulated: false,
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1, 2}, {3, 2}, {1, 2}, {3, 2}},
+						NativeData: &frame.NativeFrame[uint16]{
+							InternalBitsPerSample:   16,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 2,
+							RawData:                 []uint16{1, 2, 3, 2, 1, 2, 3, 2},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 16,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1, 2}, {3, 2}, {1, 2}, {3, 5}},
+						NativeData: &frame.NativeFrame[uint16]{
+							InternalBitsPerSample:   16,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 2,
+							RawData:                 []uint16{1, 2, 3, 2, 1, 2, 3, 5},
+						},
+					},
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			Name: "bitsAllocated=32",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{5}),
+				mustNewElement(tag.Columns, []int{5}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{32}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			uint32Data: []uint32{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			expectedPixelData: &PixelDataInfo{
+				IsEncapsulated: false,
+				Frames: []*frame.Frame{
+					{
+						Encapsulated: false,
+						NativeData: &frame.NativeFrame[uint32]{
+							InternalBitsPerSample:   32,
+							InternalRows:            5,
+							InternalCols:            5,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint32{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 						},
 					},
 				},
@@ -331,7 +376,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
-			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
+			uint16Data:        []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3},
 			expectedPixelData: nil,
 			expectedError:     ErrorMismatchPixelDataLength,
 		},
@@ -344,7 +389,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
-			data:              []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			uint16Data:        []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: nil,
 			expectedError:     ErrorMismatchPixelDataLength,
 		},
@@ -357,7 +402,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{32}),
 				mustNewElement(tag.SamplesPerPixel, []int{2}),
 			}},
-			data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
+			uint16Data: []uint16{1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 3, 2, 2},
 			expectedPixelData: &PixelDataInfo{
 				ParseErr: ErrorMismatchPixelDataLength,
 				Frames: []*frame.Frame{
@@ -379,7 +424,7 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{16}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
-			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			uint16Data:        []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorElementNotFound,
 		},
@@ -392,12 +437,12 @@ func TestReadNativeFrames(t *testing.T) {
 				mustNewElement(tag.BitsAllocated, []int{24}),
 				mustNewElement(tag.SamplesPerPixel, []int{1}),
 			}},
-			data:              []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			uint16Data:        []uint16{1, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			expectedPixelData: nil,
 			expectedError:     ErrorUnsupportedBitsAllocated,
 		},
 		{
-			Name: "3x3, 3 frames, 1 samples/pixel, data bytes with padded 0",
+			Name: "3x3, 3 frames, 1 samples/pixel, bytes data (uint8) with padded 0",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{3}),
 				mustNewElement(tag.Columns, []int{3}),
@@ -411,30 +456,33 @@ func TestReadNativeFrames(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          3,
-							Cols:          3,
-							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						NativeData: &frame.NativeFrame[uint8]{
+							InternalBitsPerSample:   8,
+							InternalRows:            3,
+							InternalCols:            3,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint8{11, 12, 13, 21, 22, 23, 31, 32, 33},
 						},
 					},
 
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          3,
-							Cols:          3,
-							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						NativeData: &frame.NativeFrame[uint8]{
+							InternalBitsPerSample:   8,
+							InternalRows:            3,
+							InternalCols:            3,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint8{11, 12, 13, 21, 22, 23, 31, 32, 33},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          3,
-							Cols:          3,
-							Data:          [][]int{{11}, {12}, {13}, {21}, {22}, {23}, {31}, {32}, {33}},
+						NativeData: &frame.NativeFrame[uint8]{
+							InternalBitsPerSample:   8,
+							InternalRows:            3,
+							InternalCols:            3,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []uint8{11, 12, 13, 21, 22, 23, 31, 32, 33},
 						},
 					},
 				},
@@ -442,7 +490,7 @@ func TestReadNativeFrames(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			Name: "1x1, 3 frames, 3 samples/pixel, data bytes with padded 0",
+			Name: "1x1, 3 frames, 3 samples/pixel, bytes data (uint8) with padded 0",
 			existingData: Dataset{Elements: []*Element{
 				mustNewElement(tag.Rows, []int{1}),
 				mustNewElement(tag.Columns, []int{1}),
@@ -456,29 +504,32 @@ func TestReadNativeFrames(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          1,
-							Cols:          1,
-							Data:          [][]int{{1, 2, 3}},
+						NativeData: &frame.NativeFrame[uint8]{
+							InternalBitsPerSample:   8,
+							InternalRows:            1,
+							InternalCols:            1,
+							InternalSamplesPerPixel: 3,
+							RawData:                 []uint8{1, 2, 3},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          1,
-							Cols:          1,
-							Data:          [][]int{{1, 2, 3}},
+						NativeData: &frame.NativeFrame[uint8]{
+							InternalBitsPerSample:   8,
+							InternalRows:            1,
+							InternalCols:            1,
+							InternalSamplesPerPixel: 3,
+							RawData:                 []uint8{1, 2, 3},
 						},
 					},
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          1,
-							Cols:          1,
-							Data:          [][]int{{1, 2, 3}},
+						NativeData: &frame.NativeFrame[uint8]{
+							InternalBitsPerSample:   8,
+							InternalRows:            1,
+							InternalCols:            1,
+							InternalSamplesPerPixel: 3,
+							RawData:                 []uint8{1, 2, 3},
 						},
 					},
 				},
@@ -507,7 +558,7 @@ func TestReadNativeFrames(t *testing.T) {
 			dcmdata := bytes.Buffer{}
 			var expectedBytes int
 
-			if len(tc.data) == 0 {
+			if len(tc.dataBytes) != 0 {
 				// writing byte-by-byte
 				expectedBytes = len(tc.dataBytes)
 				for _, item := range tc.dataBytes {
@@ -515,10 +566,17 @@ func TestReadNativeFrames(t *testing.T) {
 						t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
 					}
 				}
-			} else {
+			} else if len(tc.uint16Data) != 0 {
 				// writing 2 bytes (uint16) at a time
-				expectedBytes = len(tc.data) * 2
-				for _, item := range tc.data {
+				expectedBytes = len(tc.uint16Data) * 2
+				for _, item := range tc.uint16Data {
+					if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
+						t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
+					}
+				}
+			} else if len(tc.uint32Data) != 0 {
+				expectedBytes = len(tc.uint32Data) * 4
+				for _, item := range tc.uint32Data {
 					if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
 						t.Errorf("TestReadNativeFrames: Unable to setup test buffer")
 					}
@@ -539,14 +597,14 @@ func TestReadNativeFrames(t *testing.T) {
 
 			pixelData, bytesRead, err := r.readNativeFrames(&tc.existingData, nil, vl)
 			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("TestReadNativeFrames(%v): did not get expected error. got: %v, want: %v", tc.data, err, tc.expectedError)
+				t.Errorf("TestReadNativeFrames(%+v): did not get expected error. got: %v, want: %v", tc, err, tc.expectedError)
 			}
 			if err == nil && bytesRead != expectedBytes {
-				t.Errorf("TestReadNativeFrames(%v): did not read expected number of bytes. got: %d, want: %d", tc.data, bytesRead, expectedBytes)
+				t.Errorf("TestReadNativeFrames(%+v): did not read expected number of bytes. got: %d, want: %d", tc, bytesRead, expectedBytes)
 			}
 
 			if diff := cmp.Diff(tc.expectedPixelData, pixelData, cmpopts.EquateErrors()); diff != "" {
-				t.Errorf("TestReadNativeFrames(%v): unexpected diff: %v", tc.data, diff)
+				t.Errorf("TestReadNativeFrames(%+v): unexpected diff: %v", tc, diff)
 			}
 		})
 	}
@@ -606,7 +664,10 @@ type headerData struct {
 // Write a collection of elements and return them as an encoded buffer of bytes.
 func writeElements(elements []*Element) ([]byte, error) {
 	buff := bytes.Buffer{}
-	dcmWriter := NewWriter(&buff)
+	dcmWriter, err := NewWriter(&buff)
+	if err != nil {
+		return []byte{}, err
+	}
 	dcmWriter.SetTransferSyntax(binary.LittleEndian, true)
 
 	for _, e := range elements {
@@ -690,7 +751,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	t.Run("NoFileMetaInformationGroupLength", func(t *testing.T) {
 		dcmheaderNoInfoGrpLen, err := headerWithNoFileMetaInformationGroupLength()
 		if err != nil {
-			t.Fatalf("unsuccesful generation of fake header data")
+			t.Fatalf("unsuccessful generation of fake header data")
 		} else {
 			r := &reader{
 				rawReader: dicomio.NewReader(bufio.NewReader(dcmheaderNoInfoGrpLen.HeaderBytes), binary.LittleEndian, int64(dcmheaderNoInfoGrpLen.HeaderBytes.Len())),
@@ -711,7 +772,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 	t.Run("WithFileMetaInformationGroupLength", func(t *testing.T) {
 		dcmHeaderInfoGrpLen, err := headerWithFileMetaInformationGroupLength()
 		if err != nil {
-			t.Fatalf("unsuccesful generation of fake header data with FileMetaInformationGroupLength")
+			t.Fatalf("unsuccessful generation of fake header data with FileMetaInformationGroupLength")
 		} else {
 			r := &reader{
 				rawReader: dicomio.NewReader(bufio.NewReader(dcmHeaderInfoGrpLen.HeaderBytes), binary.LittleEndian, int64(dcmHeaderInfoGrpLen.HeaderBytes.Len())),
@@ -720,7 +781,7 @@ func TestReadHeader_TryAllowErrorMetaElementGroupLength(t *testing.T) {
 			r.rawReader.SetTransferSyntax(binary.LittleEndian, true)
 			wantElements, err := r.readHeader()
 			if err != nil {
-				t.Errorf("unsuccesful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowMissingMetaElementGroupLength)
+				t.Errorf("unsuccessful readHeader when parse option %v is turned on and header has no MetaElementGroupLength tag", opts.allowMissingMetaElementGroupLength)
 			}
 			// Ensure dataset read from readHeader and the test header are the same except for the ValueLength field.
 			if diff := cmp.Diff(wantElements, dcmHeaderInfoGrpLen.Elements, cmp.AllowUnexported(allValues...), cmpopts.IgnoreFields(Element{}, "ValueLength")); diff != "" {
@@ -798,11 +859,12 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 1,
-							Rows:          4,
-							Cols:          4,
-							Data:          [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample:   1,
+							InternalRows:            4,
+							InternalCols:            4,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []int{0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1},
 						},
 					},
 				},
@@ -825,11 +887,12 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 1,
-							Rows:          4,
-							Cols:          4,
-							Data:          [][]int{{0}, {0}, {0}, {1}, {0}, {1}, {1}, {1}, {1}, {0}, {0}, {1}, {0}, {1}, {1}, {1}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample:   1,
+							InternalRows:            4,
+							InternalCols:            4,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []int{0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1},
 						},
 					},
 				},
@@ -915,7 +978,7 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 	}
 }
 
-func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, dicomio.Reader) {
+func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, *dicomio.Reader) {
 	b.Helper()
 	dataset := Dataset{
 		Elements: []*Element{

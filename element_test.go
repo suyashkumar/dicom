@@ -2,6 +2,7 @@ package dicom
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -62,7 +63,7 @@ func TestElement_String(t *testing.T) {
 func TestNewValue(t *testing.T) {
 	cases := []struct {
 		name      string
-		data      interface{}
+		data      any
 		wantValue Value
 		wantError error
 	}{
@@ -141,7 +142,7 @@ func TestNewValue(t *testing.T) {
 func TestNewValue_UnexpectedType(t *testing.T) {
 	data := 10
 	_, err := NewValue(data)
-	if err != ErrorUnexpectedDataType {
+	if !errors.Is(err, ErrorUnexpectedDataType) {
 		t.Errorf("NewValue(%v) expected an error. got: %v, want: %v", data, err, ErrorUnexpectedDataType)
 	}
 }
@@ -245,11 +246,12 @@ func TestElement_Equals(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {4}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample:   8,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []int{1, 2, 3, 4},
 						},
 					},
 				},
@@ -259,11 +261,12 @@ func TestElement_Equals(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {4}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample:   8,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []int{1, 2, 3, 4},
 						},
 					},
 				},
@@ -277,11 +280,12 @@ func TestElement_Equals(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {6}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample:   8,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []int{1, 2, 3, 6},
 						},
 					},
 				},
@@ -291,11 +295,12 @@ func TestElement_Equals(t *testing.T) {
 				Frames: []*frame.Frame{
 					{
 						Encapsulated: false,
-						NativeData: frame.NativeFrame{
-							BitsPerSample: 8,
-							Rows:          2,
-							Cols:          2,
-							Data:          [][]int{{1}, {2}, {3}, {4}},
+						NativeData: &frame.NativeFrame[int]{
+							InternalBitsPerSample:   8,
+							InternalRows:            2,
+							InternalCols:            2,
+							InternalSamplesPerPixel: 1,
+							RawData:                 []int{1, 2, 3, 4},
 						},
 					},
 				},

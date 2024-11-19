@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/suyashkumar/dicom/pkg/vrraw"
 
@@ -25,24 +26,28 @@ var (
 	ErrorUnexpectedValueType = errors.New("Unexpected ValueType")
 	// ErrorUnsupportedBitsPerSample indicates that the BitsPerSample in this
 	// Dataset is not supported when unpacking native PixelData.
-	ErrorUnsupportedBitsPerSample = errors.New("unsupported BitsPerSample value")
+	ErrorUnsupportedBitsPerSample          = errors.New("unsupported BitsPerSample value")
+	errorDeflatedTransferSyntaxUnsupported = errors.New("deflated explicit vr little endian transfer syntax not yet support on write (https://github.com/suyashkumar/dicom/issues/323)")
 )
 
 // Writer is a struct that allows element-by element writing to a DICOM writer.
 type Writer struct {
-	writer dicomio.Writer
+	writer *dicomio.Writer
 	optSet *writeOptSet
 }
 
 // NewWriter returns a new Writer, that points to the provided io.Writer.
-func NewWriter(out io.Writer, opts ...WriteOption) *Writer {
+func NewWriter(out io.Writer, opts ...WriteOption) (*Writer, error) {
 	optSet := toWriteOptSet(opts...)
+	if err := optSet.validate(); err != nil {
+		return nil, err
+	}
 	w := dicomio.NewWriter(out, nil, false)
 
 	return &Writer{
 		writer: w,
 		optSet: optSet,
-	}
+	}, nil
 }
 
 // SetTransferSyntax sets the transfer syntax for the underlying dicomio.Writer.
@@ -64,16 +69,20 @@ func (w *Writer) writeDataset(ds Dataset) error {
 		return err
 	}
 
-	endian, implicit, err := ds.transferSyntax()
-	if (err != nil && err != ErrorElementNotFound) || (err == ErrorElementNotFound && !w.optSet.defaultMissingTransferSyntax) {
+	bo, implicit, err := ds.transferSyntax()
+	if errors.Is(err, ErrorElementNotFound) && w.optSet.defaultMissingTransferSyntax {
+		bo = binary.LittleEndian
+		implicit = true
+	} else if errors.Is(err, ErrorElementNotFound) && w.optSet.overrideMissingTransferSyntaxUID != "" {
+		bo, implicit, err = uid.ParseTransferSyntaxUID(w.optSet.overrideMissingTransferSyntaxUID)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
 
-	if err == ErrorElementNotFound && w.optSet.defaultMissingTransferSyntax {
-		w.writer.SetTransferSyntax(binary.LittleEndian, true)
-	} else {
-		w.writer.SetTransferSyntax(endian, implicit)
-	}
+	w.writer.SetTransferSyntax(bo, implicit)
 
 	for _, elem := range ds.Elements {
 		if elem.Tag.Group != tag.MetadataGroup {
@@ -95,7 +104,10 @@ func (w *Writer) WriteElement(e *Element) error {
 // Write will write the input DICOM dataset to the provided io.Writer as a complete DICOM (including any header
 // information if available).
 func Write(out io.Writer, ds Dataset, opts ...WriteOption) error {
-	w := NewWriter(out, opts...)
+	w, err := NewWriter(out, opts...)
+	if err != nil {
+		return err
+	}
 	return w.writeDataset(ds)
 }
 
@@ -122,17 +134,55 @@ func SkipValueTypeVerification() WriteOption {
 // transferSyntax should not raise an error, and instead the default
 // LittleEndian Implicit transfer syntax should be used and written out as a
 // Metadata element in the Dataset.
+// TODO(suyashkumar): consider deprecating in favor of
+// OverrideMissingTransferSyntax.
 func DefaultMissingTransferSyntax() WriteOption {
 	return func(set *writeOptSet) {
 		set.defaultMissingTransferSyntax = true
 	}
 }
 
+// OverrideMissingTransferSyntax indicates that if the Dataset to be written
+// does _not_ have a transfer syntax UID in its metadata, the Dataset should
+// be written out with the provided transfer syntax UID if possible. A
+// transfer syntax uid element with the specified transfer syntax will be
+// written to the metadata as well.
+//
+// If the Writer is unable to recognize or write the dataset using the provided
+// transferSyntaxUID, an error will be returned at initialization time.
+func OverrideMissingTransferSyntax(transferSyntaxUID string) WriteOption {
+	return func(set *writeOptSet) {
+		set.overrideMissingTransferSyntaxUID = transferSyntaxUID
+	}
+}
+
+// skipWritingTransferSyntaxForTests is a test WriteOption that cause Write to skip
+// writing the transfer syntax uid element in the DICOM metadata. When used in
+// combination with OverrideMissingTransferSyntax, this can be used to set the
+// TransferSyntax for the written dataset without writing the actual transfer
+// syntax element to the metadata.
+func skipWritingTransferSyntaxForTests() WriteOption {
+	return func(set *writeOptSet) {
+		set.skipWritingTransferSyntaxForTests = true
+	}
+}
+
 // writeOptSet represents the flattened option set after all WriteOptions have been applied.
 type writeOptSet struct {
-	skipVRVerification           bool
-	skipValueTypeVerification    bool
-	defaultMissingTransferSyntax bool
+	skipVRVerification                bool
+	skipValueTypeVerification         bool
+	defaultMissingTransferSyntax      bool
+	overrideMissingTransferSyntaxUID  string
+	skipWritingTransferSyntaxForTests bool
+}
+
+func (w *writeOptSet) validate() error {
+	if w.overrideMissingTransferSyntaxUID != "" {
+		if _, _, err := uid.ParseTransferSyntaxUID(w.overrideMissingTransferSyntaxUID); err != nil {
+			return fmt.Errorf("unable to parse OverrideMissingTransferSyntax transfer syntax uid %v due to: %s", w.overrideMissingTransferSyntaxUID, err)
+		}
+	}
+	return nil
 }
 
 func toWriteOptSet(opts ...WriteOption) *writeOptSet {
@@ -143,7 +193,7 @@ func toWriteOptSet(opts ...WriteOption) *writeOptSet {
 	return optSet
 }
 
-func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts writeOptSet) error {
+func writeFileHeader(w *dicomio.Writer, ds *Dataset, metaElems []*Element, opts writeOptSet) error {
 	// File headers are always written in littleEndian explicit
 	w.SetTransferSyntax(binary.LittleEndian, false)
 
@@ -153,24 +203,33 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	tagsUsed[tag.FileMetaInformationGroupLength] = true
 
 	err := writeMetaElem(subWriter, tag.FileMetaInformationVersion, ds, &tagsUsed, opts)
-	if err != nil && err != ErrorElementNotFound {
+	if err != nil && !errors.Is(err, ErrorElementNotFound) {
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPClassUID, ds, &tagsUsed, opts)
-	if err != nil && err != ErrorElementNotFound {
+	if err != nil && !errors.Is(err, ErrorElementNotFound) {
 		return err
 	}
 	err = writeMetaElem(subWriter, tag.MediaStorageSOPInstanceUID, ds, &tagsUsed, opts)
-	if err != nil && err != ErrorElementNotFound {
+	if err != nil && !errors.Is(err, ErrorElementNotFound) {
 		return err
 	}
-	err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts)
-	if err != nil && err != ErrorElementNotFound || err == ErrorElementNotFound && !opts.defaultMissingTransferSyntax {
-		return err
-	}
-	if err == ErrorElementNotFound && opts.defaultMissingTransferSyntax {
-		// Write the default transfer syntax
-		if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
+
+	if !opts.skipWritingTransferSyntaxForTests {
+		err = writeMetaElem(subWriter, tag.TransferSyntaxUID, ds, &tagsUsed, opts)
+
+		if errors.Is(err, ErrorElementNotFound) && opts.defaultMissingTransferSyntax {
+			// Write the default transfer syntax
+			if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}), opts); err != nil {
+				return err
+			}
+		} else if errors.Is(err, ErrorElementNotFound) && opts.overrideMissingTransferSyntaxUID != "" {
+			// Write the override transfer syntax
+			if err = writeElement(subWriter, mustNewElement(tag.TransferSyntaxUID, []string{opts.overrideMissingTransferSyntaxUID}), opts); err != nil {
+				return err
+			}
+		} else if err != nil {
+			// Return the error if none of the above conditions/overrides apply.
 			return err
 		}
 	}
@@ -209,7 +268,7 @@ func writeFileHeader(w dicomio.Writer, ds *Dataset, metaElems []*Element, opts w
 	return nil
 }
 
-func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
+func writeElement(w *dicomio.Writer, elem *Element, opts writeOptSet) error {
 	vr := elem.RawValueRepresentation
 	var err error
 	vr, err = verifyVROrDefault(elem.Tag, elem.RawValueRepresentation, opts)
@@ -255,10 +314,13 @@ func writeElement(w dicomio.Writer, elem *Element, opts writeOptSet) error {
 	return nil
 }
 
-func writeMetaElem(w dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.Tag]bool, optSet writeOptSet) error {
+func writeMetaElem(w *dicomio.Writer, t tag.Tag, ds *Dataset, tagsUsed *map[tag.Tag]bool, optSet writeOptSet) error {
 	elem, err := ds.FindElementByTag(t)
 	if err != nil {
 		return err
+	}
+	if elem.Tag == tag.TransferSyntaxUID && MustGetStrings(elem.Value)[0] == uid.DeflatedExplicitVRLittleEndian {
+		return errorDeflatedTransferSyntaxUnsupported
 	}
 	err = writeElement(w, elem, optSet)
 	if err != nil {
@@ -291,13 +353,13 @@ func verifyVROrDefault(t tag.Tag, vr string, opts writeOptSet) (string, error) {
 	if vr == "" {
 		// Otherwise if we did find it, and our VR is blank, we'll return the known vr
 		// we just pulled.
-		return tagInfo.VR, nil
+		return tagInfo.VRs[0], nil
 	}
 
 	// Verify the VR on the way out if the caller wants it.
-	if !opts.skipVRVerification && tagInfo.VR != vr {
-		return "", fmt.Errorf("ERROR dicomio.veryifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
-			tag.DebugString(t), vr, tagInfo.VR)
+	if !opts.skipVRVerification && !slices.Contains(tagInfo.VRs, vr) {
+		return "", fmt.Errorf("ERROR dicomio.verifyElement: VR mismatch for tag %v. Element.VR=%v, but DICOM standard defines VR to be %v",
+			tag.DebugString(t), vr, tagInfo.VRs)
 	}
 
 	return vr, nil
@@ -313,12 +375,14 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 		ok = valueType == Sequences
 	case "NA":
 		ok = valueType == SequenceItem
-	case vrraw.OtherWord, vrraw.OtherByte, vrraw.Unknown:
+	case vrraw.OtherWord, vrraw.OtherByte:
 		if t == tag.PixelData {
 			ok = valueType == PixelData
 		} else {
 			ok = valueType == Bytes
 		}
+	case vrraw.Unknown:
+		ok = valueType == Bytes || valueType == Sequences
 	case vrraw.FloatingPointSingle, vrraw.FloatingPointDouble:
 		ok = valueType == Floats
 	default:
@@ -331,7 +395,7 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 	return nil
 }
 
-func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
+func writeTag(w *dicomio.Writer, t tag.Tag, vl uint32) error {
 	if vl%2 != 0 && vl != tag.VLUndefinedLength {
 		return fmt.Errorf("ERROR dicomio.writeTag: Value Length must be even, but for Tag=%v, ValueLength=%v",
 			tag.DebugString(t), vl)
@@ -342,7 +406,7 @@ func writeTag(w dicomio.Writer, t tag.Tag, vl uint32) error {
 	return w.WriteUInt16(t.Element)
 }
 
-func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
+func writeVRVL(w *dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 	// Rectify Undefined Length VL
 	if vl == 0xffff {
 		vl = tag.VLUndefinedLength
@@ -392,7 +456,7 @@ func writeVRVL(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 	return nil
 }
 
-func writeRawItem(w dicomio.Writer, data []byte) error {
+func writeRawItem(w *dicomio.Writer, data []byte) error {
 	length := uint32(len(data))
 	if err := writeTag(w, tag.Item, length); err != nil {
 		return err
@@ -406,7 +470,7 @@ func writeRawItem(w dicomio.Writer, data []byte) error {
 	return nil
 }
 
-func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) error {
+func writeBasicOffsetTable(w *dicomio.Writer, offsets []uint32) error {
 	byteOrder, implicit := w.GetTransferSyntax()
 	data := &bytes.Buffer{}
 	subWriter := dicomio.NewWriter(data, byteOrder, implicit)
@@ -418,7 +482,7 @@ func writeBasicOffsetTable(w dicomio.Writer, offsets []uint32) error {
 	return writeRawItem(w, data.Bytes())
 }
 
-func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
+func encodeElementHeader(w *dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 	err := writeTag(w, t, vl)
 	if err != nil {
 		return err
@@ -430,7 +494,7 @@ func encodeElementHeader(w dicomio.Writer, t tag.Tag, vr string, vl uint32) erro
 	return nil
 }
 
-func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32, opts writeOptSet) error {
+func writeValue(w *dicomio.Writer, t tag.Tag, value Value, valueType ValueType, vr string, vl uint32, opts writeOptSet) error {
 	if vl == tag.VLUndefinedLength && valueType <= 2 { // strings, bytes or ints
 		return fmt.Errorf("encoding undefined-length element not yet supported: %v", t)
 	}
@@ -456,7 +520,7 @@ func writeValue(w dicomio.Writer, t tag.Tag, value Value, valueType ValueType, v
 	}
 }
 
-func writeStrings(w dicomio.Writer, values []string, vr string) error {
+func writeStrings(w *dicomio.Writer, values []string, vr string) error {
 	s := ""
 	for i, substr := range values {
 		if i > 0 {
@@ -485,7 +549,7 @@ func writeStrings(w dicomio.Writer, values []string, vr string) error {
 	return nil
 }
 
-func writeBytes(w dicomio.Writer, values []byte, vr string) error {
+func writeBytes(w *dicomio.Writer, values []byte, vr string) error {
 	var err error
 	switch vr {
 	case vrraw.OtherWord, vrraw.Unknown:
@@ -501,7 +565,7 @@ func writeBytes(w dicomio.Writer, values []byte, vr string) error {
 	return nil
 }
 
-func writeInts(w dicomio.Writer, values []int, vr string) error {
+func writeInts(w *dicomio.Writer, values []int, vr string) error {
 	for _, value := range values {
 		switch vr {
 		// TODO(suyashkumar): consider additional validation of VR=AT elements.
@@ -520,7 +584,7 @@ func writeInts(w dicomio.Writer, values []int, vr string) error {
 	return nil
 }
 
-func writeFloats(w dicomio.Writer, v Value, vr string) error {
+func writeFloats(w *dicomio.Writer, v Value, vr string) error {
 	if v.ValueType() != Floats {
 		return ErrorUnexpectedValueType
 	}
@@ -546,7 +610,7 @@ func writeFloats(w dicomio.Writer, v Value, vr string) error {
 	return nil
 }
 
-func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
+func writePixelData(w *dicomio.Writer, t tag.Tag, value Value, vr string, vl uint32) error {
 	image := MustGetPixelDataInfo(value)
 
 	if vl == tag.VLUndefinedLength {
@@ -573,34 +637,54 @@ func writePixelData(w dicomio.Writer, t tag.Tag, value Value, vr string, vl uint
 			return nil
 		}
 		numFrames := len(image.Frames)
-		numPixels := len(image.Frames[0].NativeData.Data)
-		numValues := len(image.Frames[0].NativeData.Data[0])
+		numPixels := image.Frames[0].NativeData.Rows() * image.Frames[0].NativeData.Cols()
+		numValues := image.Frames[0].NativeData.SamplesPerPixel()
 		// Total required buffer length in bytes:
-		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample / 8
+		length := numFrames * numPixels * numValues * image.Frames[0].NativeData.BitsPerSample() / 8
 
 		buf := &bytes.Buffer{}
 		buf.Grow(length)
+		bo, _ := w.GetTransferSyntax()
 		for frame := 0; frame < numFrames; frame++ {
+			currFrameData := image.Frames[frame].NativeData
 			for pixel := 0; pixel < numPixels; pixel++ {
-				for value := 0; value < numValues; value++ {
-					pixelValue := image.Frames[frame].NativeData.Data[pixel][value]
-					switch image.Frames[frame].NativeData.BitsPerSample {
+				for sampleIdx := 0; sampleIdx < currFrameData.SamplesPerPixel(); sampleIdx++ {
+					switch image.Frames[frame].NativeData.BitsPerSample() {
 					case 8:
-						if err := binary.Write(buf, binary.LittleEndian, uint8(pixelValue)); err != nil {
+						rawSlice, ok := currFrameData.RawDataSlice().([]uint8)
+						if !ok {
+							return fmt.Errorf("got frame with bitsAllocated=8 but can't assert RawDataSlice to []uint8")
+						}
+						if err := binary.Write(buf, bo, rawSlice[(pixel*currFrameData.SamplesPerPixel())+sampleIdx]); err != nil {
 							return err
 						}
 					case 16:
-						if err := binary.Write(buf, binary.LittleEndian, uint16(pixelValue)); err != nil {
+						rawSlice, ok := currFrameData.RawDataSlice().([]uint16)
+						if !ok {
+							return fmt.Errorf("got frame with bitsAllocated=16 but can't assert RawDataSlice to []uint16")
+						}
+						if err := binary.Write(buf, bo, rawSlice[(pixel*currFrameData.SamplesPerPixel())+sampleIdx]); err != nil {
 							return err
 						}
 					case 32:
-						if err := binary.Write(buf, binary.LittleEndian, uint32(pixelValue)); err != nil {
+						rawSlice, ok := currFrameData.RawDataSlice().([]uint32)
+						if !ok {
+							return fmt.Errorf("got frame with bitsAllocated=32 but can't assert RawDataSlice to []uint32")
+						}
+						if err := binary.Write(buf, bo, rawSlice[(pixel*currFrameData.SamplesPerPixel())+sampleIdx]); err != nil {
 							return err
 						}
 					default:
 						return ErrorUnsupportedBitsPerSample
 					}
 				}
+			}
+		}
+		// If the byte length is not even, append 1 padding byte to make it even.
+		// https://dicom.nema.org/medical/dicom/current/output/html/part05.html#sect_8.1.1
+		if buf.Len()%2 != 0 {
+			if err := buf.WriteByte(0); err != nil {
+				return err
 			}
 		}
 		if err := w.WriteBytes(buf.Bytes()); err != nil {
@@ -615,7 +699,7 @@ var sequenceDelimitationItem = &Element{
 	ValueLength: 0, // This should be 00000000H in base32
 }
 
-func writeSequence(w dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts writeOptSet) error {
+func writeSequence(w *dicomio.Writer, t tag.Tag, values []*SequenceItemValue, vr string, vl uint32, opts writeOptSet) error {
 	// We always write out sequences using the undefined length encoding.
 	// Note: we currently don't validate that the length of the sequence matches
 	// the VL if it's not undefined VL.
@@ -650,7 +734,7 @@ var item = &Element{
 	ValueLength: tag.VLUndefinedLength,
 }
 
-func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts writeOptSet) error {
+func writeSequenceItem(w *dicomio.Writer, t tag.Tag, values []*Element, vr string, vl uint32, opts writeOptSet) error {
 	// Write out item header.
 	if err := writeElement(w, item, opts); err != nil {
 		return err
@@ -667,7 +751,7 @@ func writeSequenceItem(w dicomio.Writer, t tag.Tag, values []*Element, vr string
 	return writeElement(w, sequenceItemDelimitationItem, opts)
 }
 
-func writeOtherWordString(w dicomio.Writer, data []byte) error {
+func writeOtherWordString(w *dicomio.Writer, data []byte) error {
 	if len(data)%2 != 0 {
 		return ErrorOWRequiresEvenVL
 	}
@@ -686,7 +770,7 @@ func writeOtherWordString(w dicomio.Writer, data []byte) error {
 	return nil
 }
 
-func writeOtherByteString(w dicomio.Writer, data []byte) error {
+func writeOtherByteString(w *dicomio.Writer, data []byte) error {
 	if err := w.WriteBytes(data); err != nil {
 		return err
 	}

@@ -22,8 +22,10 @@ package dicom
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -158,19 +160,76 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	implicit := true
 
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
-	if err != nil {
-		debug.Log("WARN: could not find transfer syntax uid in metadata, proceeding with little endian implicit")
-	} else {
-		bo, implicit, err = uid.ParseTransferSyntaxUID(MustGetStrings(ts.Value)[0])
+	if err == nil {
+		// If we found the transfer syntax, apply it.
+		tsStr := MustGetStrings(ts.Value)[0]
+		bo, implicit, err = uid.ParseTransferSyntaxUID(tsStr)
 		if err != nil {
 			// TODO(suyashkumar): should we attempt to parse with LittleEndian
 			// Implicit here?
 			debug.Log("WARN: could not parse transfer syntax uid in metadata")
 		}
+		if tsStr == uid.DeflatedExplicitVRLittleEndian {
+			p.reader.rawReader.SetDeflate()
+		}
+		p.SetTransferSyntax(bo, implicit)
+		return &p, nil
 	}
-	p.SetTransferSyntax(bo, implicit)
 
-	return &p, nil
+	// No transfer syntax found, so let's try to infer the transfer syntax by
+	// trying to read the next element under various transfer syntaxes.
+	next100, err := p.reader.rawReader.Peek(100)
+	if errors.Is(err, io.EOF) {
+		// DICOM is shorter than 100 bytes.
+		return nil, fmt.Errorf("dicom with missing transfer syntax metadata is shorter than 100 bytes, so cannot infer transfer syntax")
+	}
+
+	syntaxes := []struct {
+		name     string
+		bo       binary.ByteOrder
+		implicit bool
+	}{
+		{
+			name:     "Little Endian Implicit",
+			bo:       binary.LittleEndian,
+			implicit: true,
+		},
+		{
+			name:     "Big Endian Explicit",
+			bo:       binary.BigEndian,
+			implicit: false,
+		},
+		{
+			name:     "Little Endian Explicit",
+			bo:       binary.LittleEndian,
+			implicit: false,
+		},
+	}
+
+	for _, syntax := range syntaxes {
+		if canReadElementFromBytes(next100, optSet, syntax.bo, syntax.implicit) {
+			debug.Logf("WARN: could not find transfer syntax uid in metadata, proceeding with %v", syntax.name)
+			p.SetTransferSyntax(syntax.bo, syntax.implicit)
+			return &p, nil
+		}
+	}
+	// TODO(https://github.com/suyashkumar/dicom/issues/329): consider trying
+	// deflated parsing as a fallback as well.
+	return &p, errors.New("dicom missing transfer syntax uid in metadata, and it was not possible to successfully infer it using the next 100 bytes of the dicom")
+}
+
+func canReadElementFromBytes(buf []byte, optSet parseOptSet, bo binary.ByteOrder, implicit bool) bool {
+	next100Reader := bytes.NewReader(buf)
+	subR := &reader{
+		rawReader: dicomio.NewReader(bufio.NewReader(next100Reader), bo, int64(len(buf))),
+		opts:      optSet,
+	}
+	subR.rawReader.SetTransferSyntax(bo, implicit)
+	_, err := subR.readElement(nil, nil)
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 // Next parses and returns the next top-level element from the DICOM this Parser points to.
@@ -212,7 +271,7 @@ func (p *Parser) GetMetadata() Dataset {
 	return p.metadata
 }
 
-// SetTransferSyntax sets the transfer syntax for the underlying dicomio.Reader.
+// SetTransferSyntax sets the transfer syntax for the underlying *dicomio.Reader.
 func (p *Parser) SetTransferSyntax(bo binary.ByteOrder, implicit bool) {
 	p.reader.rawReader.SetTransferSyntax(bo, implicit)
 }
@@ -281,8 +340,8 @@ func SkipPixelData() ParseOption {
 // a PixelData element will be added to the dataset with the
 // PixelDataInfo.IntentionallyUnprocessed = true, and the raw bytes of the
 // entire PixelData element stored in PixelDataInfo.UnprocessedValueData.
-// 
-// In the future, we may be able to extend this functionality to support 
+//
+// In the future, we may be able to extend this functionality to support
 // on-demand processing of elements elsewhere in the library.
 func SkipProcessingPixelDataValue() ParseOption {
 	return func(set *parseOptSet) {

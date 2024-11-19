@@ -360,7 +360,7 @@ func TestNewPersonNameFromDicom(t *testing.T) {
 
 			if tc.IsEmpty != parsed.IsEmpty() {
 				t.Errorf(
-					".IsEmpty() returned %v, extected %v",
+					".IsEmpty() returned %v, expected %v",
 					parsed.IsEmpty(),
 					tc.IsEmpty,
 				)
@@ -387,7 +387,7 @@ func TestGroupInfo_DCM_interiorNullsExceedTrailingLevel(t *testing.T) {
 	}
 
 	if dcm != "CROUCH^^^^JR" {
-		t.Errorf("dcm returned uneexpected value: %v", dcm)
+		t.Errorf("dcm returned unexpected value: %v", dcm)
 	}
 }
 
@@ -396,7 +396,7 @@ func TestGroupInfo_DCM_panic(t *testing.T) {
 		TrailingNullLevel: 5,
 	}
 
-	var recovered interface{}
+	var recovered any
 
 	func() {
 		defer func() {

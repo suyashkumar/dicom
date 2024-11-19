@@ -43,7 +43,7 @@ func CanonicalTransferSyntaxUID(uid string) (string, error) {
 }
 
 // ParseTransferSyntaxUID parses a transfer syntax uid and returns its byteorder
-// and implicitVR/explicitVR type.  TrasnferSyntaxUID can be any UID that refers to
+// and implicitVR/explicitVR type.  TransferSyntaxUID can be any UID that refers to
 // a transfer syntax. It can be, e.g., 1.2.840.10008.1.2 (it will return
 // LittleEndian, ImplicitVR) or 1.2.840.10008.1.2.4.54 (it will return
 // (LittleEndian, ExplicitVR).
@@ -56,7 +56,7 @@ func ParseTransferSyntaxUID(uid string) (bo binary.ByteOrder, implicit bool, err
 	case ImplicitVRLittleEndian:
 		return binary.LittleEndian, true, nil
 	case DeflatedExplicitVRLittleEndian:
-		fallthrough
+		return binary.LittleEndian, false, nil
 	case ExplicitVRLittleEndian:
 		return binary.LittleEndian, false, nil
 	case ExplicitVRBigEndian:

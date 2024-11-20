@@ -103,6 +103,12 @@ func TestUint32Conversion(t *testing.T) {
 func TestRegisterCustom(t *testing.T) {
 
 	t.Run("Add new tag", func(t *testing.T) {
+		testInfo := Info{
+			Tag:  Tag{Group: 0x0063, Element: 0x0020},
+			VRs:  []string{"UT"},
+			Name: "TestTag",
+			VM:   "1",
+		}
 		// Given a certain tag does not exist
 		_, err := FindByName("TestTag")
 		if err == nil {
@@ -110,53 +116,73 @@ func TestRegisterCustom(t *testing.T) {
 		}
 
 		// When a new tag is registered
-		TestInfo := Info{
-			Tag:  Tag{Group: 0x0063, Element: 0x0020},
-			VRs:  []string{"UT"},
-			Name: "TestTag",
-			VM:   "1",
+		err = Add(testInfo, false)
+		if err != nil {
+			t.Fatalf("SetInfo(TestInfo, false) == <error> , expected SetInfo to return nil when a unknown tag is added")
 		}
-		RegisterCustom(TestInfo)
 
 		// Then the tag is now part of the tag collection
 		_, err = FindByName("TestTag")
 		if err != nil {
 			t.Errorf("expected TestTag to be accessible with FindByName")
 		}
-		info, err := Find(TestInfo.Tag)
+		info, err := Find(testInfo.Tag)
 		if err != nil {
 			t.Fatalf("expected TestTag to be accessible with Find")
 		}
-		if diff := cmp.Diff(TestInfo, info); diff != "" {
+		if diff := cmp.Diff(testInfo, info); diff != "" {
 			t.Fatal("info of new registered tag is wrong: \n", diff)
 		}
 	})
-	t.Run("override existing tag", func(t *testing.T) {
-		// Given a tag already exists
-		TagTestTag := Tag{Group: 0x0010, Element: 0x0010} // this is the PatientName tag
-		info, err := Find(TagTestTag)
-		if err != nil {
-			t.Fatalf("expected TestTag to be accessible with Find")
-		}
-		if info.VRs[0] != "PN" {
-			t.Fatal("expected PatientName VR is originally PN")
-		}
-
-		// When the tag is registered with different content
-		RegisterCustom(Info{
-			Tag:  TagTestTag,
-			VRs:  []string{"LO"}, // originally this is PN
-			Name: "PatientName",
+	t.Run("force overwrite existing tag", func(t *testing.T) {
+		// setup a test tag
+		testInfo := Info{
+			Tag:  Tag{Group: 0x0073, Element: 0x0021},
+			VRs:  []string{"UT"},
+			Name: "TestTag",
 			VM:   "1",
-		})
-
-		// Then the tag information is overridden
-		info, err = Find(TagTestTag)
+		}
+		err := Add(testInfo, false)
 		if err != nil {
-			t.Fatalf("expected TestTag to be accessible with Find")
+			t.Fatalf("Add(testInfo, false) = error(%v), expected nil for unknown tag", err)
+		}
+
+		// now change the info
+		testInfo.VRs = []string{"LO"}
+		// and try to overwrite it with force
+		err = Add(testInfo, true)
+		if err != nil {
+			t.Fatalf("Add(testInfo, true) = error(%v), Add with force = true should never return an error", err)
+		}
+
+		// validate that the tag has been overwritten
+		info, err := Find(testInfo.Tag)
+		if err != nil {
+			t.Fatalf("expected added tag to be accessible with Find")
 		}
 		if info.VRs[0] != "LO" {
 			t.Fatal("expected the VR to have changed to LO")
+		}
+	})
+	t.Run("fail to overwrite existing tag", func(t *testing.T) {
+		// setup a test tag
+		testInfo := Info{
+			Tag:  Tag{Group: 0x0083, Element: 0x0031},
+			VRs:  []string{"UT"},
+			Name: "TestTag",
+			VM:   "1",
+		}
+		err := Add(testInfo, false)
+		if err != nil {
+			t.Fatalf("Add(testInfo, false) = error(%v), expected nil for unknown tag", err)
+		}
+
+		// now change the info
+		testInfo.VRs = []string{"LO"}
+		// and try to overwrite it with force
+		err = Add(testInfo, false)
+		if err == nil {
+			t.Fatalf("Add(testInfo, true) = nil, Add with force = false should return an error when trying to overwrite a tag")
 		}
 	})
 

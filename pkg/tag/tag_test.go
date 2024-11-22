@@ -101,7 +101,6 @@ func TestUint32Conversion(t *testing.T) {
 }
 
 func TestRegisterCustom(t *testing.T) {
-
 	t.Run("Add new tag", func(t *testing.T) {
 		testInfo := Info{
 			Tag:  Tag{Group: 0x0063, Element: 0x0020},
@@ -118,20 +117,20 @@ func TestRegisterCustom(t *testing.T) {
 		// When a new tag is registered
 		err = Add(testInfo, false)
 		if err != nil {
-			t.Fatalf("SetInfo(TestInfo, false) == <error> , expected SetInfo to return nil when a unknown tag is added")
+			t.Fatalf("Add(TestInfo, false) = %v, want: nil", err)
 		}
 
 		// Then the tag is now part of the tag collection
 		_, err = FindByName("TestTag")
 		if err != nil {
-			t.Errorf("expected TestTag to be accessible with FindByName")
+			t.Errorf("error when finding newly added tag (FindByName\"TestTag\"), got: %v, want: nil", err)
 		}
 		info, err := Find(testInfo.Tag)
 		if err != nil {
-			t.Fatalf("expected TestTag to be accessible with Find")
+			t.Fatalf("unexpected error in Find(\"TestTag\"). got err: %v, want err: nil", err)
 		}
 		if diff := cmp.Diff(testInfo, info); diff != "" {
-			t.Fatal("info of new registered tag is wrong: \n", diff)
+			t.Errorf("unexpected diff in retrieved tag info after Add: %v: \n", diff)
 		}
 	})
 	t.Run("force overwrite existing tag", func(t *testing.T) {
@@ -144,7 +143,7 @@ func TestRegisterCustom(t *testing.T) {
 		}
 		err := Add(testInfo, false)
 		if err != nil {
-			t.Fatalf("Add(testInfo, false) = error(%v), expected nil for unknown tag", err)
+			t.Fatalf("Add(testInfo, false) = %v, want: nil for unknown tag", err)
 		}
 
 		// now change the info
@@ -152,16 +151,16 @@ func TestRegisterCustom(t *testing.T) {
 		// and try to overwrite it with force
 		err = Add(testInfo, true)
 		if err != nil {
-			t.Fatalf("Add(testInfo, true) = error(%v), Add with force = true should never return an error", err)
+			t.Fatalf("Add(testInfo, true) = %v, want: nil. Add with force = true should never return an error", err)
 		}
 
 		// validate that the tag has been overwritten
 		info, err := Find(testInfo.Tag)
 		if err != nil {
-			t.Fatalf("expected added tag to be accessible with Find")
+			t.Fatalf("unexpected err on Find, got: %v, want: nil", err)
 		}
 		if info.VRs[0] != "LO" {
-			t.Fatal("expected the VR to have changed to LO")
+			t.Errorf("unexpected VR on updated tag, got: %v, want: LO", info.VRs[0])
 		}
 	})
 	t.Run("fail to overwrite existing tag", func(t *testing.T) {
@@ -181,8 +180,8 @@ func TestRegisterCustom(t *testing.T) {
 		testInfo.VRs = []string{"LO"}
 		// and try to overwrite it with force
 		err = Add(testInfo, false)
-		if err == nil {
-			t.Fatalf("Add(testInfo, true) = nil, Add with force = false should return an error when trying to overwrite a tag")
+		if err == nil || (err != nil && !strings.Contains(err.Error(), "tag already exists")) {
+			t.Fatalf("Add(testInfo, true) = %v, want: error(\"tag already exists\"). Add with force = false should return an error when trying to overwrite an existing tag", err)
 		}
 	})
 

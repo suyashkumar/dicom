@@ -2,6 +2,7 @@ package tag
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -180,7 +181,7 @@ func TestRegisterCustom(t *testing.T) {
 		testInfo.VRs = []string{"LO"}
 		// and try to overwrite it with force
 		err = Add(testInfo, false)
-		if err == nil || (err != nil && !strings.Contains(err.Error(), "tag already exists")) {
+		if err == nil || !strings.Contains(err.Error(), "tag already exists") {
 			t.Fatalf("Add(testInfo, true) = %v, want: error(\"tag already exists\"). Add with force = false should return an error when trying to overwrite an existing tag", err)
 		}
 	})

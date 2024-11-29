@@ -247,7 +247,7 @@ func parseTag(tag string) (Tag, error) {
 	return Tag{Group: uint16(group), Element: uint16(elem)}, nil
 }
 
-// Add adds a custom tag to the lsit of registered tags. This enables users to work around missing tag definitions
+// Add adds a custom tag to the list of registered tags. This enables users to work around missing tag definitions
 // and to create private tags.
 // If force == true existing tags will be overwritten.
 // Otherwise an error is returned when attempting to add an already existing tag.

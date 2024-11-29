@@ -7,6 +7,7 @@ package tag
 //go:generate stringer -type VRKind
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -244,4 +245,17 @@ func parseTag(tag string) (Tag, error) {
 		return Tag{}, err
 	}
 	return Tag{Group: uint16(group), Element: uint16(elem)}, nil
+}
+
+// Add adds a custom tag to the list of registered tags. This enables users to work around missing tag definitions
+// and to create private tags.
+// If force == true existing tags will be overwritten.
+// Otherwise an error is returned when attempting to add an already existing tag.
+func Add(info Info, force bool) error {
+	_, found := tagDict[info.Tag]
+	if found && !force {
+		return errors.New("tag already exists")
+	}
+	tagDict[info.Tag] = info
+	return nil
 }

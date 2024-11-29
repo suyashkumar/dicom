@@ -2,6 +2,7 @@ package tag
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -98,6 +99,93 @@ func TestUint32Conversion(t *testing.T) {
 	if got != want {
 		t.Errorf("Uint32() got unexpected value %x; want %x", got, want)
 	}
+}
+
+func TestRegisterCustom(t *testing.T) {
+	t.Run("Add new tag", func(t *testing.T) {
+		testInfo := Info{
+			Tag:  Tag{Group: 0x0063, Element: 0x0020},
+			VRs:  []string{"UT"},
+			Name: "TestTag",
+			VM:   "1",
+		}
+		// Given a certain tag does not exist
+		_, err := FindByName("TestTag")
+		if err == nil {
+			t.Fatalf("expected TestTag to not exist")
+		}
+
+		// When a new tag is registered
+		err = Add(testInfo, false)
+		if err != nil {
+			t.Fatalf("Add(TestInfo, false) = %v, want: nil", err)
+		}
+
+		// Then the tag is now part of the tag collection
+		_, err = FindByName("TestTag")
+		if err != nil {
+			t.Errorf("error when finding newly added tag (FindByName\"TestTag\"), got: %v, want: nil", err)
+		}
+		info, err := Find(testInfo.Tag)
+		if err != nil {
+			t.Fatalf("unexpected error in Find(\"TestTag\"). got err: %v, want err: nil", err)
+		}
+		if diff := cmp.Diff(testInfo, info); diff != "" {
+			t.Errorf("unexpected diff in retrieved tag info after Add: %v: \n", diff)
+		}
+	})
+	t.Run("force overwrite existing tag", func(t *testing.T) {
+		// setup a test tag
+		testInfo := Info{
+			Tag:  Tag{Group: 0x0073, Element: 0x0021},
+			VRs:  []string{"UT"},
+			Name: "TestTag",
+			VM:   "1",
+		}
+		err := Add(testInfo, false)
+		if err != nil {
+			t.Fatalf("Add(testInfo, false) = %v, want: nil for unknown tag", err)
+		}
+
+		// now change the info
+		testInfo.VRs = []string{"LO"}
+		// and try to overwrite it with force
+		err = Add(testInfo, true)
+		if err != nil {
+			t.Fatalf("Add(testInfo, true) = %v, want: nil. Add with force = true should never return an error", err)
+		}
+
+		// validate that the tag has been overwritten
+		info, err := Find(testInfo.Tag)
+		if err != nil {
+			t.Fatalf("unexpected err on Find, got: %v, want: nil", err)
+		}
+		if info.VRs[0] != "LO" {
+			t.Errorf("unexpected VR on updated tag, got: %v, want: LO", info.VRs[0])
+		}
+	})
+	t.Run("fail to overwrite existing tag", func(t *testing.T) {
+		// setup a test tag
+		testInfo := Info{
+			Tag:  Tag{Group: 0x0083, Element: 0x0031},
+			VRs:  []string{"UT"},
+			Name: "TestTag",
+			VM:   "1",
+		}
+		err := Add(testInfo, false)
+		if err != nil {
+			t.Fatalf("Add(testInfo, false) = error(%v), expected nil for unknown tag", err)
+		}
+
+		// now change the info
+		testInfo.VRs = []string{"LO"}
+		// and try to overwrite it with force
+		err = Add(testInfo, false)
+		if err == nil || !strings.Contains(err.Error(), "tag already exists") {
+			t.Fatalf("Add(testInfo, true) = %v, want: error(\"tag already exists\"). Add with force = false should return an error when trying to overwrite an existing tag", err)
+		}
+	})
+
 }
 
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {

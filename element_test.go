@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/codeninja55/dicom/pkg/frame"
 	"github.com/google/go-cmp/cmp"
-	"github.com/suyashkumar/dicom/pkg/frame"
 
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/codeninja55/dicom/pkg/tag"
 )
 
 func TestElement_MarshalJSON_NestedElements(t *testing.T) {

@@ -6,8 +6,8 @@ package mock_dicomio
 
 import (
 	binary "encoding/binary"
-	gomock "github.com/golang/mock/gomock"
-	charset "github.com/suyashkumar/dicom/pkg/charset"
+	charset "github.com/codeninja55/dicom/pkg/charset"
+	gomock "github.co
 	reflect "reflect"
 )
 

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/suyashkumar/dicom"
+	"github.com/codeninja55/dicom"
 )
 
 func FuzzDICOMParse(f *testing.F) {

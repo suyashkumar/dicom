@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/suyashkumar/dicom/pkg/vrraw"
+	"github.com/codeninja55/dicom/pkg/vrraw"
 
-	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/codeninja55/dicom/pkg/uid"
 
-	"github.com/suyashkumar/dicom/pkg/dicomio"
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/codeninja55/dicom/pkg/dicomio"
+	"github.com/codeninja55/dicom/pkg/tag"
 )
 
 var (

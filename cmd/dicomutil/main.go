@@ -12,9 +12,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/suyashkumar/dicom"
-	"github.com/suyashkumar/dicom/pkg/frame"
-	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/codeninja55/dicom"
+	"github.com/codeninja55/dicom/pkg/frame"
+	"github.com/codeninja55/dicom/pkg/tag"
 )
 
 // GitVersion is the current version of dicomutil, will be replaced in release step with current git commit hash or tag.

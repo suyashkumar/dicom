@@ -1,9 +1,9 @@
-module github.com/suyashkumar/dicom
+module github.com/codeninja55/dicom
 
-go 1.20
+go 1.23.4
 
 require (
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.9
-	golang.org/x/text v0.3.8
+	github.com/google/go-cmp v0.6.0
+	golang.org/x/text v0.21.0
 )

@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"math"
 
-	"github.com/suyashkumar/dicom/pkg/charset"
+	"github.com/codeninja55/dicom/pkg/charset"
 	"golang.org/x/text/encoding"
 )
 
@@ -21,7 +21,7 @@ var (
 )
 
 // LimitReadUntilEOF is a special dicomio.Reader limit indicating that there is no hard limit and the
-// Reader should read until EOF. 
+// Reader should read until EOF.
 const LimitReadUntilEOF = -9999
 
 // Reader provides common functionality for reading underlying DICOM data.

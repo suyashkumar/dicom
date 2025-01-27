@@ -442,3 +442,86 @@ func TestNewPersonNameFromDicom_Err(t *testing.T) {
 		t.Errorf("unexpected error text: %v", err.Error())
 	}
 }
+
+func TestVeterinaryGroupInfo(t *testing.T) {
+	testCases := []struct {
+		ResponsibleParty string
+		PatientName      string
+	}{
+		{
+			ResponsibleParty: "Potter",
+			PatientName:      "Hedwig",
+		},
+		{
+			ResponsibleParty: "",
+			PatientName:      "Hedwig",
+		},
+		{
+			ResponsibleParty: "Potter",
+			PatientName:      "",
+		},
+		{
+			ResponsibleParty: "",
+			PatientName:      "",
+		},
+	}
+
+	for _, tc := range testCases {
+		name := fmt.Sprintf("%v_%v_new", tc.ResponsibleParty, tc.PatientName)
+		t.Run(name, func(t *testing.T) {
+			groupInfo := NewVeterinaryGroupInfo(tc.ResponsibleParty, tc.PatientName)
+			checkVeterinaryInfo(t, groupInfo, tc.ResponsibleParty, tc.PatientName)
+		})
+
+		name = fmt.Sprintf("%v_%v_set", tc.ResponsibleParty, tc.PatientName)
+		t.Run(name, func(t *testing.T) {
+			groupInfo := GroupInfo{}
+			groupInfo.Veterinary().SetResponsibleParty(tc.ResponsibleParty)
+			groupInfo.Veterinary().SetPatientName(tc.PatientName)
+
+			checkVeterinaryInfo(t, groupInfo, tc.ResponsibleParty, tc.PatientName)
+		})
+	}
+}
+
+func checkVeterinaryInfo(t *testing.T, groupInfo GroupInfo, expectedParty, expectedPatient string) {
+	if groupInfo.Veterinary().ResponsibleParty() != expectedParty {
+		t.Errorf(
+			"ResponsibleParty() returned %v, expected %v",
+			groupInfo.Veterinary().ResponsibleParty(),
+			expectedParty,
+		)
+	}
+
+	if groupInfo.Veterinary().PatientName() != expectedPatient {
+		t.Errorf(
+			"ResponsibleParty() returned %v, expected %v",
+			groupInfo.Veterinary().PatientName(),
+			expectedPatient,
+		)
+	}
+
+	if groupInfo.FamilyName != expectedParty {
+		t.Errorf(
+			"groupInfo.FamilyName returned %v, expected %v",
+			groupInfo.FamilyName,
+			expectedParty,
+		)
+	}
+
+	if groupInfo.GivenName != expectedPatient {
+		t.Errorf(
+			"groupInfo.GivenName returned %v, expected %v",
+			groupInfo.GivenName,
+			expectedPatient,
+		)
+	}
+
+	if groupInfo.TrailingNullLevel != GroupNullLevelNone {
+		t.Errorf(
+			"groupInfo.TrailingNullLevel was %v, expected %v",
+			groupInfo.TrailingNullLevel,
+			GroupNullLevelNone,
+		)
+	}
+}

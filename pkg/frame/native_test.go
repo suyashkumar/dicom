@@ -290,6 +290,78 @@ func TestNativeFrame_Equals(t *testing.T) {
 	}
 }
 
+// Test generated using Keploy
+func TestNativeFrame_GetPixel_OutOfBounds(t *testing.T) {
+    f := frame.NativeFrame[uint8]{
+        RawData:                 []uint8{1, 2, 3, 4},
+        InternalSamplesPerPixel: 2,
+        InternalRows:            2,
+        InternalCols:            2,
+        InternalBitsPerSample:   8,
+    }
+    cases := []struct {
+        x, y int
+    }{
+        {x: -1, y: 0},
+        {x: 0, y: -1},
+        {x: 2, y: 0},
+        {x: 0, y: 2},
+    }
+    for _, tc := range cases {
+        t.Run(fmt.Sprintf("x: %d, y: %d", tc.x, tc.y), func(t *testing.T) {
+            _, err := f.GetPixel(tc.x, tc.y)
+            if err == nil {
+                t.Errorf("GetPixel(%d, %d) expected error but got none", tc.x, tc.y)
+            }
+        })
+    }
+}
+
+
+// Test generated using Keploy
+func TestNativeFrame_GetSample(t *testing.T) {
+    f := frame.NativeFrame[uint8]{
+        RawData:                 []uint8{1, 2, 3, 4, 5, 6},
+        InternalSamplesPerPixel: 2,
+        InternalRows:            1,
+        InternalCols:            3,
+        InternalBitsPerSample:   8,
+    }
+    cases := []struct {
+        x, y, sampleIdx int
+        want            int
+    }{
+        {x: 0, y: 0, sampleIdx: 0, want: 1},
+        {x: 0, y: 0, sampleIdx: 1, want: 2},
+        {x: 1, y: 0, sampleIdx: 0, want: 3},
+        {x: 1, y: 0, sampleIdx: 1, want: 4},
+        {x: 2, y: 0, sampleIdx: 0, want: 5},
+        {x: 2, y: 0, sampleIdx: 1, want: 6},
+    }
+    for _, tc := range cases {
+        t.Run(fmt.Sprintf("x: %d, y: %d, sampleIdx: %d", tc.x, tc.y, tc.sampleIdx), func(t *testing.T) {
+            got := f.GetSample(tc.x, tc.y, tc.sampleIdx)
+            if got != tc.want {
+                t.Errorf("GetSample(%d, %d, %d) got: %d, want: %d", tc.x, tc.y, tc.sampleIdx, got, tc.want)
+            }
+        })
+    }
+}
+
+
+// Test generated using Keploy
+func TestNativeFrame_GetEncapsulatedFrame(t *testing.T) {
+    f := frame.NativeFrame[int]{}
+    ef, err := f.GetEncapsulatedFrame()
+    if ef != nil {
+        t.Errorf("GetEncapsulatedFrame() returned non-nil frame, expected nil")
+    }
+    if !errors.Is(err, frame.ErrorFrameTypeNotPresent) {
+        t.Errorf("GetEncapsulatedFrame() unexpected error. got: %v, want: %v", err, frame.ErrorFrameTypeNotPresent)
+    }
+}
+
+
 // within returns true if pt is in the []point
 func within(pt point, set []point) bool {
 	for _, item := range set {

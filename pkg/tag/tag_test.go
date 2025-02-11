@@ -188,6 +188,51 @@ func TestRegisterCustom(t *testing.T) {
 
 }
 
+
+// Test generated using Keploy
+func TestCompare(t *testing.T) {
+    tag1 := Tag{Group: 0x0010, Element: 0x0010}
+    tag2 := Tag{Group: 0x0010, Element: 0x0011}
+    tag3 := Tag{Group: 0x0011, Element: 0x0010}
+    tag4 := Tag{Group: 0x0010, Element: 0x0010}
+
+    if cmp := tag1.Compare(tag2); cmp != -1 {
+        t.Errorf("Expected tag1.Compare(tag2) == -1, got %d", cmp)
+    }
+    if cmp := tag2.Compare(tag1); cmp != 1 {
+        t.Errorf("Expected tag2.Compare(tag1) == 1, got %d", cmp)
+    }
+    if cmp := tag1.Compare(tag3); cmp != -1 {
+        t.Errorf("Expected tag1.Compare(tag3) == -1, got %d", cmp)
+    }
+    if cmp := tag3.Compare(tag1); cmp != 1 {
+        t.Errorf("Expected tag3.Compare(tag1) == 1, got %d", cmp)
+    }
+    if cmp := tag1.Compare(tag4); cmp != 0 {
+        t.Errorf("Expected tag1.Compare(tag4) == 0, got %d", cmp)
+    }
+}
+
+// Test generated using Keploy
+func TestIsPrivate(t *testing.T) {
+    tests := []struct {
+        group    uint16
+        expected bool
+    }{
+        {0x0001, true},  // Odd group, private
+        {0x0002, false}, // Even group, not private
+        {0xFFFF, true},  // Odd group, private
+        {0xFFFE, false}, // Even group, not private
+    }
+
+    for _, test := range tests {
+        result := IsPrivate(test.group)
+        if result != test.expected {
+            t.Errorf("IsPrivate(%#x) = %v; want %v", test.group, result, test.expected)
+        }
+    }
+}
+
 func BenchmarkFindMetaGroupLengthTag(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		if _, err := Find(Tag{2, 0}); err != nil {

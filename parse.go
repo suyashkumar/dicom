@@ -309,8 +309,10 @@ func AllowMissingMetaElementGroupLength() ParseOption {
 	}
 }
 
-// AllowUnknownCharset allows the parser to ignore an error when the specific character set is not found in the supported character set list
-// (https://dicom.nema.org/medical/dicom/2016d/output/chtml/part02/sect_D.6.2.html). Allowing the unknown charset will default to 7bit ASCII encoding.
+// AllowUnknownCharset allows the parser to ignore an error when the specific
+// character set is not found in the supported character set list
+// (https://dicom.nema.org/medical/dicom/2016d/output/chtml/part02/sect_D.6.2.html).
+// Allowing the unknown charset will default to ASCII encoding.
 func AllowUnknownCharset() ParseOption {
 	return func(set *parseOptSet) {
 		set.allowUnknownCharset = true

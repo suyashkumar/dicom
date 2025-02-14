@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/suyashkumar/dicom/pkg/tag"
+	"github.com/suyashkumar/dicom/pkg/uid"
 
 	"github.com/suyashkumar/dicom/pkg/frame"
 
@@ -191,6 +192,49 @@ func TestParseFile_SkipProcessingPixelDataValue(t *testing.T) {
 	})
 }
 
+func TestParseFile_AllowUnknownCharset(t *testing.T) {
+	file, err := os.CreateTemp("", "unknown_charset.dcm")
+	if err != nil {
+		t.Fatalf("Unexpected error when creating tempfile: %v", err)
+	}
+
+	transferSyntaxUIDElement, err := dicom.NewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
+	if err != nil {
+		t.Fatalf("Unexpected error when creating patient name element: %v", err)
+	}
+	specificCharsetElement, err := dicom.NewElement(tag.SpecificCharacterSet, []string{"UNKNOWN"})
+	if err != nil {
+		t.Fatalf("Unexpected error when creating patient name element: %v", err)
+	}
+	patientNameElement, err := dicom.NewElement(tag.PatientName, []string{"Bob", "Jones"})
+	if err != nil {
+		t.Fatalf("Unexpected error when creating patient name element: %v", err)
+	}
+	unknownCharsetDataset := dicom.Dataset{Elements: []*dicom.Element{
+		transferSyntaxUIDElement,
+		specificCharsetElement,
+		patientNameElement,
+	}}
+	err = dicom.Write(file, unknownCharsetDataset)
+	if err != nil {
+		t.Errorf("Unexpected error writing dataset: %v", unknownCharsetDataset)
+	}
+	file.Close()
+
+	t.Run("WithoutAllowUnknownCharset", func(t *testing.T) {
+		dataset, err := dicom.ParseFile(file.Name(), nil)
+		if err == nil {
+			t.Errorf("Expected error parsing dataset: %v", dataset)
+		}
+	})
+	t.Run("WithAllowUnknownCharset", func(t *testing.T) {
+		dataset, err := dicom.ParseFile(file.Name(), nil, dicom.AllowUnknownCharset())
+		if err != nil {
+			t.Errorf("Unexpected error parsing dataset: %v", dataset)
+		}
+	})
+}
+
 // BenchmarkParse runs sanity benchmarks over the sample files in testdata.
 func BenchmarkParse(b *testing.B) {
 	cases := []struct {
@@ -218,7 +262,6 @@ func BenchmarkParse(b *testing.B) {
 			for _, f := range files {
 				if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
 					b.Run(f.Name(), func(b *testing.B) {
-
 						dcm, err := os.Open("./testdata/" + f.Name())
 						if err != nil {
 							b.Errorf("Unable to open %s. Error: %v", f.Name(), err)
@@ -235,7 +278,6 @@ func BenchmarkParse(b *testing.B) {
 						for i := 0; i < b.N; i++ {
 							_, _ = dicom.Parse(bytes.NewBuffer(data), int64(len(data)), nil, tc.opts...)
 						}
-
 					})
 				}
 			}
@@ -251,7 +293,6 @@ func BenchmarkParser_NextAPI(b *testing.B) {
 	for _, f := range files {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".dcm") {
 			b.Run(f.Name(), func(b *testing.B) {
-
 				dcm, err := os.Open("./testdata/" + f.Name())
 				if err != nil {
 					b.Errorf("Unable to open %s. Error: %v", f.Name(), err)

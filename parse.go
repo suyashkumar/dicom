@@ -253,7 +253,7 @@ func (p *Parser) Next() (*Element, error) {
 		encodingNames := MustGetStrings(elem.Value)
 		cs, err := charset.ParseSpecificCharacterSet(encodingNames)
 		if err != nil {
-			if !p.reader.opts.allowMissingCharset {
+			if !p.reader.opts.allowUnknownCharset {
 				return nil, err
 			}
 		}
@@ -285,7 +285,7 @@ type parseOptSet struct {
 	skipPixelData                      bool
 	skipProcessingPixelDataValue       bool
 	allowMissingMetaElementGroupLength bool
-	allowMissingCharset                bool
+	allowUnknownCharset                bool
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
@@ -311,10 +311,10 @@ func AllowMissingMetaElementGroupLength() ParseOption {
 	}
 }
 
-// AllowMissingCharset allows parser to ignore an error when the specific charset is not found in the default list.
-func AllowMissingCharset() ParseOption {
+// AllowUnknownCharset allows parser to ignore an error when the specific charset is not found in the default list.
+func AllowUnknownCharset() ParseOption {
 	return func(set *parseOptSet) {
-		set.allowMissingCharset = true
+		set.allowUnknownCharset = true
 	}
 }
 

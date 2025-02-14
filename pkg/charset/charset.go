@@ -84,7 +84,7 @@ func ParseSpecificCharacterSet(encodingNames []string) (CodingSystem, error) {
 		var c *encoding.Decoder
 		if htmlName, ok := htmlEncodingNames[name]; !ok {
 			// TODO(saito) Support more encodings.
-			return CodingSystem{}, fmt.Errorf("ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", name)
+			return CodingSystem{}, fmt.Errorf("ParseSpecificCharacterSet: Unknown character set '%s'. ", name)
 		} else {
 			if htmlName != "" {
 				d, err := htmlindex.Get(htmlName)

@@ -200,11 +200,11 @@ func TestParseFile_AllowUnknownCharset(t *testing.T) {
 
 	transferSyntaxUIDElement, err := dicom.NewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian})
 	if err != nil {
-		t.Fatalf("Unexpected error when creating patient name element: %v", err)
+		t.Fatalf("Unexpected error when creating transfer syntax uid element: %v", err)
 	}
 	specificCharsetElement, err := dicom.NewElement(tag.SpecificCharacterSet, []string{"UNKNOWN"})
 	if err != nil {
-		t.Fatalf("Unexpected error when creating patient name element: %v", err)
+		t.Fatalf("Unexpected error when creating specific character set element: %v", err)
 	}
 	patientNameElement, err := dicom.NewElement(tag.PatientName, []string{"Bob", "Jones"})
 	if err != nil {

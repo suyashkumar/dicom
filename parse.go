@@ -252,10 +252,8 @@ func (p *Parser) Next() (*Element, error) {
 	if elem.Tag == tag.SpecificCharacterSet {
 		encodingNames := MustGetStrings(elem.Value)
 		cs, err := charset.ParseSpecificCharacterSet(encodingNames)
-		if err != nil {
-			if !p.reader.opts.allowUnknownCharset {
-				return nil, err
-			}
+		if err != nil && !p.reader.opts.allowUnknownCharset {
+			return nil, err
 		}
 		p.reader.rawReader.SetCodingSystem(cs)
 	}
@@ -311,7 +309,8 @@ func AllowMissingMetaElementGroupLength() ParseOption {
 	}
 }
 
-// AllowUnknownCharset allows parser to ignore an error when the specific charset is not found in the default list.
+// AllowUnknownCharset allows the parser to ignore an error when the specific character set is not found in the supported character set list
+// (https://dicom.nema.org/medical/dicom/2016d/output/chtml/part02/sect_D.6.2.html). Allowing the unknown charset will default to 7bit ASCII encoding.
 func AllowUnknownCharset() ParseOption {
 	return func(set *parseOptSet) {
 		set.allowUnknownCharset = true

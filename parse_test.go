@@ -192,8 +192,8 @@ func TestParseFile_SkipProcessingPixelDataValue(t *testing.T) {
 	})
 }
 
-func TestParseFile_AllowUnknownCharset(t *testing.T) {
-	file, err := os.CreateTemp("", "unknown_charset.dcm")
+func TestParseFile_AllowUnknownSpecificCharacterSet(t *testing.T) {
+	file, err := os.CreateTemp("", "unknown_specific_character_set.dcm")
 	if err != nil {
 		t.Fatalf("Unexpected error when creating tempfile: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestParseFile_AllowUnknownCharset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error when creating transfer syntax uid element: %v", err)
 	}
-	specificCharsetElement, err := dicom.NewElement(tag.SpecificCharacterSet, []string{"UNKNOWN"})
+	specificCharacterSetElement, err := dicom.NewElement(tag.SpecificCharacterSet, []string{"UNKNOWN"})
 	if err != nil {
 		t.Fatalf("Unexpected error when creating specific character set element: %v", err)
 	}
@@ -210,25 +210,25 @@ func TestParseFile_AllowUnknownCharset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error when creating patient name element: %v", err)
 	}
-	unknownCharsetDataset := dicom.Dataset{Elements: []*dicom.Element{
+	unknownCharacterSetDataset := dicom.Dataset{Elements: []*dicom.Element{
 		transferSyntaxUIDElement,
-		specificCharsetElement,
+		specificCharacterSetElement,
 		patientNameElement,
 	}}
-	err = dicom.Write(file, unknownCharsetDataset)
+	err = dicom.Write(file, unknownCharacterSetDataset)
 	if err != nil {
-		t.Errorf("Unexpected error writing dataset: %v", unknownCharsetDataset)
+		t.Errorf("Unexpected error writing dataset: %v", unknownCharacterSetDataset)
 	}
 	file.Close()
 
-	t.Run("WithoutAllowUnknownCharset", func(t *testing.T) {
+	t.Run("WithoutAllowUnknownSpecificCharacterSet", func(t *testing.T) {
 		dataset, err := dicom.ParseFile(file.Name(), nil)
 		if err == nil {
 			t.Errorf("Expected error parsing dataset: %v", dataset)
 		}
 	})
-	t.Run("WithAllowUnknownCharset", func(t *testing.T) {
-		dataset, err := dicom.ParseFile(file.Name(), nil, dicom.AllowUnknownCharset())
+	t.Run("WithAllowUnknownSpecificCharacterSet", func(t *testing.T) {
+		dataset, err := dicom.ParseFile(file.Name(), nil, dicom.AllowUnknownSpecificCharacterSet())
 		if err != nil {
 			t.Errorf("Unexpected error parsing dataset: %v", dataset)
 		}

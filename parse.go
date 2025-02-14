@@ -252,7 +252,7 @@ func (p *Parser) Next() (*Element, error) {
 	if elem.Tag == tag.SpecificCharacterSet {
 		encodingNames := MustGetStrings(elem.Value)
 		cs, err := charset.ParseSpecificCharacterSet(encodingNames)
-		if err != nil && !p.reader.opts.allowUnknownCharset {
+		if err != nil && !p.reader.opts.allowUnknownSpecificCharacterSet {
 			return nil, err
 		}
 		p.reader.rawReader.SetCodingSystem(cs)
@@ -283,7 +283,7 @@ type parseOptSet struct {
 	skipPixelData                      bool
 	skipProcessingPixelDataValue       bool
 	allowMissingMetaElementGroupLength bool
-	allowUnknownCharset                bool
+	allowUnknownSpecificCharacterSet   bool
 }
 
 func toParseOptSet(opts ...ParseOption) parseOptSet {
@@ -309,13 +309,13 @@ func AllowMissingMetaElementGroupLength() ParseOption {
 	}
 }
 
-// AllowUnknownCharset allows the parser to ignore an error when the specific
+// AllowUnknownSpecificCharacterSet allows the parser to ignore an error when the specific
 // character set is not found in the supported character set list
 // (https://dicom.nema.org/medical/dicom/2016d/output/chtml/part02/sect_D.6.2.html).
-// Allowing the unknown charset will default to ASCII encoding.
-func AllowUnknownCharset() ParseOption {
+// Allowing the unknown specific character set will default to ASCII encoding.
+func AllowUnknownSpecificCharacterSet() ParseOption {
 	return func(set *parseOptSet) {
-		set.allowUnknownCharset = true
+		set.allowUnknownSpecificCharacterSet = true
 	}
 }
 

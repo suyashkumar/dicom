@@ -75,16 +75,16 @@ var htmlEncodingNames = map[string]string{
 }
 
 // ParseSpecificCharacterSet converts DICOM character encoding names, such as
-// "ISO-IR 100" to encoding.Decoder(s). It will return nil, nil for the default (7bit
-// ASCII) encoding. Cf. P3.2
-// D.6.2. https://dicom.nema.org/medical/dicom/2016d/output/chtml/part02/sect_D.6.2.html
+// "ISO-IR 100" to encoding.Decoder(s). It will return nil, nil for the default (UTF-8)
+// encoding. Cf. P3.2 D.6.2.
+// https://dicom.nema.org/medical/dicom/2016d/output/chtml/part02/sect_D.6.2.html
 func ParseSpecificCharacterSet(encodingNames []string) (CodingSystem, error) {
 	var decoders []*encoding.Decoder
 	for _, name := range encodingNames {
 		var c *encoding.Decoder
 		if htmlName, ok := htmlEncodingNames[name]; !ok {
 			// TODO(saito) Support more encodings.
-			return CodingSystem{}, fmt.Errorf("ParseSpecificCharacterSet: Unknown character set '%s'. ", name)
+			return CodingSystem{}, fmt.Errorf("ParseSpecificCharacterSet: Unknown character set '%s'. Assuming utf-8", name)
 		} else {
 			if htmlName != "" {
 				d, err := htmlindex.Get(htmlName)

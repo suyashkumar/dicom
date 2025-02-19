@@ -33,7 +33,7 @@ type Reader struct {
 	limitStack []int64
 	// cs represents the CodingSystem to use when reading the string. If a
 	// particular encoding.Decoder within this CodingSystem is nil, assume
-	// ASCII.
+	// UTF-8.
 	cs charset.CodingSystem
 }
 
@@ -129,7 +129,7 @@ func internalReadString(data []byte, d *encoding.Decoder) (string, error) {
 		return "", nil
 	}
 	if d == nil {
-		// Assume ASCII
+		// Assume UTF-8
 		return string(data), nil
 	}
 	bytes, err := d.Bytes(data)

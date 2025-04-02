@@ -72,6 +72,39 @@ func TestParseUntilEOF(t *testing.T) {
 	}
 }
 
+// TestParse_CEchoRQ is a test for parsing a CEchoRQ command. It checks that
+// the command is parsed correctly and that the expected tags are present in
+// the dataset.
+func TestParse_CEchoRQ(t *testing.T) {
+	commandBytes := []byte{
+		0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+		0x12, 0x00, 0x00, 0x00, 0x31, 0x2E, 0x32, 0x2E, 0x38, 0x34, 0x30, 0x2E, 0x31, 0x30, 0x30, 0x30,
+		0x38, 0x2E, 0x31, 0x2E, 0x31, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x30, 0x00,
+		0x00, 0x00, 0x10, 0x01, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x02, 0x00,
+		0x00, 0x00, 0x01, 0x01,
+	}
+
+	ioReader := bytes.NewReader(commandBytes)
+	dataset, err := dicom.Parse(ioReader, int64(len(commandBytes)), nil, dicom.SkipPixelData(), dicom.SkipMetadataReadOnNewParserInit())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	tags := []tag.Tag{
+		{Group: 0x0000, Element: 0x0000},
+		{Group: 0x0000, Element: 0x0002},
+		{Group: 0x0000, Element: 0x0100},
+		{Group: 0x0000, Element: 0x0110},
+		{Group: 0x0000, Element: 0x0800},
+	}
+	for _, tag := range tags {
+		_, err := dataset.FindElementByTag(tag)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+
+}
+
 // TestNewParserSkipMetadataReadOnNewParserInit tests that NewParser with the SkipMetadataReadOnNewParserInit option
 // parses the specified dataset but not its header metadata.
 func TestNewParserSkipMetadataReadOnNewParserInit(t *testing.T) {

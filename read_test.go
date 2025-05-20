@@ -172,6 +172,7 @@ func TestReadOWBytes(t *testing.T) {
 		name        string
 		bytes       []byte
 		VR          string
+		explicitVL  uint32
 		want        Value
 		expectedErr error
 	}{
@@ -196,6 +197,14 @@ func TestReadOWBytes(t *testing.T) {
 			want:        nil,
 			expectedErr: ErrorOWRequiresEvenVL,
 		},
+		{
+			name:        "error on undefined length",
+			bytes:       []byte{0x1, 0x2, 0x3},
+			VR:          vrraw.OtherWord,
+			explicitVL:  tag.VLUndefinedLength,
+			want:        nil,
+			expectedErr: ErrorExpectedDefinedLength,
+		},
 	}
 
 	for _, tc := range cases {
@@ -206,7 +215,12 @@ func TestReadOWBytes(t *testing.T) {
 			}
 
 			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))}
-			got, err := r.readBytes(tag.Tag{}, tc.VR, uint32(data.Len()))
+			vl := tc.explicitVL
+			if vl == 0 {
+				vl = uint32(data.Len())
+			}
+
+			got, err := r.readBytes(tag.Tag{}, tc.VR, vl)
 			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readBytes(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}

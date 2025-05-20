@@ -32,6 +32,7 @@ var (
 	ErrorUnsupportedBitsAllocated = errors.New("unsupported BitsAllocated")
 	errorUnableToParseFloat       = errors.New("unable to parse float type")
 	ErrorExpectedEvenLength       = errors.New("field length is not even, in violation of DICOM spec")
+	ErrorExpectedDefinedLength    = errors.New("unable to read field of undefined length")
 )
 
 // reader is responsible for mid-level dicom parsing capabilities, like
@@ -641,6 +642,10 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 }
 
 func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
+	if vl == tag.VLUndefinedLength {
+		return nil, ErrorExpectedDefinedLength
+	}
+
 	// TODO: add special handling of PixelData
 	if vr == vrraw.OtherByte || vr == vrraw.Unknown {
 		data := make([]byte, vl)
@@ -672,6 +677,10 @@ func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 }
 
 func (r *reader) readString(t tag.Tag, vr string, vl uint32) (Value, error) {
+	if vl == tag.VLUndefinedLength {
+		return nil, ErrorExpectedDefinedLength
+	}
+
 	str, err := r.rawReader.ReadString(vl)
 	if err != nil {
 		return nil, fmt.Errorf("error reading string element (%v) value: %w", t, err)

@@ -60,6 +60,12 @@ func TestFind(t *testing.T) {
 			wantKeyword: "CodeValue",
 			wantVRs:     []string{"SH"},
 		},
+		{
+			name:        "command group tag",
+			tag:         CommandField,
+			wantKeyword: "CommandField",
+			wantVRs:     []string{"US"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.wantKeyword, func(t *testing.T) {

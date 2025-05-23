@@ -178,7 +178,7 @@ func ExampleDataset_FlatIterator() {
 	// (0046,0102)
 }
 
-func ExampleDataset_FlatIteratorWithExhaustAllElements() {
+func ExampleDataset_FlatIterator_withExhaustAllElements() {
 	nestedData := [][]*Element{
 		{
 			mustNewElement(tag.PatientName, []string{"Bob"}),

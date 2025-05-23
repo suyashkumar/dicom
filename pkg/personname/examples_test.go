@@ -86,7 +86,7 @@ func ExampleParse_partialNullSeparators() {
 }
 
 // How to create new PN value.
-func ExampleNew() {
+func ExampleInfo() {
 	// Create a new PN like so
 	pnVal := personname.Info{
 		Alphabetic: personname.GroupInfo{

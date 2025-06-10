@@ -228,9 +228,11 @@ func TestReadUndefinedLengthByteValue(t *testing.T) {
 		{
 			name: "happy path",
 			bytes: []byte{
-				0xfe, 0xff, 0x00, 0xe0, 0x04, 0x00, 0x00, 0x00, // item tag, length 4
-				0x01, 0x02, 0x03, 0x04, // data
-				0xfe, 0xff, 0xdd, 0xe0, 0x00, 0x00, 0x00, 0x00, // item delimitation tag
+				0xfe, 0xff, 0x00, 0xe0, // item tag (fffe, e000)
+				0x04, 0x00, 0x00, 0x00, // length 4
+				0x01, 0x02, 0x03, 0x04, // data (4 bytes)
+				0xfe, 0xff, 0xdd, 0xe0, // sequence delimitation item tag (fffe, e0dd)
+				0x00, 0x00, 0x00, 0x00, // length 0 (required)
 			},
 			want:        &bytesValue{value: []byte{0x01, 0x02, 0x03, 0x04}},
 			expectedErr: nil,
@@ -238,7 +240,7 @@ func TestReadUndefinedLengthByteValue(t *testing.T) {
 		{
 			name: "not formatted as sequence",
 			bytes: []byte{
-				0x01, 0x02, 0x03, 0x04, // data
+				0x01, 0x02, 0x03, 0x04, // data (4 bytes)
 			},
 			want:        &bytesValue{value: []byte{}},
 			expectedErr: io.EOF,
@@ -246,8 +248,9 @@ func TestReadUndefinedLengthByteValue(t *testing.T) {
 		{
 			name: "missing delimitation item",
 			bytes: []byte{
-				0xfe, 0xff, 0x00, 0xe0, 0x04, 0x00, 0x00, 0x00, // item tag, length 4
-				0x01, 0x02, 0x03, 0x04, // data
+				0xfe, 0xff, 0x00, 0xe0, // item tag (fffe, e000)
+				0x04, 0x00, 0x00, 0x00, // length 4
+				0x01, 0x02, 0x03, 0x04, // data (4 bytes)
 			},
 			want:        &bytesValue{value: []byte{}},
 			expectedErr: ErrorExpectedSequenceDelimitation,
@@ -263,7 +266,7 @@ func TestReadUndefinedLengthByteValue(t *testing.T) {
 
 			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))}
 
-			got, err := r.readUndefinedLengthByteValue(tag.Tag{}, "OB")
+			got, err := r.readUndefinedLengthByteValue()
 			if tc.expectedErr != nil {
 				if !errors.Is(err, tc.expectedErr) {
 					t.Fatalf("readUndefinedLengthByteValue got unexpected error: got: %v, want: %v", err, tc.expectedErr)

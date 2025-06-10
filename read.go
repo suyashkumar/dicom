@@ -125,7 +125,7 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 	switch vrkind {
 	case tag.VRBytes:
 		if vl == tag.VLUndefinedLength {
-			return r.readUndefinedLengthByteValue(t, vr)
+			return r.readUndefinedLengthByteValue()
 		}
 		return r.readBytes(t, vr, vl)
 	case tag.VRString:
@@ -162,7 +162,7 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 // readUndefinedLengthByteValue reads a value of type OB or OW of undefined length.
 // see https://github.com/suyashkumar/dicom/issues/349 for details.
 // pixel data should not use this and instead use readPixelData.
-func (r *reader) readUndefinedLengthByteValue(t tag.Tag, vr string) (Value, error) {
+func (r *reader) readUndefinedLengthByteValue() (Value, error) {
 	var allData []byte
 	foundDelimeter := false
 

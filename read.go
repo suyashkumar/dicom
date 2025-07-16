@@ -20,6 +20,15 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+// DicomPreamble  =  empty padding at start of file
+// DicomMagicWord = 4-byte "DICM" identifier
+// DicomHeaderOffset = skip to actual data
+const (
+	DicomPreambleSize  = 128
+	DicomMagicWordSize = 4
+	DicomHeaderOffset  = DicomPreambleSize + DicomMagicWordSize
+)
+
 var (
 	// ErrorOWRequiresEvenVL indicates that an element with VR=OW had a not even
 	// value length which is not allowed.
@@ -158,11 +167,11 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 // This should only be called once per DICOM at the start of parsing.
 func (r *reader) readHeader() ([]*Element, error) {
 	// Check for Preamble (128 bytes) + magic word (4 bytes).
-	data, err := r.rawReader.Peek(128 + 4)
+	data, err := r.rawReader.Peek(DicomPreambleSize + DicomMagicWordSize)
 	if err != nil {
 		return nil, fmt.Errorf("error reading DICOM header preamble: %w", err)
 	}
-	if string(data[128:]) != magicWord {
+	if string(data[DicomPreambleSize:]) != magicWord {
 		// If magic word is not at byte offset 128 this is a non-standard
 		// non-compliant DICOM. We try to read this DICOM in a compatibility
 		// mode, where we rewind to position 0 and blindly attempt to parse
@@ -171,7 +180,7 @@ func (r *reader) readHeader() ([]*Element, error) {
 		return nil, nil
 	}
 
-	err = r.rawReader.Skip(128 + 4) // skip preamble + magic word
+	err = r.rawReader.Skip(DicomPreambleSize + DicomMagicWordSize) // skip preamble + magic word
 	if err != nil {
 		return nil, err
 	}

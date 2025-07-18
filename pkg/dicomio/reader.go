@@ -231,3 +231,18 @@ func (r *Reader) Peek(n int) ([]byte, error) {
 func (r *Reader) ByteOrder() binary.ByteOrder {
 	return r.bo
 }
+
+// PeekAtMost peeks up to n bytes from the buffer without consuming them.
+// If no bytes are available, the function propagates the error, including io.EOF and bufio.ErrBufferFull.
+// However, if some bytes are returned, io.EOF and bufio.ErrBufferFull are ignored.
+// All other errors are always propagated.
+func (r *Reader) PeekAtMost(n int) ([]byte, error) {
+	peeked, err := r.in.Peek(n)
+	if len(peeked) == 0 {
+		return nil, err
+	}
+	if err == io.EOF || err == bufio.ErrBufferFull {
+		return peeked, nil
+	}
+	return peeked, err
+}

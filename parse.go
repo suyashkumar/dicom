@@ -178,10 +178,9 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 
 	// No transfer syntax found, so let's try to infer the transfer syntax by
 	// trying to read the next element under various transfer syntaxes.
-	next100, err := p.reader.rawReader.Peek(100)
-	if errors.Is(err, io.EOF) {
-		// DICOM is shorter than 100 bytes.
-		return nil, fmt.Errorf("dicom with missing transfer syntax metadata is shorter than 100 bytes, so cannot infer transfer syntax")
+	next100, err := p.reader.rawReader.PeekAtMost(100)
+	if err != nil {
+		return nil, fmt.Errorf("could not peek at next 100 bytes, so cannot infer transfer syntax: %w", err)
 	}
 
 	syntaxes := []struct {

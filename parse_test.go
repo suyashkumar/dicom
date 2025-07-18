@@ -74,7 +74,8 @@ func TestParseUntilEOF(t *testing.T) {
 
 // TestParse_CEchoRQ is a test for parsing a CEchoRQ command. It checks that
 // the command is parsed correctly and that the expected tags are present in
-// the dataset.
+// the dataset. These commands are typically very small dicom fragments, and 
+// ensure that our parsing and transfer syntax inference logic work correctly.
 func TestParse_CEchoRQ(t *testing.T) {
 	commandBytes := []byte{
 		// Command Group Length

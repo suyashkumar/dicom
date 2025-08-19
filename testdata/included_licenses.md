@@ -1,6 +1,6 @@
 # Included Licenses
 
-This is where licenses related to some of the test files are included as per the 
+This is where licenses related to some of the test files are included as per the
 clause in some licenses that require them to be reproduced in redistributions of
 portions of the software
 

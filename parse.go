@@ -74,7 +74,7 @@ func parseInternal(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame,
 	}
 
 	for !p.reader.rawReader.IsLimitExhausted() {
-		_, err := p.Next()
+		elem, err := p.Next()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				// exiting on EOF
@@ -85,6 +85,7 @@ func parseInternal(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame,
 			// exit on error
 			return p.dataset, err
 		}
+		p.dataset.Elements = append(p.dataset.Elements, elem)
 	}
 
 	// Close the frameChannel if needed
@@ -132,8 +133,9 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	optSet := toParseOptSet(opts...)
 	p := Parser{
 		reader: &reader{
-			rawReader: dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead),
-			opts:      optSet,
+			rawReader:  dicomio.NewReader(bufio.NewReader(in), binary.LittleEndian, bytesToRead),
+			opts:       optSet,
+			datasetCtx: &Dataset{},
 		},
 		frameChannel: frameChannel,
 	}
@@ -241,7 +243,7 @@ func (p *Parser) Next() (*Element, error) {
 		}
 		return nil, ErrorEndOfDICOM
 	}
-	elem, err := p.reader.readElement(&p.dataset, p.frameChannel)
+	elem, err := p.reader.ReadElement(p.frameChannel)
 	if err != nil {
 		// TODO: tolerate some kinds of errors and continue parsing
 		return nil, err
@@ -258,7 +260,6 @@ func (p *Parser) Next() (*Element, error) {
 		p.reader.rawReader.SetCodingSystem(cs)
 	}
 
-	p.dataset.Elements = append(p.dataset.Elements, elem)
 	return elem, nil
 }
 

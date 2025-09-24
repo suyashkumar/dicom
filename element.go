@@ -23,6 +23,7 @@ type Element struct {
 	RawValueRepresentation string     `json:"rawVR"`
 	ValueLength            uint32     `json:"valueLength"`
 	Value                  Value      `json:"value"`
+	TagName                string     `json:"tagName"`
 }
 
 // Equals returns true if this Element equals the provided target Element,
@@ -44,13 +45,9 @@ func (e *Element) Equals(target *Element) bool {
 }
 
 func (e *Element) String() string {
-	var tagName string
-	if tagInfo, err := tag.Find(e.Tag); err == nil {
-		tagName = tagInfo.Keyword
-	}
 	return fmt.Sprintf("[\n  Tag: %s\n  Tag Name: %s\n  VR: %s\n  VR Raw: %s\n  VL: %d\n  Value: %s\n]\n\n",
 		e.Tag.String(),
-		tagName,
+		e.TagName,
 		e.ValueRepresentation.String(),
 		e.RawValueRepresentation,
 		e.ValueLength,
@@ -161,6 +158,7 @@ func NewElement(t tag.Tag, data any) (*Element, error) {
 		ValueRepresentation:    tag.GetVRKind(t, rawVR),
 		RawValueRepresentation: rawVR,
 		Value:                  value,
+		TagName:                tagInfo.Name,
 	}, nil
 }
 
@@ -178,8 +176,14 @@ func mustNewPrivateElement(t tag.Tag, rawVR string, data any) *Element {
 		log.Panic(fmt.Errorf("error creating value: %w", err))
 	}
 
+	var tagName string
+	if tagInfo, err := tag.Find(t); err == nil {
+		tagName = tagInfo.Name
+	}
+
 	return &Element{
 		Tag:                    t,
+		TagName:                tagName,
 		ValueRepresentation:    tag.GetVRKind(t, rawVR),
 		RawValueRepresentation: rawVR,
 		ValueLength:            0,

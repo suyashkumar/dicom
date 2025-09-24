@@ -820,7 +820,15 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 		return nil, fmt.Errorf("readElement: error when reading value for element %v: %w", t, err)
 	}
 
-	return &Element{Tag: *t, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
+	info, err := tag.Find(*t)
+	var tagName string
+	if err != nil {
+		tagName = "Unknown"
+	} else {
+		tagName = info.Name
+	}
+
+	return &Element{Tag: *t, TagName: tagName, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
 
 }
 

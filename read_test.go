@@ -206,12 +206,73 @@ func TestReadOWBytes(t *testing.T) {
 			}
 
 			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))}
+
 			got, err := r.readBytes(tag.Tag{}, tc.VR, uint32(data.Len()))
 			if !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("readBytes(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.VR, data.Len(), err, tc.expectedErr)
 			}
 			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(bytesValue{})); diff != "" {
 				t.Errorf("readBytes(r, tg, %s, %d) unexpected diff: %s", tc.VR, data.Len(), diff)
+			}
+		})
+	}
+}
+
+func TestReadUndefinedLengthByteValue(t *testing.T) {
+	cases := []struct {
+		name        string
+		bytes       []byte
+		want        Value
+		expectedErr error
+	}{
+		{
+			name: "happy path",
+			bytes: []byte{
+				0xfe, 0xff, 0x00, 0xe0, // item tag (fffe, e000)
+				0x04, 0x00, 0x00, 0x00, // length 4
+				0x01, 0x02, 0x03, 0x04, // data (4 bytes)
+				0xfe, 0xff, 0xdd, 0xe0, // sequence delimitation item tag (fffe, e0dd)
+				0x00, 0x00, 0x00, 0x00, // length 0 (required)
+			},
+			want:        &bytesValue{value: []byte{0x01, 0x02, 0x03, 0x04}},
+			expectedErr: nil,
+		},
+		{
+			name: "not formatted as sequence",
+			bytes: []byte{
+				0x01, 0x02, 0x03, 0x04, // data (4 bytes)
+			},
+			want:        &bytesValue{value: []byte{}},
+			expectedErr: io.EOF,
+		},
+		{
+			name: "missing delimitation item",
+			bytes: []byte{
+				0xfe, 0xff, 0x00, 0xe0, // item tag (fffe, e000)
+				0x04, 0x00, 0x00, 0x00, // length 4
+				0x01, 0x02, 0x03, 0x04, // data (4 bytes)
+			},
+			want:        &bytesValue{value: []byte{}},
+			expectedErr: ErrorExpectedSequenceDelimitation,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := bytes.Buffer{}
+			if err := binary.Write(&data, binary.LittleEndian, tc.bytes); err != nil {
+				t.Errorf("TestReadOWBytes: Unable to setup test buffer")
+			}
+
+			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(data.Len()))}
+
+			got, err := r.readUndefinedLengthByteValue()
+			if tc.expectedErr != nil {
+				if !errors.Is(err, tc.expectedErr) {
+					t.Fatalf("readUndefinedLengthByteValue got unexpected error: got: %v, want: %v", err, tc.expectedErr)
+				}
+			} else if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(bytesValue{})); diff != "" {
+				t.Errorf("readUndefinedLengthByteValue unexpected diff: %s", diff)
 			}
 		})
 	}

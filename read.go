@@ -29,9 +29,11 @@ var (
 	// ErrorUnsupportedBitsAllocated indicates that the BitsAllocated in the
 	// NativeFrame PixelData is unsupported. In this situation, the rest of the
 	// dataset returned is still valid.
-	ErrorUnsupportedBitsAllocated = errors.New("unsupported BitsAllocated")
-	errorUnableToParseFloat       = errors.New("unable to parse float type")
-	ErrorExpectedEvenLength       = errors.New("field length is not even, in violation of DICOM spec")
+	ErrorUnsupportedBitsAllocated     = errors.New("unsupported BitsAllocated")
+	errorUnableToParseFloat           = errors.New("unable to parse float type")
+	ErrorExpectedEvenLength           = errors.New("field length is not even, in violation of DICOM spec")
+	ErrorExpectedDefinedLength        = errors.New("unable to read field of undefined length")
+	ErrorExpectedSequenceDelimitation = errors.New("expected to find sequence delimitation item (fffe,e0dd)")
 )
 
 // reader is responsible for mid-level dicom parsing capabilities, like
@@ -122,6 +124,9 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 	// TODO: if we keep consistent function signature, consider a static map of VR to func?
 	switch vrkind {
 	case tag.VRBytes:
+		if vl == tag.VLUndefinedLength {
+			return r.readUndefinedLengthByteValue()
+		}
 		return r.readBytes(t, vr, vl)
 	case tag.VRString:
 		return r.readString(t, vr, vl)
@@ -152,6 +157,34 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 	default:
 		return r.readString(t, vr, vl)
 	}
+}
+
+// readUndefinedLengthByteValue reads a value of type OB or OW of undefined length.
+// see https://github.com/suyashkumar/dicom/issues/349 for details.
+// pixel data should not use this and instead use readPixelData.
+func (r *reader) readUndefinedLengthByteValue() (Value, error) {
+	var allData []byte
+	foundDelimeter := false
+
+	for !r.rawReader.IsLimitExhausted() {
+		data, terminated, err := r.readRawItem(false)
+		if err != nil {
+			return nil, fmt.Errorf("error reading undefined byte value: %w", err)
+		}
+
+		if terminated {
+			foundDelimeter = true
+			break
+		}
+
+		allData = append(allData, data...)
+	}
+
+	if !foundDelimeter {
+		return nil, ErrorExpectedSequenceDelimitation
+	}
+
+	return &bytesValue{value: allData}, nil
 }
 
 // readHeader reads the DICOM magic header and group two metadata elements.
@@ -641,6 +674,10 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 }
 
 func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
+	if vl == tag.VLUndefinedLength {
+		return nil, ErrorExpectedDefinedLength
+	}
+
 	// TODO: add special handling of PixelData
 	if vr == vrraw.OtherByte || vr == vrraw.Unknown {
 		data := make([]byte, vl)
@@ -672,6 +709,10 @@ func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 }
 
 func (r *reader) readString(t tag.Tag, vr string, vl uint32) (Value, error) {
+	if vl == tag.VLUndefinedLength {
+		return nil, ErrorExpectedDefinedLength
+	}
+
 	str, err := r.rawReader.ReadString(vl)
 	if err != nil {
 		return nil, fmt.Errorf("error reading string element (%v) value: %w", t, err)
@@ -829,12 +870,11 @@ func (r *reader) readElement(d *Dataset, fc chan<- *frame.Frame) (*Element, erro
 	}
 
 	return &Element{Tag: *t, TagName: tagName, ValueRepresentation: tag.GetVRKind(*t, vr), RawValueRepresentation: vr, ValueLength: vl, Value: val}, nil
-
 }
 
 // Read an Item object as raw bytes, useful when parsing encapsulated PixelData.
 // This returns the read raw item, an indication if this is the end of the set
-// of items, and a possible errorawReader.
+// of items, and a possible error.
 func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 	t, err := r.readTag()
 	if err != nil {

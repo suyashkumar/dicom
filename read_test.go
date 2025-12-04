@@ -37,8 +37,8 @@ func TestReadTag(t *testing.T) {
 		},
 		{
 			name:    "custom",
-			data:    buildTagData(t, tag.Tag{0x0011, 0x0010}),
-			wantTag: tag.Tag{0x0011, 0x0010},
+			data:    buildTagData(t, tag.Tag{Group: 0x0011, Element: 0x0010}),
+			wantTag: tag.Tag{Group: 0x0011, Element: 0x0010},
 			wantErr: nil,
 		},
 		{

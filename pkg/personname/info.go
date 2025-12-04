@@ -226,7 +226,7 @@ func (info Info) MustDCM() string {
 }
 
 // IsEmpty returns whether the PN value contains any actual information. This method
-// ignores separator, so both '' and '^^^^=^^^^=^^^^' would return true.
+// ignores separator, so both "" and '^^^^=^^^^=^^^^' would return true.
 func (info Info) IsEmpty() bool {
 	return info.Alphabetic.IsEmpty() &&
 		info.Ideographic.IsEmpty() &&

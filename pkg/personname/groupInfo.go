@@ -70,9 +70,9 @@ func validateGroupNullSepLevel(level GroupTrailingNullLevel) error {
 // GroupInfo holds the parsed information for any one of these groups the person name
 // groups specified in the DICOM spec:
 //
-//	- Alphabetic
-//	- Ideographic
-//	- Phonetic
+//   - Alphabetic
+//   - Ideographic
+//   - Phonetic
 type GroupInfo struct {
 	// FamilyName is the person's family or last name.
 	FamilyName string

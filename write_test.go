@@ -50,7 +50,7 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.SelectorSLValue, []int{-20}),
 				// Some tag with an unknown VR.
 				{
-					Tag:                    tag.Tag{0x0019, 0x1027},
+					Tag:                    tag.Tag{Group: 0x0019, Element: 0x1027},
 					ValueRepresentation:    tag.VRUnknown,
 					RawValueRepresentation: "UN",
 					ValueLength:            4,
@@ -69,7 +69,7 @@ func TestWrite(t *testing.T) {
 				// We need to use an Explicit transfer syntax here or all data will be
 				// read in with "UN".
 				mustNewElement(tag.TransferSyntaxUID, []string{uid.ExplicitVRLittleEndian}),
-				mustNewPrivateElement(tag.Tag{0x0003, 0x0010}, vrraw.ShortText, []string{"some data"}),
+				mustNewPrivateElement(tag.Tag{Group: 0x0003, Element: 0x0010}, vrraw.ShortText, []string{"some data"}),
 			}},
 			wantError: nil,
 		},
@@ -592,11 +592,11 @@ func TestWrite(t *testing.T) {
 				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
 				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
 				mustNewElement(tag.PatientName, []string{"Bob", "Jones"}),
-				makeUNSequenceElement(tag.Tag{0x0019, 0x1027}, [][]*Element{
+				makeUNSequenceElement(tag.Tag{Group: 0x0019, Element: 0x1027}, [][]*Element{
 					// Item 1.
 					{
 						{
-							Tag:                    tag.Tag{0x0019, 0x1028},
+							Tag:                    tag.Tag{Group: 0x0019, Element: 0x1028},
 							ValueRepresentation:    tag.VRUnknown,
 							RawValueRepresentation: "UN",
 							Value: &bytesValue{
@@ -604,7 +604,7 @@ func TestWrite(t *testing.T) {
 							},
 						},
 						// Nested Sequence.
-						makeUNSequenceElement(tag.Tag{0x0019, 0x1029}, [][]*Element{
+						makeUNSequenceElement(tag.Tag{Group: 0x0019, Element: 0x1029}, [][]*Element{
 							{
 								{
 									Tag:                    tag.PatientName,

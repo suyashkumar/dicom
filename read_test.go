@@ -44,7 +44,7 @@ func TestReadTag(t *testing.T) {
 		{
 			name:    "expected EOF on group read",
 			data:    []byte{0x1},
-			wantErr: io.EOF,
+			wantErr: io.ErrUnexpectedEOF, // Changed from io.EOF to io.ErrUnexpectedEOF as reading 1 byte for a 2 byte field is unexpected EOF
 		},
 		{
 			name:    "expected EOF on element read",

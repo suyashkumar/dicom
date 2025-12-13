@@ -1,0 +1,139 @@
+body {
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+}
+
+.calculator {
+    background-color: #F8C8DC; /* Light pink body */
+    padding: 20px;
+    border-radius: 25px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    width: 320px;
+}
+
+.display-container {
+    background-color: #a8a8a8; /* Grey display bg */
+    border-radius: 15px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+    border: 8px solid #F0A8C0; /* Border around display */
+}
+
+.memory-indicator {
+    font-size: 10px;
+    color: #333;
+    text-align: center;
+    margin-bottom: 2px;
+    font-weight: bold;
+    visibility: hidden; /* Hide by default */
+}
+.memory-indicator.visible {
+    visibility: visible;
+}
+
+.display {
+    font-family: 'Courier New', Courier, monospace; /* Monospaced for digital look */
+    font-size: 32px;
+    color: #000;
+    text-align: right;
+    letter-spacing: 2px;
+    overflow-x: auto;
+    white-space: nowrap;
+    height: 40px;
+    line-height: 40px;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+.btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%; /* Circular buttons */
+    border: none;
+    font-size: 16px;
+    color: #555;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* 3D effect */
+    background-color: #F48FB1; /* Button face color */
+    box-shadow: 0 4px 0 #C2708D; /* Button side/shadow color */
+    transition: all 0.1s;
+}
+
+.btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #C2708D;
+}
+
+/* Specific styles for dark pink buttons */
+.btn.btn-dark {
+    background-color: #E91E63;
+    box-shadow: 0 4px 0 #AD1457;
+    color: #fff; /* White text for better contrast on dark buttons? Image shows dark text actually. */
+}
+/* Looking at the image, text on dark buttons is still dark/black?
+   Actually, looking closely at CE and AC, the text looks dark pink or dark red on top of the button.
+   Let's stick to dark grey/black for text on all buttons as it's safe and readable.
+*/
+.btn.btn-dark {
+    color: #5C0020;
+}
+
+/* Adjust colors to match image better */
+.calculator {
+    background-color: #FCE4EC;
+}
+
+.display-container {
+    background-color: #BDBDBD;
+    border-color: #F8BBD0; /* Inner border color match */
+}
+
+.btn {
+    background-color: #F8BBD0; /* Lighter pink for regular buttons */
+    box-shadow: 0 5px 0 #D88AA5;
+    color: #7B4B5E;
+    font-size: 14px;
+}
+
+.btn:active {
+    box-shadow: 0 0 0 #D88AA5;
+}
+
+.btn.btn-dark {
+    background-color: #EC407A; /* Hot pink */
+    box-shadow: 0 5px 0 #AD1457;
+    color: #880E4F;
+}
+
+.btn.btn-dark:active {
+    box-shadow: 0 0 0 #AD1457;
+}
+
+/* Specific font adjustments */
+.display {
+    font-family: 'Orbitron', 'Courier New', monospace; /* Fallback */
+    font-weight: bold;
+}
+
+/* Import a digital font if possible, but standard monospace works */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+.display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 28px;
+}

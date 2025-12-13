@@ -234,7 +234,10 @@ func (r *reader) readHeader() ([]*Element, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer r.rawReader.PopLimit()
+		defer func() {
+			// We can't really do anything if PopLimit fails here (it shouldn't)
+			_ = r.rawReader.PopLimit()
+		}()
 		for !r.rawReader.IsLimitExhausted() {
 			elem, err := r.readElement(nil, nil)
 			if err != nil {
@@ -624,7 +627,9 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 			// Append the Item element's dataset of elements to this Sequence's sequencesValue.
 			sequences.value = append(sequences.value, subElement.Value.(*SequenceItemValue))
 		}
-		r.rawReader.PopLimit()
+		if err := r.rawReader.PopLimit(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &sequences, nil
@@ -667,7 +672,9 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 			sequenceItem.elements = append(sequenceItem.elements, subElem)
 			seqElements.Elements = append(seqElements.Elements, subElem)
 		}
-		r.rawReader.PopLimit()
+		if err := r.rawReader.PopLimit(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &sequenceItem, nil
@@ -766,7 +773,9 @@ func (r *reader) readFloat(t tag.Tag, vr string, vl uint32) (Value, error) {
 			return nil, fmt.Errorf("error reading floating point element(%v) value: unsupported VR: %w", t, errorUnableToParseFloat)
 		}
 	}
-	r.rawReader.PopLimit()
+	if err := r.rawReader.PopLimit(); err != nil {
+		return nil, err
+	}
 	return retVal, nil
 }
 
@@ -822,7 +831,9 @@ func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 			return nil, fmt.Errorf("unable to parse integer type due to unknown VR %v", vr)
 		}
 	}
-	r.rawReader.PopLimit()
+	if err := r.rawReader.PopLimit(); err != nil {
+		return nil, err
+	}
 	return retVal, err
 }
 

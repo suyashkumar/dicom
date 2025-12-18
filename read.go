@@ -487,7 +487,6 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	}
 	image.Frames = make([]*frame.Frame, nFrames)
 	bo := r.rawReader.ByteOrder()
-	pixelBuf := make([]byte, bytesAllocated)
 	for frameIdx := 0; frameIdx < nFrames; frameIdx++ {
 		// Init current frame
 		currentFrame := frame.Frame{
@@ -509,11 +508,11 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 		} else {
 			switch bitsAllocated {
 			case 8:
-				currentFrame, _, err = readNativeFrame[uint8](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
+				currentFrame, _, err = readNativeFrame[uint8](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, r.rawReader)
 			case 16:
-				currentFrame, _, err = readNativeFrame[uint16](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
+				currentFrame, _, err = readNativeFrame[uint16](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, r.rawReader)
 			case 32:
-				currentFrame, _, err = readNativeFrame[uint32](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
+				currentFrame, _, err = readNativeFrame[uint32](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, r.rawReader)
 			default:
 				return nil, bytesToRead, fmt.Errorf("unsupported bitsAllocated, got: %v, %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 			}
@@ -538,45 +537,20 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 
 // readNativeFrame builds and reads a single NativeFrame[I] from the rawReader.
 // TODO(suyashkumar): refactor args to an options struct, or something more compact and readable.
-func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRead, samplesPerPixel, pixelsPerFrame int, pixelBuf []byte, rawReader *dicomio.Reader) (frame.Frame, int, error) {
+func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRead, samplesPerPixel, pixelsPerFrame int, rawReader *dicomio.Reader) (frame.Frame, int, error) {
 	nativeFrame := frame.NewNativeFrame[I](bitsAllocated, rows, cols, pixelsPerFrame, samplesPerPixel)
 	currentFrame := frame.Frame{
 		Encapsulated: false,
 		NativeData:   nativeFrame,
 	}
 
-	bo := rawReader.ByteOrder()
-	for pixel := 0; pixel < pixelsPerFrame; pixel++ {
-		for value := 0; value < samplesPerPixel; value++ {
-			_, err := io.ReadFull(rawReader, pixelBuf)
-			if err != nil {
-				return frame.Frame{}, bytesToRead,
-					fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
-			}
-			switch bitsAllocated {
-			case 8:
-				v, ok := any(pixelBuf[0]).(I)
-				if !ok {
-					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
-				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
-			case 16:
-				v, ok := any(bo.Uint16(pixelBuf)).(I)
-				if !ok {
-					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
-				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
-			case 32:
-				v, ok := any(bo.Uint32(pixelBuf)).(I)
-				if !ok {
-					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
-				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
-			default:
-				return frame.Frame{}, bytesToRead, fmt.Errorf("readNativeFrame unsupported bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
-			}
-		}
+	// Bulk read the pixel data for this frame directly into RawData.
+	// This is much faster than reading pixel-by-pixel.
+	err := binary.Read(rawReader, rawReader.ByteOrder(), nativeFrame.RawData)
+	if err != nil {
+		return frame.Frame{}, bytesToRead, fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
 	}
+
 	return currentFrame, bytesToRead, nil
 }
 

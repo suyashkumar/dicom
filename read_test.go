@@ -1039,6 +1039,31 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 	}
 }
 
+func BenchmarkFillBufferSingleBitAllocated(b *testing.B) {
+	sizes := []struct {
+		name   string
+		pixels int
+	}{
+		{"512x512", 512 * 512},
+		{"1024x1024", 1024 * 1024},
+	}
+	for _, s := range sizes {
+		b.Run(s.name, func(b *testing.B) {
+			rawBytes := make([]byte, s.pixels/8)
+			for i := range rawBytes {
+				rawBytes[i] = byte(rand.Intn(256))
+			}
+			pixelData := make([]int, s.pixels)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				buf := bytes.NewReader(rawBytes)
+				r := dicomio.NewReader(bufio.NewReader(buf), binary.LittleEndian, int64(len(rawBytes)))
+				_ = fillBufferSingleBitAllocated(pixelData, r, binary.LittleEndian)
+			}
+		})
+	}
+}
+
 func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, *dicomio.Reader) {
 	b.Helper()
 	dataset := Dataset{

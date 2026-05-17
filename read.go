@@ -360,8 +360,8 @@ func fillBufferSingleBitAllocated(pixelData []int, d *dicomio.Reader, bo binary.
 	}
 
 	var currentByte byte
+	rawData := make([]byte, 1)
 	for i := 0; i < len(pixelData)/8; i++ {
-		rawData := make([]byte, 1)
 		_, err := d.Read(rawData)
 		if err != nil {
 			return err

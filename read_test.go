@@ -1032,8 +1032,15 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 			dataset, rawReader := buildReadNativeFramesInput(c.Rows, c.Cols, c.NumFrames, c.SamplesPerPixel, b)
 			r := &reader{rawReader: rawReader}
 			b.ResetTimer()
+			// BitsAllocated is hardcoded to 16, meaning 2 bytes per sample.
+			bytesAllocated := 2
+			vl := uint32(c.Rows * c.Cols * c.NumFrames * c.SamplesPerPixel * bytesAllocated)
+
 			for i := 0; i < b.N; i++ {
-				_, _, _ = r.readNativeFrames(dataset, nil, uint32(c.Rows*c.Cols*c.NumFrames))
+				_, _, err := r.readNativeFrames(dataset, nil, vl)
+				if err != nil {
+					b.Fatalf("readNativeFrames error: %v", err)
+				}
 			}
 		})
 	}
@@ -1064,7 +1071,8 @@ func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *t
 		}
 	}
 
-	return &dataset, dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len()))
+	rawReader := dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(2*numFrames*rows*cols*samplesPerPixel))
+	return &dataset, rawReader
 }
 
 func buildTagData(t *testing.T, tg tag.Tag) []byte {

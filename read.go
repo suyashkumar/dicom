@@ -546,36 +546,52 @@ func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRe
 	}
 
 	bo := rawReader.ByteOrder()
-	for pixel := 0; pixel < pixelsPerFrame; pixel++ {
-		for value := 0; value < samplesPerPixel; value++ {
-			_, err := io.ReadFull(rawReader, pixelBuf)
-			if err != nil {
-				return frame.Frame{}, bytesToRead,
-					fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
-			}
-			switch bitsAllocated {
-			case 8:
-				v, ok := any(pixelBuf[0]).(I)
-				if !ok {
-					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
-				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
-			case 16:
-				v, ok := any(bo.Uint16(pixelBuf)).(I)
-				if !ok {
-					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
-				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
-			case 32:
-				v, ok := any(bo.Uint32(pixelBuf)).(I)
-				if !ok {
-					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
-				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
-			default:
-				return frame.Frame{}, bytesToRead, fmt.Errorf("readNativeFrame unsupported bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
-			}
+	if bitsAllocated < 8 || bitsAllocated%8 != 0 {
+		return frame.Frame{}, bytesToRead, fmt.Errorf("readNativeFrame unsupported bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
+	}
+
+	bytesPerSample := bitsAllocated / 8
+
+	// Use a 4KB chunk buffer to minimize io.ReadFull calls
+	chunkSize := 4096
+	// ensure chunkSize is a multiple of bytesPerSample
+	chunkSize = (chunkSize / bytesPerSample) * bytesPerSample
+	chunkBuf := make([]byte, chunkSize)
+
+	totalSamples := pixelsPerFrame * samplesPerPixel
+	samplesRead := 0
+
+	for samplesRead < totalSamples {
+		samplesLeft := totalSamples - samplesRead
+		bytesToReadChunk := samplesLeft * bytesPerSample
+		if bytesToReadChunk > chunkSize {
+			bytesToReadChunk = chunkSize
 		}
+
+		_, err := io.ReadFull(rawReader, chunkBuf[:bytesToReadChunk])
+		if err != nil {
+			return frame.Frame{}, bytesToRead,
+				fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
+		}
+
+		samplesInChunk := bytesToReadChunk / bytesPerSample
+		switch bitsAllocated {
+		case 8:
+			for i := 0; i < samplesInChunk; i++ {
+				nativeFrame.RawData[samplesRead+i] = I(chunkBuf[i])
+			}
+		case 16:
+			for i := 0; i < samplesInChunk; i++ {
+				nativeFrame.RawData[samplesRead+i] = I(bo.Uint16(chunkBuf[i*2 : i*2+2]))
+			}
+		case 32:
+			for i := 0; i < samplesInChunk; i++ {
+				nativeFrame.RawData[samplesRead+i] = I(bo.Uint32(chunkBuf[i*4 : i*4+4]))
+			}
+		default:
+			return frame.Frame{}, bytesToRead, fmt.Errorf("readNativeFrame unsupported bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
+		}
+		samplesRead += samplesInChunk
 	}
 	return currentFrame, bytesToRead, nil
 }

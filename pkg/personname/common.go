@@ -20,7 +20,7 @@ func renderWithSeps(sections []string, separator string, nullSepLevel uint) stri
 		// Add the section to the dcm string
 		dcmString = section + dcmString
 
-		// If this section is non-emtpy, we need to add all remaining separators, so
+		// If this section is non-empty, we need to add all remaining separators, so
 		// remember that we have encountered a non-zero value.
 		if section != "" {
 			nonZeroFound = true

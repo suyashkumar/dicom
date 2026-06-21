@@ -546,37 +546,64 @@ func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRe
 	}
 
 	bo := rawReader.ByteOrder()
-	for pixel := 0; pixel < pixelsPerFrame; pixel++ {
-		for value := 0; value < samplesPerPixel; value++ {
-			_, err := io.ReadFull(rawReader, pixelBuf)
-			if err != nil {
-				return frame.Frame{}, bytesToRead,
-					fmt.Errorf("could not read uint%d from input: %w", bitsAllocated, err)
-			}
+
+	totalItems := pixelsPerFrame * samplesPerPixel
+	bytesPerItem := bitsAllocated / 8
+
+	// Use a chunk size of 4KB to buffer reads, avoiding per-pixel io.ReadFull calls
+	// while preventing large allocations for huge frames.
+	chunkSize := 4096
+	// Ensure chunk size is a multiple of bytesPerItem
+	chunkSize = (chunkSize / bytesPerItem) * bytesPerItem
+	if chunkSize == 0 {
+		chunkSize = bytesPerItem
+	}
+
+	buf := make([]byte, chunkSize)
+	processedItems := 0
+
+	for processedItems < totalItems {
+		itemsToRead := totalItems - processedItems
+		bytesToReadNow := itemsToRead * bytesPerItem
+
+		if bytesToReadNow > chunkSize {
+			bytesToReadNow = chunkSize
+			itemsToRead = chunkSize / bytesPerItem
+		}
+
+		if _, err := io.ReadFull(rawReader, buf[:bytesToReadNow]); err != nil {
+			return frame.Frame{}, bytesToRead, fmt.Errorf("could not read frame data: %w", err)
+		}
+
+		for i := 0; i < itemsToRead; i++ {
+			offset := i * bytesPerItem
+			idx := processedItems + i
 			switch bitsAllocated {
 			case 8:
-				v, ok := any(pixelBuf[0]).(I)
+				v, ok := any(buf[offset]).(I)
 				if !ok {
 					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
 				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
+				nativeFrame.RawData[idx] = v
 			case 16:
-				v, ok := any(bo.Uint16(pixelBuf)).(I)
+				v, ok := any(bo.Uint16(buf[offset:])).(I)
 				if !ok {
 					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
 				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
+				nativeFrame.RawData[idx] = v
 			case 32:
-				v, ok := any(bo.Uint32(pixelBuf)).(I)
+				v, ok := any(bo.Uint32(buf[offset:])).(I)
 				if !ok {
 					return frame.Frame{}, bytesToRead, fmt.Errorf("internal error - readNativeFrame unexpectedly unable to type cast pixel buffer data to the I type (%T), where bitsAllocated=%v", *new(I), bitsAllocated)
 				}
-				nativeFrame.RawData[(pixel*samplesPerPixel)+value] = v
+				nativeFrame.RawData[idx] = v
 			default:
 				return frame.Frame{}, bytesToRead, fmt.Errorf("readNativeFrame unsupported bitsAllocated=%d : %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 			}
 		}
+		processedItems += itemsToRead
 	}
+
 	return currentFrame, bytesToRead, nil
 }
 

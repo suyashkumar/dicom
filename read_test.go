@@ -1029,17 +1029,25 @@ func BenchmarkReadNativeFrames(b *testing.B) {
 	}
 	for _, c := range cases {
 		b.Run(c.Name, func(b *testing.B) {
-			dataset, rawReader := buildReadNativeFramesInput(c.Rows, c.Cols, c.NumFrames, c.SamplesPerPixel, b)
-			r := &reader{rawReader: rawReader}
+			dataset, dataBytes := buildReadNativeFramesInput(c.Rows, c.Cols, c.NumFrames, c.SamplesPerPixel, b)
+			bytesReader := bytes.NewReader(dataBytes)
+			bufioReader := bufio.NewReader(bytesReader)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_, _, _ = r.readNativeFrames(dataset, nil, uint32(c.Rows*c.Cols*c.NumFrames))
+				bytesReader.Reset(dataBytes)
+				bufioReader.Reset(bytesReader)
+				rawReader := dicomio.NewReader(bufioReader, binary.LittleEndian, int64(len(dataBytes)))
+				r := &reader{rawReader: rawReader}
+				_, _, err := r.readNativeFrames(dataset, nil, uint32(len(dataBytes)))
+				if err != nil {
+					b.Fatalf("benchmark failed: %v", err)
+				}
 			}
 		})
 	}
 }
 
-func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, *dicomio.Reader) {
+func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *testing.B) (*Dataset, []byte) {
 	b.Helper()
 	dataset := Dataset{
 		Elements: []*Element{
@@ -1064,7 +1072,7 @@ func buildReadNativeFramesInput(rows, cols, numFrames, samplesPerPixel int, b *t
 		}
 	}
 
-	return &dataset, dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len()))
+	return &dataset, dcmdata.Bytes()
 }
 
 func buildTagData(t *testing.T, tg tag.Tag) []byte {

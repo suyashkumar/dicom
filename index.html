@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pink Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="calculator">
+        <div class="display-container">
+            <div class="memory-indicator">MEMORY</div>
+            <div class="display" id="display">0</div>
+        </div>
+        <div class="buttons">
+            <!-- Row 1 -->
+            <button class="btn" data-action="memory-recall">MRC</button>
+            <button class="btn" data-action="memory-minus">M-</button>
+            <button class="btn" data-action="memory-plus">M+</button>
+            <button class="btn" data-action="sqrt">&radic;</button>
+            <button class="btn" data-action="percent">%</button>
+
+            <!-- Row 2 -->
+            <button class="btn" data-action="backspace">&rarr;</button>
+            <button class="btn" data-num="7">7</button>
+            <button class="btn" data-num="8">8</button>
+            <button class="btn" data-num="9">9</button>
+            <button class="btn" data-op="/">&div;</button>
+
+            <!-- Row 3 -->
+            <button class="btn btn-dark" data-action="clear-entry">CE</button>
+            <button class="btn" data-num="4">4</button>
+            <button class="btn" data-num="5">5</button>
+            <button class="btn" data-num="6">6</button>
+            <button class="btn" data-op="*">&times;</button>
+
+            <!-- Row 4 -->
+            <button class="btn btn-dark" data-action="all-clear">AC</button>
+            <button class="btn" data-num="1">1</button>
+            <button class="btn" data-num="2">2</button>
+            <button class="btn" data-num="3">3</button>
+            <button class="btn" data-op="-">&minus;</button>
+
+            <!-- Row 5 -->
+            <button class="btn" data-num="0">0</button>
+            <button class="btn" data-num="00">00</button>
+            <button class="btn" data-action="decimal">.</button>
+            <button class="btn" data-action="calculate">=</button>
+            <button class="btn" data-op="+">+</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

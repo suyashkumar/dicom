@@ -18,6 +18,9 @@ var (
 	// the current buffer (or enough bytes left until the currently set limit)
 	// to complete the operation.
 	ErrorInsufficientBytesLeft = errors.New("not enough bytes left until buffer limit to complete this operation")
+	// ErrorLimitStackEmpty indicates that PopLimit was called on a reader with no
+	// limits on the stack.
+	ErrorLimitStackEmpty = errors.New("pop limit called on empty stack")
 )
 
 // LimitReadUntilEOF is a special dicomio.Reader limit indicating that there is no hard limit and the
@@ -176,15 +179,20 @@ func (r *Reader) PushLimit(n int64) error {
 
 // PopLimit removes the most recent limit set, and restores the limit before
 // that one.
-func (r *Reader) PopLimit() {
+func (r *Reader) PopLimit() error {
+	// TODO: return an error if trying to Pop the last limit off the slice
+	last := len(r.limitStack) - 1
+	if last < 0 {
+		return ErrorLimitStackEmpty
+	}
+
 	if r.bytesRead < r.limit && r.limit != LimitReadUntilEOF {
 		// didn't read all the way to the limit, so skip over what's left.
 		_ = r.Skip(r.limit - r.bytesRead)
 	}
-	// TODO: return an error if trying to Pop the last limit off the slice
-	last := len(r.limitStack) - 1
 	r.limit = r.limitStack[last]
 	r.limitStack = r.limitStack[:last]
+	return nil
 }
 
 func (r *Reader) IsLimitExhausted() bool {

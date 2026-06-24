@@ -1,0 +1,416 @@
+[
+  {
+    "tag": "(0000,0000)",
+    "name": "Command Group Length",
+    "keyword": "CommandGroupLength",
+    "valueRepresentation": "UL",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000000"
+  },
+  {
+    "tag": "(0000,0002)",
+    "name": "Affected SOP Class UID",
+    "keyword": "AffectedSOPClassUID",
+    "valueRepresentation": "UI",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000002"
+  },
+  {
+    "tag": "(0000,0003)",
+    "name": "Requested SOP Class UID",
+    "keyword": "RequestedSOPClassUID",
+    "valueRepresentation": "UI",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000003"
+  },
+  {
+    "tag": "(0000,0100)",
+    "name": "Command Field",
+    "keyword": "CommandField",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000100"
+  },
+  {
+    "tag": "(0000,0110)",
+    "name": "Message ID",
+    "keyword": "MessageID",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000110"
+  },
+  {
+    "tag": "(0000,0120)",
+    "name": "Message ID Being Responded To",
+    "keyword": "MessageIDBeingRespondedTo",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000120"
+  },
+  {
+    "tag": "(0000,0600)",
+    "name": "Move Destination",
+    "keyword": "MoveDestination",
+    "valueRepresentation": "AE",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000600"
+  },
+  {
+    "tag": "(0000,0700)",
+    "name": "Priority",
+    "keyword": "Priority",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000700"
+  },
+  {
+    "tag": "(0000,0800)",
+    "name": "Command Data Set Type",
+    "keyword": "CommandDataSetType",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000800"
+  },
+  {
+    "tag": "(0000,0900)",
+    "name": "Status",
+    "keyword": "Status",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000900"
+  },
+  {
+    "tag": "(0000,0901)",
+    "name": "Offending Element",
+    "keyword": "OffendingElement",
+    "valueRepresentation": "AT",
+    "valueMultiplicity": "1-n",
+    "retired": "N",
+    "id": "00000901"
+  },
+  {
+    "tag": "(0000,0902)",
+    "name": "Error Comment",
+    "keyword": "ErrorComment",
+    "valueRepresentation": "LO",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000902"
+  },
+  {
+    "tag": "(0000,0903)",
+    "name": "Error ID",
+    "keyword": "ErrorID",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00000903"
+  },
+  {
+    "tag": "(0000,1000)",
+    "name": "Affected SOP Instance UID",
+    "keyword": "AffectedSOPInstanceUID",
+    "valueRepresentation": "UI",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001000"
+  },
+  {
+    "tag": "(0000,1001)",
+    "name": "Requested SOP Instance UID",
+    "keyword": "RequestedSOPInstanceUID",
+    "valueRepresentation": "UI",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001001"
+  },
+  {
+    "tag": "(0000,1002)",
+    "name": "Event Type ID",
+    "keyword": "EventTypeID",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001002"
+  },
+  {
+    "tag": "(0000,1005)",
+    "name": "Attribute Identifier List",
+    "keyword": "AttributeIdentifierList",
+    "valueRepresentation": "AT",
+    "valueMultiplicity": "1-n",
+    "retired": "N",
+    "id": "00001005"
+  },
+  {
+    "tag": "(0000,1008)",
+    "name": "Action Type ID",
+    "keyword": "ActionTypeID",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001008"
+  },
+  {
+    "tag": "(0000,1020)",
+    "name": "Number of Remaining Suboperations",
+    "keyword": "NumberOfRemainingSuboperations",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001020"
+  },
+  {
+    "tag": "(0000,1021)",
+    "name": "Number of Completed Suboperations",
+    "keyword": "NumberOfCompletedSuboperations",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001021"
+  },
+  {
+    "tag": "(0000,1022)",
+    "name": "Number of Failed Suboperations",
+    "keyword": "NumberOfFailedSuboperations",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001022"
+  },
+  {
+    "tag": "(0000,1023)",
+    "name": "Number of Warning Suboperations",
+    "keyword": "NumberOfWarningSuboperations",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001023"
+  },
+  {
+    "tag": "(0000,1030)",
+    "name": "Move Originator Application Entity Title",
+    "keyword": "MoveOriginatorApplicationEntityTitle",
+    "valueRepresentation": "AE",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001030"
+  },
+  {
+    "tag": "(0000,1031)",
+    "name": "Move Originator Message ID",
+    "keyword": "MoveOriginatorMessageID",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "N",
+    "id": "00001031"
+  },
+  {
+    "tag": "(0000,0001)",
+    "name": "Command Length to End",
+    "keyword": "CommandLengthToEnd",
+    "valueRepresentation": "UL",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00000001"
+  },
+  {
+    "tag": "(0000,0010)",
+    "name": "Command Recognition Code",
+    "keyword": "CommandRecognitionCode",
+    "valueRepresentation": "SH",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00000010"
+  },
+  {
+    "tag": "(0000,0200)",
+    "name": "Initiator",
+    "keyword": "Initiator",
+    "valueRepresentation": "AE",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00000200"
+  },
+  {
+    "tag": "(0000,0300)",
+    "name": "Receiver",
+    "keyword": "Receiver",
+    "valueRepresentation": "AE",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00000300"
+  },
+  {
+    "tag": "(0000,0400)",
+    "name": "Find Location",
+    "keyword": "FindLocation",
+    "valueRepresentation": "AE",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00000400"
+  },
+  {
+    "tag": "(0000,0850)",
+    "name": "Number of Matches",
+    "keyword": "NumberOfMatches",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00000850"
+  },
+  {
+    "tag": "(0000,0860)",
+    "name": "Response Sequence Number",
+    "keyword": "ResponseSequenceNumber",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00000860"
+  },
+  {
+    "tag": "(0000,4000)",
+    "name": "Dialog Receiver",
+    "keyword": "DialogReceiver",
+    "valueRepresentation": "LT",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00004000"
+  },
+  {
+    "tag": "(0000,4010)",
+    "name": "Terminal Type",
+    "keyword": "TerminalType",
+    "valueRepresentation": "LT",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00004010"
+  },
+  {
+    "tag": "(0000,5010)",
+    "name": "Message Set ID",
+    "keyword": "MessageSetID",
+    "valueRepresentation": "SH",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005010"
+  },
+  {
+    "tag": "(0000,5020)",
+    "name": "End Message ID",
+    "keyword": "EndMessageID",
+    "valueRepresentation": "SH",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005020"
+  },
+  {
+    "tag": "(0000,5110)",
+    "name": "Display Format",
+    "keyword": "DisplayFormat",
+    "valueRepresentation": "LT",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005110"
+  },
+  {
+    "tag": "(0000,5120)",
+    "name": "Page Position ID",
+    "keyword": "PagePositionID",
+    "valueRepresentation": "LT",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005120"
+  },
+  {
+    "tag": "(0000,5130)",
+    "name": "Text Format ID",
+    "keyword": "TextFormatID",
+    "valueRepresentation": "CS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005130"
+  },
+  {
+    "tag": "(0000,5140)",
+    "name": "Normal Reverse",
+    "keyword": "NormalReverse",
+    "valueRepresentation": "CS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005140"
+  },
+  {
+    "tag": "(0000,5150)",
+    "name": "Add Gray Scale",
+    "keyword": "AddGrayScale",
+    "valueRepresentation": "CS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005150"
+  },
+  {
+    "tag": "(0000,5160)",
+    "name": "Borders",
+    "keyword": "Borders",
+    "valueRepresentation": "CS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005160"
+  },
+  {
+    "tag": "(0000,5170)",
+    "name": "Copies",
+    "keyword": "Copies",
+    "valueRepresentation": "IS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005170"
+  },
+  {
+    "tag": "(0000,5180)",
+    "name": "Command Magnification Type",
+    "keyword": "CommandMagnificationType",
+    "valueRepresentation": "CS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005180"
+  },
+  {
+    "tag": "(0000,5190)",
+    "name": "Erase",
+    "keyword": "Erase",
+    "valueRepresentation": "CS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "00005190"
+  },
+  {
+    "tag": "(0000,51A0)",
+    "name": "Print",
+    "keyword": "Print",
+    "valueRepresentation": "CS",
+    "valueMultiplicity": "1",
+    "retired": "Y",
+    "id": "000051A0"
+  },
+  {
+    "tag": "(0000,51B0)",
+    "name": "Overlays",
+    "keyword": "Overlays",
+    "valueRepresentation": "US",
+    "valueMultiplicity": "1-n",
+    "retired": "Y",
+    "id": "000051B0"
+  }
+]

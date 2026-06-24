@@ -24,6 +24,52 @@
 // SOFTWARE.
 package tag
 
+var CommandGroupLength = Tag{0x0000, 0x0000}
+var AffectedSOPClassUID = Tag{0x0000, 0x0002}
+var RequestedSOPClassUID = Tag{0x0000, 0x0003}
+var CommandField = Tag{0x0000, 0x0100}
+var MessageID = Tag{0x0000, 0x0110}
+var MessageIDBeingRespondedTo = Tag{0x0000, 0x0120}
+var MoveDestination = Tag{0x0000, 0x0600}
+var Priority = Tag{0x0000, 0x0700}
+var CommandDataSetType = Tag{0x0000, 0x0800}
+var Status = Tag{0x0000, 0x0900}
+var OffendingElement = Tag{0x0000, 0x0901}
+var ErrorComment = Tag{0x0000, 0x0902}
+var ErrorID = Tag{0x0000, 0x0903}
+var AffectedSOPInstanceUID = Tag{0x0000, 0x1000}
+var RequestedSOPInstanceUID = Tag{0x0000, 0x1001}
+var EventTypeID = Tag{0x0000, 0x1002}
+var AttributeIdentifierList = Tag{0x0000, 0x1005}
+var ActionTypeID = Tag{0x0000, 0x1008}
+var NumberOfRemainingSuboperations = Tag{0x0000, 0x1020}
+var NumberOfCompletedSuboperations = Tag{0x0000, 0x1021}
+var NumberOfFailedSuboperations = Tag{0x0000, 0x1022}
+var NumberOfWarningSuboperations = Tag{0x0000, 0x1023}
+var MoveOriginatorApplicationEntityTitle = Tag{0x0000, 0x1030}
+var MoveOriginatorMessageID = Tag{0x0000, 0x1031}
+var CommandLengthToEnd = Tag{0x0000, 0x0001}
+var CommandRecognitionCode = Tag{0x0000, 0x0010}
+var Initiator = Tag{0x0000, 0x0200}
+var Receiver = Tag{0x0000, 0x0300}
+var FindLocation = Tag{0x0000, 0x0400}
+var NumberOfMatches = Tag{0x0000, 0x0850}
+var ResponseSequenceNumber = Tag{0x0000, 0x0860}
+var DialogReceiver = Tag{0x0000, 0x4000}
+var TerminalType = Tag{0x0000, 0x4010}
+var MessageSetID = Tag{0x0000, 0x5010}
+var EndMessageID = Tag{0x0000, 0x5020}
+var DisplayFormat = Tag{0x0000, 0x5110}
+var PagePositionID = Tag{0x0000, 0x5120}
+var TextFormatID = Tag{0x0000, 0x5130}
+var NormalReverse = Tag{0x0000, 0x5140}
+var AddGrayScale = Tag{0x0000, 0x5150}
+var Borders = Tag{0x0000, 0x5160}
+var Copies = Tag{0x0000, 0x5170}
+var CommandMagnificationType = Tag{0x0000, 0x5180}
+var Erase = Tag{0x0000, 0x5190}
+var Print = Tag{0x0000, 0x51a0}
+var Overlays = Tag{0x0000, 0x51b0}
 var LengthToEnd = Tag{0x0008, 0x0001}
 var SpecificCharacterSet = Tag{0x0008, 0x0005}
 var LanguageCodeSequence = Tag{0x0008, 0x0006}
@@ -5149,6 +5195,52 @@ var NumberOfReferences = Tag{0x0004, 0x1600}
 var CurrentFrameFunctionalGroupsSequence = Tag{0x0006, 0x0001}
 
 var tagDict = map[Tag]Info{
+	CommandGroupLength: Info{CommandGroupLength, []string{"UL"}, "Command Group Length", "CommandGroupLength", "1", false},
+	AffectedSOPClassUID: Info{AffectedSOPClassUID, []string{"UI"}, "Affected SOP Class UID", "AffectedSOPClassUID", "1", false},
+	RequestedSOPClassUID: Info{RequestedSOPClassUID, []string{"UI"}, "Requested SOP Class UID", "RequestedSOPClassUID", "1", false},
+	CommandField: Info{CommandField, []string{"US"}, "Command Field", "CommandField", "1", false},
+	MessageID: Info{MessageID, []string{"US"}, "Message ID", "MessageID", "1", false},
+	MessageIDBeingRespondedTo: Info{MessageIDBeingRespondedTo, []string{"US"}, "Message ID Being Responded To", "MessageIDBeingRespondedTo", "1", false},
+	MoveDestination: Info{MoveDestination, []string{"AE"}, "Move Destination", "MoveDestination", "1", false},
+	Priority: Info{Priority, []string{"US"}, "Priority", "Priority", "1", false},
+	CommandDataSetType: Info{CommandDataSetType, []string{"US"}, "Command Data Set Type", "CommandDataSetType", "1", false},
+	Status: Info{Status, []string{"US"}, "Status", "Status", "1", false},
+	OffendingElement: Info{OffendingElement, []string{"AT"}, "Offending Element", "OffendingElement", "1-n", false},
+	ErrorComment: Info{ErrorComment, []string{"LO"}, "Error Comment", "ErrorComment", "1", false},
+	ErrorID: Info{ErrorID, []string{"US"}, "Error ID", "ErrorID", "1", false},
+	AffectedSOPInstanceUID: Info{AffectedSOPInstanceUID, []string{"UI"}, "Affected SOP Instance UID", "AffectedSOPInstanceUID", "1", false},
+	RequestedSOPInstanceUID: Info{RequestedSOPInstanceUID, []string{"UI"}, "Requested SOP Instance UID", "RequestedSOPInstanceUID", "1", false},
+	EventTypeID: Info{EventTypeID, []string{"US"}, "Event Type ID", "EventTypeID", "1", false},
+	AttributeIdentifierList: Info{AttributeIdentifierList, []string{"AT"}, "Attribute Identifier List", "AttributeIdentifierList", "1-n", false},
+	ActionTypeID: Info{ActionTypeID, []string{"US"}, "Action Type ID", "ActionTypeID", "1", false},
+	NumberOfRemainingSuboperations: Info{NumberOfRemainingSuboperations, []string{"US"}, "Number of Remaining Suboperations", "NumberOfRemainingSuboperations", "1", false},
+	NumberOfCompletedSuboperations: Info{NumberOfCompletedSuboperations, []string{"US"}, "Number of Completed Suboperations", "NumberOfCompletedSuboperations", "1", false},
+	NumberOfFailedSuboperations: Info{NumberOfFailedSuboperations, []string{"US"}, "Number of Failed Suboperations", "NumberOfFailedSuboperations", "1", false},
+	NumberOfWarningSuboperations: Info{NumberOfWarningSuboperations, []string{"US"}, "Number of Warning Suboperations", "NumberOfWarningSuboperations", "1", false},
+	MoveOriginatorApplicationEntityTitle: Info{MoveOriginatorApplicationEntityTitle, []string{"AE"}, "Move Originator Application Entity Title", "MoveOriginatorApplicationEntityTitle", "1", false},
+	MoveOriginatorMessageID: Info{MoveOriginatorMessageID, []string{"US"}, "Move Originator Message ID", "MoveOriginatorMessageID", "1", false},
+	CommandLengthToEnd: Info{CommandLengthToEnd, []string{"UL"}, "Command Length to End", "CommandLengthToEnd", "1", true},
+	CommandRecognitionCode: Info{CommandRecognitionCode, []string{"SH"}, "Command Recognition Code", "CommandRecognitionCode", "1", true},
+	Initiator: Info{Initiator, []string{"AE"}, "Initiator", "Initiator", "1", true},
+	Receiver: Info{Receiver, []string{"AE"}, "Receiver", "Receiver", "1", true},
+	FindLocation: Info{FindLocation, []string{"AE"}, "Find Location", "FindLocation", "1", true},
+	NumberOfMatches: Info{NumberOfMatches, []string{"US"}, "Number of Matches", "NumberOfMatches", "1", true},
+	ResponseSequenceNumber: Info{ResponseSequenceNumber, []string{"US"}, "Response Sequence Number", "ResponseSequenceNumber", "1", true},
+	DialogReceiver: Info{DialogReceiver, []string{"LT"}, "Dialog Receiver", "DialogReceiver", "1", true},
+	TerminalType: Info{TerminalType, []string{"LT"}, "Terminal Type", "TerminalType", "1", true},
+	MessageSetID: Info{MessageSetID, []string{"SH"}, "Message Set ID", "MessageSetID", "1", true},
+	EndMessageID: Info{EndMessageID, []string{"SH"}, "End Message ID", "EndMessageID", "1", true},
+	DisplayFormat: Info{DisplayFormat, []string{"LT"}, "Display Format", "DisplayFormat", "1", true},
+	PagePositionID: Info{PagePositionID, []string{"LT"}, "Page Position ID", "PagePositionID", "1", true},
+	TextFormatID: Info{TextFormatID, []string{"CS"}, "Text Format ID", "TextFormatID", "1", true},
+	NormalReverse: Info{NormalReverse, []string{"CS"}, "Normal Reverse", "NormalReverse", "1", true},
+	AddGrayScale: Info{AddGrayScale, []string{"CS"}, "Add Gray Scale", "AddGrayScale", "1", true},
+	Borders: Info{Borders, []string{"CS"}, "Borders", "Borders", "1", true},
+	Copies: Info{Copies, []string{"IS"}, "Copies", "Copies", "1", true},
+	CommandMagnificationType: Info{CommandMagnificationType, []string{"CS"}, "Command Magnification Type", "CommandMagnificationType", "1", true},
+	Erase: Info{Erase, []string{"CS"}, "Erase", "Erase", "1", true},
+	Print: Info{Print, []string{"CS"}, "Print", "Print", "1", true},
+	Overlays: Info{Overlays, []string{"US"}, "Overlays", "Overlays", "1-n", true},
 	LengthToEnd: Info{LengthToEnd, []string{"UL"}, "Length to End", "LengthToEnd", "1", true},
 	SpecificCharacterSet: Info{SpecificCharacterSet, []string{"CS"}, "Specific Character Set", "SpecificCharacterSet", "1-n", false},
 	LanguageCodeSequence: Info{LanguageCodeSequence, []string{"SQ"}, "Language Code Sequence", "LanguageCodeSequence", "1", false},

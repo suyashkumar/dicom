@@ -41,9 +41,8 @@ Tag = NamedTuple('Tag', [
     ('keyword', str),
     ('retired', bool)])
 
-def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
-    response = urllib.request.urlopen(f"https://raw.githubusercontent.com/innolitics/dicom-standard/{version_hash}/standard/attributes.json")
-    attrs = json.loads(response.read().decode())
+def read_tags_from_json(json_string: str) -> List[Tag]:
+    attrs = json.loads(json_string)
     allowed_vrs_separator = " or "
     return [
         Tag(
@@ -60,13 +59,24 @@ def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
         if (resolvable_tag_id := e["id"].replace("x", "0")) and len(e["keyword"]) > 0
     ]
 
+def read_tags_from_innolitics(version_hash: str) -> List[Tag]:
+    response = urllib.request.urlopen(f"https://raw.githubusercontent.com/innolitics/dicom-standard/{version_hash}/standard/attributes.json")
+    json_string = response.read().decode("utf-8")
+    return read_tags_from_json(json_string)
+
+def read_tags_from_file(filename: str) -> List[Tag]:
+    with open(filename, "r") as response:
+        json_string = response.read()
+        return read_tags_from_json(json_string)
+
+
 def tagDictEntry(t: Tag) -> str:
     wrap_in_quotes = lambda s: f'\"{s}\"'
     start_indent = '	'
     return f'{start_indent}{t.keyword}: Info{{{t.keyword}, []string{{{", ".join(map(wrap_in_quotes, t.vr))}}}, "{t.name}", "{t.keyword}", "{t.vm}", {str(t.retired).lower()}}},'
 
 def generate(out: IO[str]):
-    tags = read_tags_from_innolitics(INNOLITICS_VERSION_HASH)
+    tags = read_tags_from_file("command_group_tags.json") + read_tags_from_innolitics(INNOLITICS_VERSION_HASH)
     new_line = chr(10)
     print(f'''// AUTO-GENERATED from generate_tag_definitions.py. DO NOT EDIT.
 {INNOLITICS_CREDITS}

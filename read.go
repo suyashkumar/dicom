@@ -34,6 +34,7 @@ var (
 	ErrorExpectedEvenLength           = errors.New("field length is not even, in violation of DICOM spec")
 	ErrorExpectedDefinedLength        = errors.New("unable to read field of undefined length")
 	ErrorExpectedSequenceDelimitation = errors.New("expected to find sequence delimitation item (fffe,e0dd)")
+	ErrorExpectedSequenceItem         = errors.New("expected to find item element in sequence")
 )
 
 // reader is responsible for mid-level dicom parsing capabilities, like
@@ -600,9 +601,7 @@ func (r *reader) readSequence(t tag.Tag, vr string, vl uint32, d *Dataset) (Valu
 			}
 			if subElement.Tag != tag.Item || subElement.Value.ValueType() != SequenceItem {
 				// This is an error, should be an Item!
-				// TODO: use error var
-				log.Println("Tag is ", subElement.Tag)
-				return nil, fmt.Errorf("readSequence: error, non item element found in sequence. got: %v", subElement)
+				return nil, fmt.Errorf("readSequence: error, %w. got: %v", ErrorExpectedSequenceItem, subElement)
 			}
 
 			// Append the Item element's dataset of elements to this Sequence's sequencesValue.

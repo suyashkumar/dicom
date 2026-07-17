@@ -216,7 +216,11 @@ func (r *reader) readHeader() ([]*Element, error) {
 		return nil, fmt.Errorf("error reading DICOM header element: %w", err)
 	}
 
-	metaElems := []*Element{maybeMetaLen} // TODO: maybe set capacity to a reasonable initial size
+	// Initialize with a capacity of 20 to avoid reallocations for standard DICOM headers.
+	// 20 is chosen as a reasonable upper bound for the number of File Meta Information elements
+	// typically found (Group 0002).
+	metaElems := make([]*Element, 0, 20)
+	metaElems = append(metaElems, maybeMetaLen)
 	metaElementGroupLengthDefined := true
 	if maybeMetaLen.Tag != tag.FileMetaInformationGroupLength || maybeMetaLen.Value.ValueType() != Ints {
 		// MetaInformationGroupLength is not present or of the wrong value type.

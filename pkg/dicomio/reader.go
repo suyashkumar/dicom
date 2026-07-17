@@ -77,51 +77,65 @@ func (r *Reader) Read(p []byte) (int, error) {
 
 // ReadUInt8 reads an uint8 from the underlying *Reader.
 func (r *Reader) ReadUInt8() (uint8, error) {
-	var out uint8
-	err := binary.Read(r, r.bo, &out)
-	return out, err
+	var b [1]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	return b[0], nil
 }
 
 // ReadUInt16 reads an uint16 from the underlying *Reader.
 func (r *Reader) ReadUInt16() (uint16, error) {
-	var out uint16
-	err := binary.Read(r, r.bo, &out)
-	return out, err
+	var b [2]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	return r.bo.Uint16(b[:]), nil
 }
 
 // ReadUInt32 reads an uint32 from the underlying *Reader.
 func (r *Reader) ReadUInt32() (uint32, error) {
-	var out uint32
-	err := binary.Read(r, r.bo, &out)
-	return out, err
+	var b [4]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	return r.bo.Uint32(b[:]), nil
 }
 
 // ReadInt16 reads an int16 from the underlying *Reader.
 func (r *Reader) ReadInt16() (int16, error) {
-	var out int16
-	err := binary.Read(r, r.bo, &out)
-	return out, err
+	var b [2]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	return int16(r.bo.Uint16(b[:])), nil
 }
 
 // ReadInt32 reads an int32 from the underlying *Reader.
 func (r *Reader) ReadInt32() (int32, error) {
-	var out int32
-	err := binary.Read(r, r.bo, &out)
-	return out, err
+	var b [4]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	return int32(r.bo.Uint32(b[:])), nil
 }
 
 // ReadFloat32 reads a float32 from the underlying *Reader.
 func (r *Reader) ReadFloat32() (float32, error) {
-	var out float32
-	err := binary.Read(r, r.bo, &out)
-	return out, err
+	var b [4]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	return math.Float32frombits(r.bo.Uint32(b[:])), nil
 }
 
 // ReadFloat64 reads a float64 from the underlying *Reader.
 func (r *Reader) ReadFloat64() (float64, error) {
-	var out float64
-	err := binary.Read(r, r.bo, &out)
-	return out, err
+	var b [8]byte
+	if _, err := io.ReadFull(r, b[:]); err != nil {
+		return 0, err
+	}
+	return math.Float64frombits(r.bo.Uint64(b[:])), nil
 }
 
 func internalReadString(data []byte, d *encoding.Decoder) (string, error) {

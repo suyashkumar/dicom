@@ -141,6 +141,12 @@ func internalReadString(data []byte, d *encoding.Decoder) (string, error) {
 
 // ReadString reads a string from the underlying *Reader.
 func (r *Reader) ReadString(n uint32) (string, error) {
+	// Same allocation primitive as readBytes (#349): refuse to allocate more
+	// than the reader can supply. A short read (a 2-byte VR) is unaffected
+	// because the limit always exceeds it.
+	if left := r.BytesLeftUntilLimit(); left != LimitReadUntilEOF && int64(n) > left {
+		return "", ErrorInsufficientBytesLeft
+	}
 	data := make([]byte, n)
 	_, err := io.ReadFull(r, data)
 	if err != nil {

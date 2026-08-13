@@ -473,6 +473,9 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 			if !r.opts.allowMismatchPixelDataLength {
 				return nil, 0, fmt.Errorf("error when reading Native PixelData: expected_vl=%d actual_vl=%d %w", bytesToRead, vl, ErrorMismatchPixelDataLength)
 			}
+			if left := r.rawReader.BytesLeftUntilLimit(); left != dicomio.LimitReadUntilEOF && int64(vl) > left {
+				return nil, 0, dicomio.ErrorInsufficientBytesLeft
+			}
 			image, err := makeErrorPixelData(r.rawReader, vl, fc, ErrorMismatchPixelDataLength)
 			if err != nil {
 				return nil, 0, fmt.Errorf("readNativeFrames: error making error pixel data: %w", err)
@@ -676,6 +679,14 @@ func (r *reader) readSequenceItem(t tag.Tag, vr string, vl uint32, d *Dataset) (
 func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 	if vl == tag.VLUndefinedLength {
 		return nil, ErrorExpectedDefinedLength
+	}
+
+	// Refuse to allocate more than the reader can supply. make([]byte, vl)
+	// below runs before io.ReadFull discovers the bytes are absent, so a
+	// declared length is otherwise an allocation primitive (#349). The reader
+	// already knows its remaining bytes here.
+	if left := r.rawReader.BytesLeftUntilLimit(); left != dicomio.LimitReadUntilEOF && int64(vl) > left {
+		return nil, dicomio.ErrorInsufficientBytesLeft
 	}
 
 	// TODO: add special handling of PixelData
@@ -905,6 +916,10 @@ func (r *reader) readRawItem(shouldSkip bool) ([]byte, bool, error) {
 			return nil, false, fmt.Errorf("readRawItem: error when skipping item %v (vl=%d): %w", t, vl, err)
 		}
 	} else {
+		// Bound the allocation to available bytes (#349).
+		if left := r.rawReader.BytesLeftUntilLimit(); left != dicomio.LimitReadUntilEOF && int64(vl) > left {
+			return nil, false, dicomio.ErrorInsufficientBytesLeft
+		}
 		data := make([]byte, vl)
 		_, err = io.ReadFull(r.rawReader, data)
 		if err != nil {

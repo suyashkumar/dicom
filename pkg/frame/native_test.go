@@ -290,6 +290,188 @@ func TestNativeFrame_Equals(t *testing.T) {
 	}
 }
 
+func TestNativeFrame_GetSample_PixelRepresentation(t *testing.T) {
+	cases := []struct {
+		name        string
+		nativeFrame frame.NativeFrame[uint16]
+		want        []int
+	}{
+		{
+			// The pre-existing behavior for unsigned data must be unchanged.
+			name: "unsigned, BitsStored equal to BitsPerSample",
+			nativeFrame: frame.NativeFrame[uint16]{
+				RawData:                     []uint16{0, 1, 32768, 65535},
+				InternalSamplesPerPixel:     1,
+				InternalRows:                1,
+				InternalCols:                4,
+				InternalBitsPerSample:       16,
+				InternalBitsStored:          16,
+				InternalPixelRepresentation: 0,
+			},
+			want: []int{0, 1, 32768, 65535},
+		},
+		{
+			name: "signed, BitsStored equal to BitsPerSample",
+			nativeFrame: frame.NativeFrame[uint16]{
+				RawData:                     []uint16{0, 1, 32768, 65535},
+				InternalSamplesPerPixel:     1,
+				InternalRows:                1,
+				InternalCols:                4,
+				InternalBitsPerSample:       16,
+				InternalBitsStored:          16,
+				InternalPixelRepresentation: 1,
+			},
+			want: []int{0, 1, -32768, -1},
+		},
+		{
+			// A 12 bit CT value of 0xFFF is -1, not 4095.
+			name: "signed, 12 BitsStored in a 16 bit container",
+			nativeFrame: frame.NativeFrame[uint16]{
+				RawData:                     []uint16{0x000, 0x001, 0x7FF, 0x800, 0xFFF},
+				InternalSamplesPerPixel:     1,
+				InternalRows:                1,
+				InternalCols:                5,
+				InternalBitsPerSample:       16,
+				InternalBitsStored:          12,
+				InternalPixelRepresentation: 1,
+			},
+			want: []int{0, 1, 2047, -2048, -1},
+		},
+		{
+			// Bits above BitsStored are not pixel data (they may hold embedded
+			// overlay data), so they must be masked off before the value is
+			// interpreted. Without masking 0x8001 would read as 32769.
+			name: "unsigned, high bits above BitsStored are masked off",
+			nativeFrame: frame.NativeFrame[uint16]{
+				RawData:                     []uint16{0x8001, 0xF002, 0xFFFF},
+				InternalSamplesPerPixel:     1,
+				InternalRows:                1,
+				InternalCols:                3,
+				InternalBitsPerSample:       16,
+				InternalBitsStored:          12,
+				InternalPixelRepresentation: 0,
+			},
+			want: []int{1, 2, 4095},
+		},
+		{
+			// The same masking must happen before sign extension, otherwise the
+			// sign would be taken from an overlay bit rather than from the pixel
+			// value's own sign bit.
+			name: "signed, high bits above BitsStored are masked off before sign extension",
+			nativeFrame: frame.NativeFrame[uint16]{
+				RawData:                     []uint16{0x8001, 0x8FFF, 0xF800},
+				InternalSamplesPerPixel:     1,
+				InternalRows:                1,
+				InternalCols:                3,
+				InternalBitsPerSample:       16,
+				InternalBitsStored:          12,
+				InternalPixelRepresentation: 1,
+			},
+			want: []int{1, -1, -2048},
+		},
+		{
+			// A frame built without BitsStored information (for example one
+			// constructed directly by a user of this library) must keep the
+			// pre-existing behavior of using the full container width.
+			name: "unset BitsStored falls back to BitsPerSample",
+			nativeFrame: frame.NativeFrame[uint16]{
+				RawData:                 []uint16{0x8001, 0xFFFF},
+				InternalSamplesPerPixel: 1,
+				InternalRows:            1,
+				InternalCols:            2,
+				InternalBitsPerSample:   16,
+			},
+			want: []int{0x8001, 0xFFFF},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for x, want := range tc.want {
+				if got := tc.nativeFrame.GetSample(x, 0, 0); got != want {
+					t.Errorf("GetSample(%d, 0, 0) unexpected value, got: %v, want: %v", x, got, want)
+				}
+
+				pixel, err := tc.nativeFrame.GetPixel(x, 0)
+				if err != nil {
+					t.Fatalf("GetPixel(%d, 0) got unexpected error: %v", x, err)
+				}
+				if len(pixel) != 1 || pixel[0] != want {
+					t.Errorf("GetPixel(%d, 0) unexpected value, got: %v, want: %v", x, pixel, []int{want})
+				}
+			}
+		})
+	}
+}
+
+func TestNativeFrame_GetSample_PixelRepresentation_BitsAllocated8(t *testing.T) {
+	cases := []struct {
+		name        string
+		nativeFrame frame.NativeFrame[uint8]
+		want        []int
+	}{
+		{
+			name: "unsigned 8 bit",
+			nativeFrame: frame.NativeFrame[uint8]{
+				RawData:                     []uint8{0, 1, 128, 255},
+				InternalSamplesPerPixel:     1,
+				InternalRows:                1,
+				InternalCols:                4,
+				InternalBitsPerSample:       8,
+				InternalBitsStored:          8,
+				InternalPixelRepresentation: 0,
+			},
+			want: []int{0, 1, 128, 255},
+		},
+		{
+			name: "signed 8 bit",
+			nativeFrame: frame.NativeFrame[uint8]{
+				RawData:                     []uint8{0, 1, 128, 255},
+				InternalSamplesPerPixel:     1,
+				InternalRows:                1,
+				InternalCols:                4,
+				InternalBitsPerSample:       8,
+				InternalBitsStored:          8,
+				InternalPixelRepresentation: 1,
+			},
+			want: []int{0, 1, -128, -1},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for x, want := range tc.want {
+				if got := tc.nativeFrame.GetSample(x, 0, 0); got != want {
+					t.Errorf("GetSample(%d, 0, 0) unexpected value, got: %v, want: %v", x, got, want)
+				}
+			}
+		})
+	}
+}
+
+func TestNativeFrame_BitsStored_PixelRepresentation(t *testing.T) {
+	f := frame.NativeFrame[uint16]{
+		InternalBitsPerSample:       16,
+		InternalBitsStored:          12,
+		InternalPixelRepresentation: 1,
+	}
+	if got := f.BitsStored(); got != 12 {
+		t.Errorf("BitsStored() unexpected value, got: %v, want: %v", got, 12)
+	}
+	if got := f.PixelRepresentation(); got != 1 {
+		t.Errorf("PixelRepresentation() unexpected value, got: %v, want: %v", got, 1)
+	}
+
+	// An unset BitsStored falls back to BitsPerSample.
+	unset := frame.NativeFrame[uint16]{InternalBitsPerSample: 16}
+	if got := unset.BitsStored(); got != 16 {
+		t.Errorf("BitsStored() unexpected value, got: %v, want: %v", got, 16)
+	}
+	if got := unset.PixelRepresentation(); got != 0 {
+		t.Errorf("PixelRepresentation() unexpected value, got: %v, want: %v", got, 0)
+	}
+}
+
 // within returns true if pt is in the []point
 func within(pt point, set []point) bool {
 	for _, item := range set {

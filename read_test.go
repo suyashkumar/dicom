@@ -990,6 +990,122 @@ func TestReadNativeFrames_OneBitAllocated(t *testing.T) {
 	}
 }
 
+// TestReadNativeFrames_PixelRepresentation checks that BitsStored and
+// PixelRepresentation are read from the Dataset and applied when reading pixel
+// values back out of the parsed frame.
+func TestReadNativeFrames_PixelRepresentation(t *testing.T) {
+	cases := []struct {
+		Name         string
+		existingData Dataset
+		uint16Data   []uint16
+		// wantSamples are the expected values of GetSample for each sample in
+		// the frame, in order.
+		wantSamples []int
+	}{
+		{
+			Name: "unsigned, 16 BitsStored",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{1}),
+				mustNewElement(tag.Columns, []int{4}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.BitsStored, []int{16}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			uint16Data:  []uint16{0, 1, 32768, 65535},
+			wantSamples: []int{0, 1, 32768, 65535},
+		},
+		{
+			Name: "signed, 16 BitsStored",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{1}),
+				mustNewElement(tag.Columns, []int{4}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.BitsStored, []int{16}),
+				mustNewElement(tag.PixelRepresentation, []int{1}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			uint16Data:  []uint16{0, 1, 32768, 65535},
+			wantSamples: []int{0, 1, -32768, -1},
+		},
+		{
+			Name: "signed, 12 BitsStored in a 16 bit container",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{1}),
+				mustNewElement(tag.Columns, []int{4}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.BitsStored, []int{12}),
+				mustNewElement(tag.PixelRepresentation, []int{1}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			uint16Data:  []uint16{0x000, 0x001, 0x800, 0xFFF},
+			wantSamples: []int{0, 1, -2048, -1},
+		},
+		{
+			// Bits above BitsStored are not pixel data, and must not affect the
+			// value that is read back.
+			Name: "unsigned, 12 BitsStored with data in the unused high bits",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{1}),
+				mustNewElement(tag.Columns, []int{3}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.BitsStored, []int{12}),
+				mustNewElement(tag.PixelRepresentation, []int{0}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			uint16Data:  []uint16{0x8001, 0xF002, 0xFFFF},
+			wantSamples: []int{1, 2, 4095},
+		},
+		{
+			// Without BitsStored and PixelRepresentation present, values must
+			// be read exactly as they were before those tags were parsed.
+			Name: "BitsStored and PixelRepresentation absent",
+			existingData: Dataset{Elements: []*Element{
+				mustNewElement(tag.Rows, []int{1}),
+				mustNewElement(tag.Columns, []int{2}),
+				mustNewElement(tag.NumberOfFrames, []string{"1"}),
+				mustNewElement(tag.BitsAllocated, []int{16}),
+				mustNewElement(tag.SamplesPerPixel, []int{1}),
+			}},
+			uint16Data:  []uint16{0x8001, 0xFFFF},
+			wantSamples: []int{0x8001, 0xFFFF},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			dcmdata := bytes.Buffer{}
+			for _, item := range tc.uint16Data {
+				if err := binary.Write(&dcmdata, binary.LittleEndian, item); err != nil {
+					t.Fatalf("TestReadNativeFrames_PixelRepresentation: unable to setup test buffer")
+				}
+			}
+
+			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&dcmdata), binary.LittleEndian, int64(dcmdata.Len()))}
+
+			pixelData, _, err := r.readNativeFrames(&tc.existingData, nil, uint32(dcmdata.Len()))
+			if err != nil {
+				t.Fatalf("readNativeFrames() got unexpected error: %v", err)
+			}
+
+			nativeFrame, err := pixelData.Frames[0].GetNativeFrame()
+			if err != nil {
+				t.Fatalf("GetNativeFrame() got unexpected error: %v", err)
+			}
+
+			for idx, want := range tc.wantSamples {
+				if got := nativeFrame.(*frame.NativeFrame[uint16]).GetSample(idx, 0, 0); got != want {
+					t.Errorf("GetSample(%d, 0, 0) unexpected value, got: %v, want: %v", idx, got, want)
+				}
+			}
+		})
+	}
+}
+
 func BenchmarkReadNativeFrames(b *testing.B) {
 	cases := []struct {
 		Name            string

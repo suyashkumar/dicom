@@ -451,6 +451,25 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 	}
 	samplesPerPixel := MustGetInts(s.Value)[0]
 
+	// BitsStored and PixelRepresentation are needed to interpret the stored
+	// values, but are not needed to read the bytes, so unlike the elements
+	// above a missing element is not an error here. Both are left at 0 when
+	// absent, which NativeFrame treats as "unknown BitsStored, unsigned", i.e.
+	// the assumption made before these were parsed at all.
+	bitsStored := 0
+	if bs, err := parsedData.FindElementByTag(tag.BitsStored); err == nil {
+		if v := MustGetInts(bs.Value); len(v) > 0 {
+			bitsStored = v[0]
+		}
+	}
+
+	pixelRepresentation := 0
+	if pr, err := parsedData.FindElementByTag(tag.PixelRepresentation); err == nil {
+		if v := MustGetInts(pr.Value); len(v) > 0 {
+			pixelRepresentation = v[0]
+		}
+	}
+
 	pixelsPerFrame := MustGetInts(rows.Value)[0] * MustGetInts(cols.Value)[0]
 
 	debug.Logf("readNativeFrames:\nRows: %d\nCols:%d\nFrames::%d\nBitsAlloc:%d\nSamplesPerPixel:%d", MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], nFrames, bitsAllocated, samplesPerPixel)
@@ -500,6 +519,8 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 				return nil, bytesToRead, err
 			}
 			nativeFrame := frame.NewNativeFrame[int](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], pixelsPerFrame, samplesPerPixel)
+			nativeFrame.InternalBitsStored = bitsStored
+			nativeFrame.InternalPixelRepresentation = pixelRepresentation
 			for pixel := 0; pixel < pixelsPerFrame; pixel++ {
 				for value := 0; value < samplesPerPixel; value++ {
 					nativeFrame.RawData[(pixel*samplesPerPixel)+value] = buf[pixel*samplesPerPixel+value]
@@ -509,11 +530,11 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 		} else {
 			switch bitsAllocated {
 			case 8:
-				currentFrame, _, err = readNativeFrame[uint8](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
+				currentFrame, _, err = readNativeFrame[uint8](bitsAllocated, bitsStored, pixelRepresentation, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
 			case 16:
-				currentFrame, _, err = readNativeFrame[uint16](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
+				currentFrame, _, err = readNativeFrame[uint16](bitsAllocated, bitsStored, pixelRepresentation, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
 			case 32:
-				currentFrame, _, err = readNativeFrame[uint32](bitsAllocated, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
+				currentFrame, _, err = readNativeFrame[uint32](bitsAllocated, bitsStored, pixelRepresentation, MustGetInts(rows.Value)[0], MustGetInts(cols.Value)[0], bytesToRead, samplesPerPixel, pixelsPerFrame, pixelBuf, r.rawReader)
 			default:
 				return nil, bytesToRead, fmt.Errorf("unsupported bitsAllocated, got: %v, %w", bitsAllocated, ErrorUnsupportedBitsAllocated)
 			}
@@ -538,8 +559,10 @@ func (r *reader) readNativeFrames(parsedData *Dataset, fc chan<- *frame.Frame, v
 
 // readNativeFrame builds and reads a single NativeFrame[I] from the rawReader.
 // TODO(suyashkumar): refactor args to an options struct, or something more compact and readable.
-func readNativeFrame[I constraints.Integer](bitsAllocated, rows, cols, bytesToRead, samplesPerPixel, pixelsPerFrame int, pixelBuf []byte, rawReader *dicomio.Reader) (frame.Frame, int, error) {
+func readNativeFrame[I constraints.Integer](bitsAllocated, bitsStored, pixelRepresentation, rows, cols, bytesToRead, samplesPerPixel, pixelsPerFrame int, pixelBuf []byte, rawReader *dicomio.Reader) (frame.Frame, int, error) {
 	nativeFrame := frame.NewNativeFrame[I](bitsAllocated, rows, cols, pixelsPerFrame, samplesPerPixel)
+	nativeFrame.InternalBitsStored = bitsStored
+	nativeFrame.InternalPixelRepresentation = pixelRepresentation
 	currentFrame := frame.Frame{
 		Encapsulated: false,
 		NativeData:   nativeFrame,

@@ -964,3 +964,69 @@ func TestWrite_OverrideMissingTransferSyntax(t *testing.T) {
 		})
 	}
 }
+
+// TestWritePixelDataParseErrFallback is a regression test for
+// https://github.com/suyashkumar/dicom/issues/376. When PixelData is read with
+// AllowMismatchPixelDataLength(), the error fallback (makeErrorPixelData) stores
+// the raw, unprocessed bytes in Frames[0].EncapsulatedData.Data while leaving
+// NativeData nil, IsEncapsulated false and a defined (non-undefined) VL.
+// writePixelData used to pick the native branch on a defined VL and dereference
+// the nil NativeData, panicking with a nil-pointer SIGSEGV on write. The write
+// path must instead blindly write the stored raw bytes back.
+func TestWritePixelDataParseErrFallback(t *testing.T) {
+	rawPixelData := []byte{0xDE, 0xAD, 0xBE, 0xEF}
+	ds := Dataset{Elements: []*Element{
+		mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
+		mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+		mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+		mustNewElement(tag.SamplesPerPixel, []int{1}),
+		mustNewElement(tag.Rows, []int{2}),
+		mustNewElement(tag.Columns, []int{2}),
+		mustNewElement(tag.BitsAllocated, []int{16}),
+		// The mismatch fallback: raw bytes live in EncapsulatedData.Data, but
+		// the element is native (IsEncapsulated=false) with a defined VL and a
+		// nil NativeData. This is what makeErrorPixelData produces.
+		mustNewElement(tag.PixelData, PixelDataInfo{
+			ParseErr:       ErrorMismatchPixelDataLength,
+			IsEncapsulated: false,
+			Frames: []*frame.Frame{
+				{
+					Encapsulated:     false,
+					EncapsulatedData: frame.EncapsulatedFrame{Data: rawPixelData},
+				},
+			},
+		}),
+	}}
+
+	// Must not panic and must not error.
+	writtenDICOM := &bytes.Buffer{}
+	if err := Write(writtenDICOM, ds); err != nil {
+		t.Fatalf("Write(...) returned unexpected error: %v", err)
+	}
+
+	// The stored raw bytes must have been written back verbatim.
+	if !bytes.Contains(writtenDICOM.Bytes(), rawPixelData) {
+		t.Errorf("Write(...) output does not contain the raw fallback PixelData bytes %v", rawPixelData)
+	}
+
+	// The written output must round-trip back through the parser (again via the
+	// mismatch fallback, since the calculated size 2*2*2 = 8 bytes != vl=4).
+	parsedDS, err := ParseUntilEOF(writtenDICOM, nil, AllowMismatchPixelDataLength())
+	if err != nil {
+		t.Fatalf("ParseUntilEOF returned unexpected error when reading written dataset back in: %v", err)
+	}
+	pdElem, err := parsedDS.FindElementByTag(tag.PixelData)
+	if err != nil {
+		t.Fatalf("unable to find PixelData element in written dataset: %v", err)
+	}
+	pdInfo := MustGetPixelDataInfo(pdElem.Value)
+	if pdInfo.ParseErr == nil {
+		t.Errorf("re-parsed PixelData ParseErr = nil, want non-nil (mismatch fallback)")
+	}
+	if len(pdInfo.Frames) != 1 {
+		t.Fatalf("re-parsed PixelData has %d frames, want 1", len(pdInfo.Frames))
+	}
+	if got := pdInfo.Frames[0].EncapsulatedData.Data; !bytes.Equal(got, rawPixelData) {
+		t.Errorf("re-parsed raw PixelData = %v, want %v", got, rawPixelData)
+	}
+}

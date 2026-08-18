@@ -636,6 +636,20 @@ func writePixelData(w *dicomio.Writer, t tag.Tag, value Value, vr string, vl uin
 			w.WriteBytes(image.UnprocessedValueData)
 			return nil
 		}
+		// When PixelData was read with AllowMismatchPixelDataLength(), the
+		// error fallback (makeErrorPixelData) stores the raw, unprocessed
+		// bytes in EncapsulatedData.Data while leaving NativeData nil and
+		// IsEncapsulated false with a defined VL. Detect that case via
+		// ParseErr and blindly write the stored bytes back, instead of
+		// dereferencing the nil NativeData below. See issue #376.
+		if image.ParseErr != nil {
+			for _, f := range image.Frames {
+				if err := w.WriteBytes(f.EncapsulatedData.Data); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
 		numFrames := len(image.Frames)
 		numPixels := image.Frames[0].NativeData.Rows() * image.Frames[0].NativeData.Cols()
 		numValues := image.Frames[0].NativeData.SamplesPerPixel()

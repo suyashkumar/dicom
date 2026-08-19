@@ -153,15 +153,38 @@ func (n *NativeFrame[I]) GetEncapsulatedFrame() (*EncapsulatedFrame, error) {
 // GetImage returns an image.Image representation the frame, using default
 // processing. This default processing is basic at the moment, and does not
 // autoscale pixel values or use window width or level info.
+//
+// A frame with 1 sample per pixel is treated as grayscale and returned as an
+// *image.Gray16. A frame with 3 samples per pixel is treated as RGB and
+// returned as an *image.RGBA64. Other sample counts are not yet supported and
+// return ErrUnsupportedSamplesPerPixel.
 func (n *NativeFrame[I]) GetImage() (image.Image, error) {
-	if n.InternalSamplesPerPixel != 1 {
-		return nil, fmt.Errorf("GetImage(): unexpected InternalSamplesPerPixel got %v, expected 1 since only grayscale images are supported for now %w", n.InternalSamplesPerPixel, ErrUnsupportedSamplesPerPixel)
+	switch n.InternalSamplesPerPixel {
+	case 1:
+		i := image.NewGray16(image.Rect(0, 0, n.Cols(), n.Rows()))
+		for idx := 0; idx < len(n.RawData); idx++ {
+			i.SetGray16(idx%n.Cols(), idx/n.Cols(), color.Gray16{Y: uint16(n.RawData[idx])}) // for now, assume we're not overflowing uint16, assume gray image, we can check BitsAllocated if we want to be conservative.
+		}
+		return i, nil
+	case 3:
+		// The three samples of each pixel are interleaved in RawData (R, G, B),
+		// matching the layout assumed by GetPixel and GetSample. Planar
+		// configurations (all R, then all G, then all B) are not handled here.
+		i := image.NewRGBA64(image.Rect(0, 0, n.Cols(), n.Rows()))
+		numPixels := len(n.RawData) / n.InternalSamplesPerPixel
+		for p := 0; p < numPixels; p++ {
+			base := p * n.InternalSamplesPerPixel
+			i.SetRGBA64(p%n.Cols(), p/n.Cols(), color.RGBA64{
+				R: uint16(n.RawData[base]),
+				G: uint16(n.RawData[base+1]),
+				B: uint16(n.RawData[base+2]),
+				A: 0xffff,
+			})
+		}
+		return i, nil
+	default:
+		return nil, fmt.Errorf("GetImage(): unexpected InternalSamplesPerPixel got %v, expected 1 (grayscale) or 3 (RGB) %w", n.InternalSamplesPerPixel, ErrUnsupportedSamplesPerPixel)
 	}
-	i := image.NewGray16(image.Rect(0, 0, n.Cols(), n.Rows()))
-	for idx := 0; idx < len(n.RawData); idx++ {
-		i.SetGray16(idx%n.Cols(), idx/n.Cols(), color.Gray16{Y: uint16(n.RawData[idx])}) // for now, assume we're not overflowing uint16, assume gray image, we can check BitsAllocated if we want to be conservative.
-	}
-	return i, nil
 }
 
 // Equals returns true if this frame equals the provided target frame, otherwise

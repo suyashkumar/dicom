@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -85,6 +86,80 @@ func TestNativeFrame_GetImage(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestNativeFrame_GetImage_RGB(t *testing.T) {
+	cases := []struct {
+		Name        string
+		NativeFrame frame.NativeFrame[int]
+		// Want maps a pixel coordinate to its expected RGBA64 color.
+		Want map[point]color.RGBA64
+	}{
+		{
+			Name: "Square",
+			NativeFrame: frame.NativeFrame[int]{
+				InternalRows:            2,
+				InternalCols:            2,
+				InternalSamplesPerPixel: 3,
+				// Pixels are interleaved R,G,B in row-major order.
+				RawData: []int{
+					0xffff, 0, 0, /* (0,0) red */
+					0, 0xffff, 0, /* (1,0) green */
+					0, 0, 0xffff, /* (0,1) blue */
+					0xffff, 0xffff, 0xffff, /* (1,1) white */
+				},
+			},
+			Want: map[point]color.RGBA64{
+				{0, 0}: {R: 0xffff, A: 0xffff},
+				{1, 0}: {G: 0xffff, A: 0xffff},
+				{0, 1}: {B: 0xffff, A: 0xffff},
+				{1, 1}: {R: 0xffff, G: 0xffff, B: 0xffff, A: 0xffff},
+			},
+		},
+		{
+			Name: "Rectangle",
+			NativeFrame: frame.NativeFrame[int]{
+				InternalRows:            2,
+				InternalCols:            3,
+				InternalSamplesPerPixel: 3,
+				RawData: []int{
+					0, 0, 0, 1, 2, 3, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 4, 5, 6,
+				},
+			},
+			Want: map[point]color.RGBA64{
+				{1, 0}: {R: 1, G: 2, B: 3, A: 0xffff},
+				{2, 1}: {R: 4, G: 5, B: 6, A: 0xffff},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			img, err := tc.NativeFrame.GetImage()
+			if err != nil {
+				t.Fatalf("GetImage(%v) got unexpected error: %v", tc.NativeFrame, err)
+			}
+			imgRGBA, ok := img.(*image.RGBA64)
+			if !ok {
+				t.Fatalf("GetImage(%v) did not return an *image.RGBA64", tc.NativeFrame)
+			}
+
+			for x := 0; x < tc.NativeFrame.Cols(); x++ {
+				for y := 0; y < tc.NativeFrame.Rows(); y++ {
+					got := imgRGBA.RGBA64At(x, y)
+					want, ok := tc.Want[point{x, y}]
+					if !ok {
+						// Unlisted pixels are expected to be fully opaque black.
+						want = color.RGBA64{A: 0xffff}
+					}
+					if got != want {
+						t.Errorf("GetImage(%v) at (%d, %d) got: %v, want: %v", tc.NativeFrame, x, y, got, want)
+					}
+				}
+			}
+		})
 	}
 }
 

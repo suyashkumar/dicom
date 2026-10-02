@@ -134,6 +134,10 @@ const (
 	// VRUnknown means the VR of the element is unknown (possibly a private
 	// element seen while reading DICOMs in implicit transfer syntax).
 	VRUnknown
+	// VRInt64List element stores a list of int64s
+	VRInt64List
+	// VRUInt64List element stores a list of uint64s
+	VRUInt64List
 )
 
 // GetVRKind returns the golang value encoding of an element with <tag, vr>.
@@ -148,7 +152,7 @@ func GetVRKind(tag Tag, vr string) VRKind {
 		return VRDate
 	case "AT":
 		return VRTagList
-	case "OW", "OB":
+	case "OW", "OB", "OV":
 		return VRBytes
 	case "LT", "UT":
 		return VRString
@@ -160,6 +164,10 @@ func GetVRKind(tag Tag, vr string) VRKind {
 		return VRUInt16List
 	case "SS":
 		return VRInt16List
+	case "SV":
+		return VRInt64List
+	case "UV":
+		return VRUInt64List
 	case "FL":
 		return VRFloat32List
 	case "FD":

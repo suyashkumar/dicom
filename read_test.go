@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"math"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -215,6 +216,149 @@ func TestReadOWBytes(t *testing.T) {
 				t.Errorf("readBytes(r, tg, %s, %d) unexpected diff: %s", tc.VR, data.Len(), diff)
 			}
 		})
+	}
+}
+
+func TestReadOVBytes(t *testing.T) {
+	cases := []struct {
+		name        string
+		bytes       []byte
+		want        Value
+		expectedErr error
+	}{
+		{
+			name:        "OV VR with a multiple of 8 bytes",
+			bytes:       []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10},
+			want:        &bytesValue{value: []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10}},
+			expectedErr: nil,
+		},
+		{
+			name:        "error on a length that isn't a multiple of 8",
+			bytes:       []byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc},
+			want:        nil,
+			expectedErr: ErrorOVRequiresVLMultipleOf8,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := bytes.NewBuffer(tc.bytes)
+			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(data), binary.LittleEndian, int64(len(tc.bytes)))}
+
+			got, err := r.readBytes(tag.Tag{}, vrraw.OtherVeryLong, uint32(len(tc.bytes)))
+			if !errors.Is(err, tc.expectedErr) {
+				t.Fatalf("readBytes(r, tg, OV, %d) got unexpected error: got: %v, want: %v", len(tc.bytes), err, tc.expectedErr)
+			}
+			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(bytesValue{})); diff != "" {
+				t.Errorf("readBytes(r, tg, OV, %d) unexpected diff: %s", len(tc.bytes), diff)
+			}
+		})
+	}
+}
+
+func TestReadInt_64Bit(t *testing.T) {
+	cases := []struct {
+		name        string
+		vr          string
+		data        []any
+		want        Value
+		expectedErr error
+	}{
+		{
+			name: "SV",
+			vr:   vrraw.SignedVeryLong,
+			data: []any{int64(-5), int64(1 << 40)},
+			want: &intsValue{value: []int{-5, 1 << 40}},
+		},
+		{
+			name: "UV",
+			vr:   vrraw.UnsignedVeryLong,
+			data: []any{uint64(0), uint64(1 << 40)},
+			want: &intsValue{value: []int{0, 1 << 40}},
+		},
+		{
+			name:        "UV larger than the max int",
+			vr:          vrraw.UnsignedVeryLong,
+			data:        []any{uint64(math.MaxUint64)},
+			expectedErr: ErrorUVOverflowsInt,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := bytes.Buffer{}
+			for _, d := range tc.data {
+				if err := binary.Write(&data, binary.LittleEndian, d); err != nil {
+					t.Fatalf("TestReadInt_64Bit: unable to setup test buffer: %v", err)
+				}
+			}
+			vl := uint32(data.Len())
+			r := &reader{rawReader: dicomio.NewReader(bufio.NewReader(&data), binary.LittleEndian, int64(vl))}
+
+			got, err := r.readInt(tag.Tag{}, tc.vr, vl)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Fatalf("readInt(r, tg, %s, %d) got unexpected error: got: %v, want: %v", tc.vr, vl, err, tc.expectedErr)
+			}
+			if tc.expectedErr != nil {
+				return
+			}
+			if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(intsValue{})); diff != "" {
+				t.Errorf("readInt(r, tg, %s, %d) unexpected diff: %s", tc.vr, vl, diff)
+			}
+		})
+	}
+}
+
+// TestParse_ExtendedOffsetTable checks the OV elements of an Extended Offset
+// Table are read with their 4-byte value length in explicit VR, so the
+// elements that follow them parse correctly.
+func TestParse_ExtendedOffsetTable(t *testing.T) {
+	element := func(tg tag.Tag, vr string, value []byte) []byte {
+		b := binary.LittleEndian.AppendUint16(nil, tg.Group)
+		b = binary.LittleEndian.AppendUint16(b, tg.Element)
+		b = append(b, vr...)
+		switch vr {
+		case vrraw.OtherVeryLong, vrraw.OtherByte:
+			b = append(b, 0, 0) // reserved
+			b = binary.LittleEndian.AppendUint32(b, uint32(len(value)))
+		default:
+			b = binary.LittleEndian.AppendUint16(b, uint16(len(value)))
+		}
+		return append(b, value...)
+	}
+	transferSyntax := element(tag.TransferSyntaxUID, vrraw.UniqueIdentifier, []byte("1.2.840.10008.1.2.1\x00"))
+	groupLength := element(tag.FileMetaInformationGroupLength, vrraw.UnsignedLong, binary.LittleEndian.AppendUint32(nil, uint32(len(transferSyntax))))
+	offsets := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0xe8, 0x03, 0, 0, 0, 0, 0, 0}
+	lengths := []byte{0xe0, 0x03, 0, 0, 0, 0, 0, 0, 0xf4, 0x01, 0, 0, 0, 0, 0, 0}
+
+	var data bytes.Buffer
+	data.Write(make([]byte, 128))
+	data.WriteString("DICM")
+	data.Write(groupLength)
+	data.Write(transferSyntax)
+	data.Write(element(tag.ExtendedOffsetTable, vrraw.OtherVeryLong, offsets))
+	data.Write(element(tag.ExtendedOffsetTableLengths, vrraw.OtherVeryLong, lengths))
+	data.Write(element(tag.DataSetTrailingPadding, vrraw.OtherByte, []byte{0, 0}))
+
+	ds, err := Parse(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+	if err != nil {
+		t.Fatalf("Parse: unexpected error: %v", err)
+	}
+	for tg, want := range map[tag.Tag][]byte{
+		tag.ExtendedOffsetTable:        offsets,
+		tag.ExtendedOffsetTableLengths: lengths,
+		tag.DataSetTrailingPadding:     {0, 0},
+	} {
+		elem, err := ds.FindElementByTag(tg)
+		if err != nil {
+			t.Fatalf("FindElementByTag(%v): %v", tg, err)
+		}
+		if diff := cmp.Diff(want, elem.Value.GetValue()); diff != "" {
+			t.Errorf("element %v has unexpected value: %s", tg, diff)
+		}
+	}
+	if got := len(ds.Elements); got != 5 {
+		t.Errorf("Parse produced %d elements, want 5 (no spurious elements)", got)
 	}
 }
 

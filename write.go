@@ -369,13 +369,14 @@ func verifyValueType(t tag.Tag, value Value, vr string) error {
 	valueType := value.ValueType()
 	var ok bool
 	switch vr {
-	case vrraw.UnsignedShort, vrraw.UnsignedLong, vrraw.SignedLong, vrraw.SignedShort, vrraw.AttributeTag:
+	case vrraw.UnsignedShort, vrraw.UnsignedLong, vrraw.SignedLong, vrraw.SignedShort, vrraw.AttributeTag,
+		vrraw.SignedVeryLong, vrraw.UnsignedVeryLong:
 		ok = valueType == Ints
 	case vrraw.Sequence:
 		ok = valueType == Sequences
 	case "NA":
 		ok = valueType == SequenceItem
-	case vrraw.OtherWord, vrraw.OtherByte:
+	case vrraw.OtherWord, vrraw.OtherByte, vrraw.OtherVeryLong:
 		if t == tag.PixelData {
 			ok = valueType == PixelData
 		} else {
@@ -436,7 +437,8 @@ func writeVRVL(w *dicomio.Writer, t tag.Tag, vr string, vl uint32) error {
 		case "NA", vrraw.OtherByte, vrraw.OtherDouble, vrraw.OtherFloat,
 			vrraw.OtherLong, vrraw.OtherWord, vrraw.Sequence, vrraw.Unknown,
 			vrraw.UnlimitedCharacters, vrraw.UniversalResourceIdentifier,
-			vrraw.UnlimitedText:
+			vrraw.UnlimitedText, vrraw.OtherVeryLong, vrraw.SignedVeryLong,
+			vrraw.UnsignedVeryLong:
 			if err := w.WriteZeros(2); err != nil {
 				return err
 			}
@@ -556,6 +558,8 @@ func writeBytes(w *dicomio.Writer, values []byte, vr string) error {
 		err = writeOtherWordString(w, values)
 	case vrraw.OtherByte:
 		err = writeOtherByteString(w, values)
+	case vrraw.OtherVeryLong:
+		err = writeOtherVeryLongString(w, values)
 	default:
 		return ErrorMismatchValueTypeAndVR
 	}
@@ -575,6 +579,10 @@ func writeInts(w *dicomio.Writer, values []int, vr string) error {
 			}
 		case vrraw.UnsignedLong, vrraw.SignedLong:
 			if err := w.WriteUInt32(uint32(value)); err != nil {
+				return err
+			}
+		case vrraw.UnsignedVeryLong, vrraw.SignedVeryLong:
+			if err := w.WriteUInt64(uint64(value)); err != nil {
 				return err
 			}
 		default:
@@ -764,6 +772,25 @@ func writeOtherWordString(w *dicomio.Writer, data []byte) error {
 			return err
 		}
 		if err := w.WriteUInt16(v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeOtherVeryLongString(w *dicomio.Writer, data []byte) error {
+	if len(data)%8 != 0 {
+		return ErrorOVRequiresVLMultipleOf8
+	}
+	bo, _ := w.GetTransferSyntax()
+	r := dicomio.NewReader(bufio.NewReader(bytes.NewBuffer(data)), bo, int64(len(data)))
+
+	for i := 0; i < len(data)/8; i++ {
+		v, err := r.ReadUInt64()
+		if err != nil {
+			return err
+		}
+		if err := w.WriteUInt64(v); err != nil {
 			return err
 		}
 	}

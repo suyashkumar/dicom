@@ -110,6 +110,20 @@ func (r *Reader) ReadInt32() (int32, error) {
 	return out, err
 }
 
+// ReadUInt64 reads an uint64 from the underlying *Reader.
+func (r *Reader) ReadUInt64() (uint64, error) {
+	var out uint64
+	err := binary.Read(r, r.bo, &out)
+	return out, err
+}
+
+// ReadInt64 reads an int64 from the underlying *Reader.
+func (r *Reader) ReadInt64() (int64, error) {
+	var out int64
+	err := binary.Read(r, r.bo, &out)
+	return out, err
+}
+
 // ReadFloat32 reads a float32 from the underlying *Reader.
 func (r *Reader) ReadFloat32() (float32, error) {
 	var out float32

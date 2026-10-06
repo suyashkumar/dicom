@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"image"
 	"io"
 	"math/rand"
 	"strconv"
@@ -1086,4 +1087,64 @@ func buildTagData(t *testing.T, tg tag.Tag) []byte {
 	}
 
 	return data.Bytes()
+}
+
+func TestReadPixelData_EncapsulatedTransferSyntaxPreserved(t *testing.T) {
+	ResetEncapsulatedDecoders()
+	t.Cleanup(ResetEncapsulatedDecoders)
+
+	const tsUID = "1.2.840.10008.1.2.4.70"
+	ds := &Dataset{
+		Elements: []*Element{
+			mustNewElement(tag.TransferSyntaxUID, []string{tsUID}),
+		},
+	}
+
+	encData := makeEncapsulatedSequence(t)
+	dcmdata := bytes.NewBuffer(encData)
+	r := &reader{
+		rawReader: dicomio.NewReader(bufio.NewReader(dcmdata), binary.LittleEndian, int64(dcmdata.Len())),
+		opts:      parseOptSet{},
+	}
+
+	val, err := r.readPixelData(tag.VLUndefinedLength, ds, nil)
+	if err != nil {
+		t.Fatalf("unexpected error from readPixelData: %v", err)
+	}
+
+	pixelVal, ok := val.GetValue().(PixelDataInfo)
+	if !ok {
+		t.Fatalf("expected value to be PixelDataInfo")
+	}
+	if len(pixelVal.Frames) != 1 {
+		t.Fatalf("expected 1 frame, got %d", len(pixelVal.Frames))
+	}
+
+	fr := pixelVal.Frames[0]
+	if !fr.Encapsulated {
+		t.Errorf("expected frame to be encapsulated")
+	}
+	if fr.EncapsulatedData.TransferSyntaxUID != tsUID {
+		t.Errorf("expected EncapsulatedData.TransferSyntaxUID=%s, got %s", tsUID, fr.EncapsulatedData.TransferSyntaxUID)
+	}
+
+	// Without custom decoder, GetImage fails with unsupported codec error
+	_, err = fr.GetImage()
+	if !errors.Is(err, ErrUnsupportedEncapsulatedCodec) {
+		t.Errorf("expected ErrUnsupportedEncapsulatedCodec, got: %v", err)
+	}
+
+	// With custom decoder registered via root package API, GetImage succeeds
+	expectedImg := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	RegisterEncapsulatedDecoder(tsUID, func(data []byte) (image.Image, error) {
+		return expectedImg, nil
+	})
+
+	gotImg, err := fr.GetImage()
+	if err != nil {
+		t.Fatalf("unexpected error with registered decoder: %v", err)
+	}
+	if gotImg != expectedImg {
+		t.Errorf("expected custom decoded image")
+	}
 }

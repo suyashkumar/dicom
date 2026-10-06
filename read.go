@@ -285,6 +285,15 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 			return nil, fmt.Errorf("readPixelData: error skipping basic offset table: %w", err)
 		}
 
+		var transferSyntaxUID string
+		if d != nil {
+			if elem, err := d.FindElementByTag(tag.TransferSyntaxUID); err == nil && elem.Value != nil {
+				if strs, ok := elem.Value.GetValue().([]string); ok && len(strs) > 0 {
+					transferSyntaxUID = strs[0]
+				}
+			}
+		}
+
 		for !r.rawReader.IsLimitExhausted() {
 			data, endOfItems, err := r.readRawItem(r.opts.skipPixelData /*shouldSkip*/)
 			if err != nil {
@@ -298,7 +307,8 @@ func (r *reader) readPixelData(vl uint32, d *Dataset, fc chan<- *frame.Frame) (V
 			f := frame.Frame{
 				Encapsulated: true,
 				EncapsulatedData: frame.EncapsulatedFrame{
-					Data: data,
+					Data:              data,
+					TransferSyntaxUID: transferSyntaxUID,
 				},
 			}
 

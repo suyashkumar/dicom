@@ -63,6 +63,13 @@ func (f *Frame) GetEncapsulatedFrame() (*EncapsulatedFrame, error) {
 	return f.NativeData.GetEncapsulatedFrame()
 }
 
+// SetTransferSyntaxUID sets the transfer syntax UID on the underlying EncapsulatedFrame if encapsulated.
+func (f *Frame) SetTransferSyntaxUID(uid string) {
+	if f.Encapsulated {
+		f.EncapsulatedData.TransferSyntaxUID = uid
+	}
+}
+
 // GetImage returns a Go image.Image from the underlying frame, regardless of
 // the frame type.
 func (f *Frame) GetImage() (image.Image, error) {

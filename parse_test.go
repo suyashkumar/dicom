@@ -2,10 +2,13 @@ package dicom_test
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/jpeg"
 	"io"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -371,5 +374,138 @@ func runForEveryTestFile(t *testing.T, testFunc func(t *testing.T, filename stri
 				testFunc(t, fullName)
 			})
 		}
+	}
+}
+
+type readTracker struct {
+	r         io.Reader
+	bytesRead int
+}
+
+func (rt *readTracker) Read(p []byte) (n int, err error) {
+	n, err = rt.r.Read(p)
+	rt.bytesRead += n
+	return n, err
+}
+
+func TestParse_RejectsGzipStreamWithoutReadingEntireStream(t *testing.T) {
+	var gzipBuf bytes.Buffer
+	gw := gzip.NewWriter(&gzipBuf)
+	raw := make([]byte, 128*1024)
+	rng := rand.New(rand.NewSource(100))
+	if _, err := rng.Read(raw); err != nil {
+		t.Fatalf("failed to generate random data: %v", err)
+	}
+	if _, err := gw.Write(raw); err != nil {
+		t.Fatalf("failed to write gzip data: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("failed to close gzip writer: %v", err)
+	}
+
+	gzipData := gzipBuf.Bytes()
+	tracker := &readTracker{r: bytes.NewReader(gzipData)}
+
+	_, err := dicom.Parse(tracker, int64(len(gzipData)), nil)
+	if err == nil {
+		t.Fatalf("expected error when parsing gzip stream, got nil")
+	}
+	if !errors.Is(err, dicom.ErrorInferTransferSyntax) {
+		t.Errorf("expected ErrorInferTransferSyntax, got: %v", err)
+	}
+	if tracker.bytesRead >= len(gzipData) {
+		t.Errorf("expected parser to abort early, but it read entire stream (%d bytes)", tracker.bytesRead)
+	}
+	if tracker.bytesRead > 4096 {
+		t.Errorf("expected bytesRead <= 4096, got %d", tracker.bytesRead)
+	}
+}
+
+func TestParseUntilEOF_RejectsGzipStreamWithoutReadingEntireStream(t *testing.T) {
+	var gzipBuf bytes.Buffer
+	gw := gzip.NewWriter(&gzipBuf)
+	raw := make([]byte, 128*1024)
+	rng := rand.New(rand.NewSource(200))
+	if _, err := rng.Read(raw); err != nil {
+		t.Fatalf("failed to generate random data: %v", err)
+	}
+	if _, err := gw.Write(raw); err != nil {
+		t.Fatalf("failed to write gzip data: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("failed to close gzip writer: %v", err)
+	}
+
+	gzipData := gzipBuf.Bytes()
+	tracker := &readTracker{r: bytes.NewReader(gzipData)}
+
+	_, err := dicom.ParseUntilEOF(tracker, nil)
+	if err == nil {
+		t.Fatalf("expected error when parsing gzip stream with ParseUntilEOF, got nil")
+	}
+	if !errors.Is(err, dicom.ErrorInferTransferSyntax) {
+		t.Errorf("expected ErrorInferTransferSyntax, got: %v", err)
+	}
+	if tracker.bytesRead >= len(gzipData) {
+		t.Errorf("expected parser to abort early, but it read entire stream (%d bytes)", tracker.bytesRead)
+	}
+	if tracker.bytesRead > 4096 {
+		t.Errorf("expected bytesRead <= 4096, got %d", tracker.bytesRead)
+	}
+}
+
+func TestParse_RejectsRandomBytesWithoutReadingEntireStream(t *testing.T) {
+	randomData := make([]byte, 128*1024)
+	rng := rand.New(rand.NewSource(42))
+	if _, err := rng.Read(randomData); err != nil {
+		t.Fatalf("failed to generate random data: %v", err)
+	}
+
+	tracker := &readTracker{r: bytes.NewReader(randomData)}
+
+	_, err := dicom.Parse(tracker, int64(len(randomData)), nil)
+	if err == nil {
+		t.Fatalf("expected error when parsing random bytes, got nil")
+	}
+	if !errors.Is(err, dicom.ErrorInferTransferSyntax) {
+		t.Errorf("expected ErrorInferTransferSyntax, got: %v", err)
+	}
+	if tracker.bytesRead >= len(randomData) {
+		t.Errorf("expected parser to abort early, but it read entire stream (%d bytes)", tracker.bytesRead)
+	}
+	if tracker.bytesRead > 4096 {
+		t.Errorf("expected bytesRead <= 4096, got %d", tracker.bytesRead)
+	}
+}
+
+func TestParseUntilEOF_RejectsRandomBytesWithoutReadingEntireStream(t *testing.T) {
+	randomData := make([]byte, 128*1024)
+	rng := rand.New(rand.NewSource(12345))
+	if _, err := rng.Read(randomData); err != nil {
+		t.Fatalf("failed to generate random data: %v", err)
+	}
+
+	tracker := &readTracker{r: bytes.NewReader(randomData)}
+
+	_, err := dicom.ParseUntilEOF(tracker, nil)
+	if err == nil {
+		t.Fatalf("expected error when parsing random bytes with ParseUntilEOF, got nil")
+	}
+	if !errors.Is(err, dicom.ErrorInferTransferSyntax) {
+		t.Errorf("expected ErrorInferTransferSyntax, got: %v", err)
+	}
+	if tracker.bytesRead >= len(randomData) {
+		t.Errorf("expected parser to abort early, but it read entire stream (%d bytes)", tracker.bytesRead)
+	}
+	if tracker.bytesRead > 4096 {
+		t.Errorf("expected bytesRead <= 4096, got %d", tracker.bytesRead)
+	}
+}
+
+func TestParse_NonDICOM_ShortData(t *testing.T) {
+	shortData := []byte("too short to be a valid dicom")
+	_, err := dicom.Parse(bytes.NewReader(shortData), int64(len(shortData)), nil)
+	if err == nil {
+		t.Fatalf("expected error when parsing short data, got nil")
 	}
 }

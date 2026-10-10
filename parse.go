@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 
 	"github.com/suyashkumar/dicom/pkg/charset"
 	"github.com/suyashkumar/dicom/pkg/debug"
@@ -35,6 +36,7 @@ import (
 	"github.com/suyashkumar/dicom/pkg/frame"
 	"github.com/suyashkumar/dicom/pkg/tag"
 	"github.com/suyashkumar/dicom/pkg/uid"
+	"github.com/suyashkumar/dicom/pkg/vrraw"
 )
 
 const (
@@ -55,6 +57,9 @@ var (
 
 	// ErrorMismatchPixelDataLength indicates that the size calculated from DICOM mismatch the VL.
 	ErrorMismatchPixelDataLength = errors.New("the size calculated from DICOM elements and the PixelData element's VL are mismatched")
+
+	// ErrorInferTransferSyntax indicates that transfer syntax could not be inferred from the DICOM data.
+	ErrorInferTransferSyntax = errors.New("dicom missing transfer syntax uid in metadata, and it was not possible to successfully infer it using the next 100 bytes of the dicom")
 )
 
 func Parse(in io.Reader, bytesToRead int64, frameChan chan *frame.Frame, opts ...ParseOption) (Dataset, error) {
@@ -159,6 +164,11 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	var bo binary.ByteOrder = binary.LittleEndian
 	implicit := true
 
+	if optSet.skipMetadataReadOnNewParserInit {
+		p.SetTransferSyntax(bo, implicit)
+		return &p, nil
+	}
+
 	ts, err := p.dataset.FindElementByTag(tag.TransferSyntaxUID)
 	if err == nil {
 		// If we found the transfer syntax, apply it.
@@ -215,7 +225,64 @@ func NewParser(in io.Reader, bytesToRead int64, frameChannel chan *frame.Frame, 
 	}
 	// TODO(https://github.com/suyashkumar/dicom/issues/329): consider trying
 	// deflated parsing as a fallback as well.
-	return &p, errors.New("dicom missing transfer syntax uid in metadata, and it was not possible to successfully infer it using the next 100 bytes of the dicom")
+	return &p, ErrorInferTransferSyntax
+}
+
+var validVRs = map[string]struct{}{
+	vrraw.ApplicationEntity:           {},
+	vrraw.AgeString:                   {},
+	vrraw.AttributeTag:                {},
+	vrraw.CodeString:                  {},
+	vrraw.Date:                        {},
+	vrraw.DecimalString:               {},
+	vrraw.DateTime:                    {},
+	vrraw.FloatingPointSingle:         {},
+	vrraw.FloatingPointDouble:         {},
+	vrraw.IntegerString:               {},
+	vrraw.LongString:                  {},
+	vrraw.LongText:                    {},
+	vrraw.OtherByte:                   {},
+	vrraw.OtherDouble:                 {},
+	vrraw.OtherFloat:                  {},
+	vrraw.OtherLong:                   {},
+	vrraw.OtherVeryLong:               {},
+	vrraw.OtherWord:                   {},
+	vrraw.PersonName:                  {},
+	vrraw.ShortString:                 {},
+	vrraw.SignedLong:                  {},
+	vrraw.Sequence:                    {},
+	vrraw.SignedShort:                 {},
+	vrraw.ShortText:                   {},
+	vrraw.SignedVeryLong:              {},
+	vrraw.Time:                        {},
+	vrraw.UnlimitedCharacters:         {},
+	vrraw.UniqueIdentifier:            {},
+	vrraw.UnsignedLong:                {},
+	vrraw.Unknown:                     {},
+	vrraw.UniversalResourceIdentifier: {},
+	vrraw.UnsignedShort:               {},
+	vrraw.UnlimitedText:               {},
+	vrraw.UnsignedVeryLong:            {},
+}
+
+func isValidVR(vr string) bool {
+	_, ok := validVRs[vr]
+	return ok
+}
+
+func isKnownTag(t tag.Tag) bool {
+	if t.Group == tag.GroupSeqItem || t.Group == 0x0000 {
+		return false
+	}
+	_, err := tag.Find(t)
+	return err == nil
+}
+
+func isPrivateCreator(t tag.Tag) bool {
+	if t.Group == 0xFFFF {
+		return false
+	}
+	return tag.IsPrivate(t.Group) && t.Element >= 0x0010 && t.Element <= 0x00FF
 }
 
 func canReadElementFromBytes(buf []byte, optSet parseOptSet, bo binary.ByteOrder, implicit bool) bool {
@@ -225,8 +292,26 @@ func canReadElementFromBytes(buf []byte, optSet parseOptSet, bo binary.ByteOrder
 		opts:      optSet,
 	}
 	subR.rawReader.SetTransferSyntax(bo, implicit)
-	_, err := subR.readElement(nil, nil)
-	if err == nil {
+	elem, err := subR.readElement(nil, nil)
+	if err != nil || elem == nil {
+		return false
+	}
+	if !isValidVR(elem.RawValueRepresentation) {
+		return false
+	}
+	if isKnownTag(elem.Tag) {
+		if !implicit {
+			info, err := tag.Find(elem.Tag)
+			if err == nil && elem.RawValueRepresentation != vrraw.Unknown && !slices.Contains(info.VRs, elem.RawValueRepresentation) {
+				return false
+			}
+		}
+		return true
+	}
+	if isPrivateCreator(elem.Tag) {
+		if !implicit && elem.RawValueRepresentation != vrraw.LongString && elem.RawValueRepresentation != vrraw.Unknown {
+			return false
+		}
 		return true
 	}
 	return false

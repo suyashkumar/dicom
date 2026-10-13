@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"unicode"
@@ -24,6 +25,12 @@ var (
 	// ErrorOWRequiresEvenVL indicates that an element with VR=OW had a not even
 	// value length which is not allowed.
 	ErrorOWRequiresEvenVL = errors.New("vr of OW requires even value length")
+	// ErrorOVRequiresVLMultipleOf8 indicates that an element with VR=OV had a
+	// value length that isn't a multiple of 8, the size of its 64-bit words.
+	ErrorOVRequiresVLMultipleOf8 = errors.New("vr of OV requires a value length that is a multiple of 8")
+	// ErrorUVOverflowsInt indicates that an element with VR=UV held a value too
+	// large to represent as an int.
+	ErrorUVOverflowsInt = errors.New("UV value overflows int")
 	// ErrorUnsupportedVR indicates that this VR is not supported.
 	ErrorUnsupportedVR = errors.New("unsupported VR")
 	// ErrorUnsupportedBitsAllocated indicates that the BitsAllocated in the
@@ -91,7 +98,8 @@ func (r *reader) readVL(isImplicit bool, t tag.Tag, vr string) (uint32, error) {
 	case "NA", vrraw.OtherByte, vrraw.OtherDouble, vrraw.OtherFloat,
 		vrraw.OtherLong, vrraw.OtherWord, vrraw.Sequence, vrraw.Unknown,
 		vrraw.UnlimitedCharacters, vrraw.UniversalResourceIdentifier,
-		vrraw.UnlimitedText:
+		vrraw.UnlimitedText, vrraw.OtherVeryLong, vrraw.SignedVeryLong,
+		vrraw.UnsignedVeryLong:
 		_ = r.rawReader.Skip(2) // ignore two reserved bytes (0000H)
 		vl, err := r.rawReader.ReadUInt32()
 		if err != nil {
@@ -132,7 +140,8 @@ func (r *reader) readValue(t tag.Tag, vr string, vl uint32, isImplicit bool, d *
 		return r.readString(t, vr, vl)
 	case tag.VRDate:
 		return r.readDate(t, vr, vl)
-	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List, tag.VRTagList:
+	case tag.VRUInt16List, tag.VRUInt32List, tag.VRInt16List, tag.VRInt32List, tag.VRTagList,
+		tag.VRInt64List, tag.VRUInt64List:
 		return r.readInt(t, vr, vl)
 	case tag.VRSequence:
 		return r.readSequence(t, vr, vl, d)
@@ -703,6 +712,26 @@ func (r *reader) readBytes(t tag.Tag, vr string, vl uint32) (Value, error) {
 			}
 		}
 		return &bytesValue{value: buf.Bytes()}, nil
+	} else if vr == vrraw.OtherVeryLong {
+		// OV -> stream of 64 bit words
+		if vl%8 != 0 {
+			return nil, fmt.Errorf("error reading bytes element (%v) value: %w", t, ErrorOVRequiresVLMultipleOf8)
+		}
+
+		buf := bytes.NewBuffer(make([]byte, 0, vl))
+		numWords := int(vl / 8)
+		for i := 0; i < numWords; i++ {
+			word, err := r.rawReader.ReadUInt64()
+			if err != nil {
+				return nil, fmt.Errorf("error reading bytes element (%v) value: %w", t, err)
+			}
+			// TODO: support bytes.BigEndian byte ordering
+			err = binary.Write(buf, binary.LittleEndian, word)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &bytesValue{value: buf.Bytes()}, nil
 	}
 
 	return nil, fmt.Errorf("error reading bytes element (%v): %w", t, ErrorUnsupportedVR)
@@ -815,6 +844,26 @@ func (r *reader) readInt(t tag.Tag, vr string, vl uint32) (Value, error) {
 			val, err := r.rawReader.ReadInt16()
 			if err != nil {
 				return nil, fmt.Errorf("error reading int element (%v) value (ReadInt16): %w", t, err)
+			}
+			retVal.value = append(retVal.value, int(val))
+			break
+		case vrraw.SignedVeryLong:
+			val, err := r.rawReader.ReadInt64()
+			if err != nil {
+				return nil, fmt.Errorf("error reading int element (%v) value (ReadInt64): %w", t, err)
+			}
+			if int64(int(val)) != val {
+				return nil, fmt.Errorf("error reading int element (%v) value %d: value overflows int", t, val)
+			}
+			retVal.value = append(retVal.value, int(val))
+			break
+		case vrraw.UnsignedVeryLong:
+			val, err := r.rawReader.ReadUInt64()
+			if err != nil {
+				return nil, fmt.Errorf("error reading int element (%v) value (ReadUInt64): %w", t, err)
+			}
+			if val > math.MaxInt {
+				return nil, fmt.Errorf("error reading int element (%v) value %d: %w", t, val, ErrorUVOverflowsInt)
 			}
 			retVal.value = append(retVal.value, int(val))
 			break

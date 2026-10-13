@@ -401,6 +401,36 @@ func TestWrite(t *testing.T) {
 			wantError: nil,
 		},
 		{
+			name: "64-bit VRs (OV, SV, UV) - explicit VR",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.77.1.6"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ExplicitVRLittleEndian}),
+				mustNewElement(tag.FileOffsetInContainer, []int{1 << 40}),
+				mustNewElement(tag.SelectorSVValue, []int{-5, 1 << 40}),
+				mustNewElement(tag.ExtendedOffsetTable, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0xe8, 0x03, 0, 0, 0, 0, 0, 0}),
+				mustNewElement(tag.ExtendedOffsetTableLengths, []byte{0xe0, 0x03, 0, 0, 0, 0, 0, 0, 0xf4, 0x01, 0, 0, 0, 0, 0, 0}),
+				// An element after the OV elements, which a misread OV length would corrupt.
+				mustNewElement(tag.DataSetTrailingPadding, []byte{0, 0}),
+			}},
+			wantError: nil,
+		},
+		{
+			name: "64-bit VRs (OV, SV, UV) - implicit VR",
+			dataset: Dataset{Elements: []*Element{
+				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.77.1.6"}),
+				mustNewElement(tag.MediaStorageSOPInstanceUID, []string{"1.2.3.4.5.6.7"}),
+				mustNewElement(tag.TransferSyntaxUID, []string{uid.ImplicitVRLittleEndian}),
+				mustNewElement(tag.FileOffsetInContainer, []int{1 << 40}),
+				mustNewElement(tag.SelectorSVValue, []int{-5, 1 << 40}),
+				mustNewElement(tag.ExtendedOffsetTable, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0xe8, 0x03, 0, 0, 0, 0, 0, 0}),
+				mustNewElement(tag.ExtendedOffsetTableLengths, []byte{0xe0, 0x03, 0, 0, 0, 0, 0, 0, 0xf4, 0x01, 0, 0, 0, 0, 0, 0}),
+				// An element after the OV elements, which a misread OV length would corrupt.
+				mustNewElement(tag.DataSetTrailingPadding, []byte{0, 0}),
+			}},
+			wantError: nil,
+		},
+		{
 			name: "encapsulated PixelData",
 			dataset: Dataset{Elements: []*Element{
 				mustNewElement(tag.MediaStorageSOPClassUID, []string{"1.2.840.10008.5.1.4.1.1.1.2"}),
